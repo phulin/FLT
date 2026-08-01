@@ -6,6 +6,7 @@ Authors: FLT Project
 module
 
 public import FLT.Deformations.RepresentationTheory.GaloisRep
+public import Mathlib.LinearAlgebra.Basis.VectorSpace
 
 /-!
 # Trace criteria for reducibility in dimension two
@@ -211,5 +212,147 @@ theorem not_isIrreducible_of_upper_normal_form_of_ne
   intro hρ
   exact not_isIrreducible_of_diagonal_normal_form τ hcharτ g d hd hτg
     ((GaloisRep.isIrreducible_conj_iff ρ e).mp hρ)
+
+/-- A two-dimensional representation for which every element satisfies
+`trace(g) = 1 + det(g)` is reducible.  This is the elementary representation-theoretic part of
+the Chebotarev--Brauer--Nesbitt step. -/
+theorem not_isIrreducible_of_trace_eq_one_add_det
+    (ρ : FramedGaloisRep K k (Fin 2))
+    (hchar : ∀ g : Γ K, (ρ.GL g).1.trace = 1 + (ρ.GL g).1.det) :
+    ¬ ρ.IsIrreducible := by
+  by_cases hid : ∀ g : Γ K, (ρ.GL g).1 = 1
+  · apply GaloisRep.not_isIrreducible_of_invariant_line (K := K)
+      (show Module.rank k (Fin 2 → k) = 2 by simp) e₀
+    · simp [e₀]
+    · intro g
+      have hlin : ρ g = LinearMap.id := by
+        apply LinearMap.toMatrix'.injective
+        rw [LinearMap.toMatrix'_id]
+        exact hid g
+      rw [hlin]
+      exact Submodule.mem_span_singleton_self e₀
+  · push_neg at hid
+    obtain ⟨g, hgne⟩ := hid
+    let A : Matrix (Fin 2) (Fin 2) k := (ρ.GL g).1
+    have hdet : (A - 1).det = 0 := by
+      have hgchar := hchar g
+      rw [Matrix.trace_fin_two, Matrix.det_fin_two] at hgchar
+      change A 0 0 + A 1 1 = 1 + (A 0 0 * A 1 1 - A 0 1 * A 1 0) at hgchar
+      calc
+        (A - 1).det = A 0 0 * A 1 1 - A 0 0 - A 1 1 + 1 - A 0 1 * A 1 0 := by
+          rw [Matrix.det_fin_two]
+          simp [Matrix.sub_apply]
+          ring
+        _ = 0 := by linear_combination -hgchar
+    obtain ⟨v, hv, hvker⟩ := Matrix.exists_mulVec_eq_zero_iff.mpr hdet
+    have hAv : A.mulVec v = v := by
+      rw [Matrix.sub_mulVec, Matrix.one_mulVec, sub_eq_zero] at hvker
+      exact hvker
+    have hρv : ρ g v = v := by
+      have hmat : LinearMap.toMatrix' (ρ g) = A := by rfl
+      conv_lhs => rw [← Matrix.toLin'_toMatrix' (ρ g)]
+      rw [hmat, Matrix.toLin'_apply, hAv]
+    let vv : Unit → (k ∙ v) := fun _ ↦ ⟨v, Submodule.mem_span_singleton_self v⟩
+    let v₀ : Unit → (k ∙ (e₀ : Fin 2 → k)) := fun _ ↦
+      ⟨(e₀ : Fin 2 → k), Submodule.mem_span_singleton_self (e₀ : Fin 2 → k)⟩
+    have hvli : LinearIndependent k vv := by
+      rw [linearIndependent_unique_iff]
+      exact Subtype.coe_ne_coe.mp hv
+    have h₀li : LinearIndependent k v₀ := by
+      rw [linearIndependent_unique_iff]
+      simp [v₀, e₀]
+    have hvsp : (⊤ : Submodule k (k ∙ v)) ≤ Submodule.span k (Set.range vv) := by
+      intro x _
+      obtain ⟨c, hc⟩ := Submodule.mem_span_singleton.mp x.prop
+      have hx : x = c • vv () := by
+        apply Subtype.ext
+        simpa [vv] using hc.symm
+      rw [hx]
+      exact Submodule.smul_mem _ _ (Submodule.subset_span (Set.mem_range_self ()))
+    have h₀sp : (⊤ : Submodule k (k ∙ (e₀ : Fin 2 → k))) ≤
+        Submodule.span k (Set.range v₀) := by
+      intro x _
+      obtain ⟨c, hc⟩ := Submodule.mem_span_singleton.mp x.prop
+      have hx : x = c • v₀ () := by
+        apply Subtype.ext
+        simpa [v₀] using hc.symm
+      rw [hx]
+      exact Submodule.smul_mem _ _ (Submodule.subset_span (Set.mem_range_self ()))
+    let bv : Module.Basis Unit k (k ∙ v) := Module.Basis.mk hvli hvsp
+    let b₀ : Module.Basis Unit k (k ∙ (e₀ : Fin 2 → k)) := Module.Basis.mk h₀li h₀sp
+    let f : (k ∙ v) ≃ₗ[k] (k ∙ (e₀ : Fin 2 → k)) := bv.equiv b₀ (Equiv.refl Unit)
+    have hf : f ⟨v, Submodule.mem_span_singleton_self v⟩ =
+        ⟨(e₀ : Fin 2 → k), Submodule.mem_span_singleton_self (e₀ : Fin 2 → k)⟩ := by
+      change (bv.equiv b₀ (Equiv.refl Unit)) _ = _
+      rw [show (⟨v, Submodule.mem_span_singleton_self v⟩ : k ∙ v) = bv () by
+        simp [bv, vv], Module.Basis.equiv_apply]
+      simp [b₀, v₀]
+    obtain ⟨e, he⟩ := Submodule.exists_linearEquiv_restrict_eq f
+    have hev : e v = e₀ := by
+      have he' := he ⟨v, Submodule.mem_span_singleton_self v⟩
+      rw [hf] at he'
+      exact he'.symm
+    let τ : FramedGaloisRep K k (Fin 2) := ρ.conj e
+    have hcharLin (x : Γ K) : LinearMap.trace k (Fin 2 → k) (ρ x) =
+        1 + LinearMap.det (ρ x) := by
+      rw [LinearMap.trace_eq_matrix_trace k (Pi.basisFun k (Fin 2)),
+        ← LinearMap.det_toMatrix (Pi.basisFun k (Fin 2))]
+      exact hchar x
+    have hcharτLin (x : Γ K) : LinearMap.trace k (Fin 2 → k) (τ x) =
+        1 + LinearMap.det (τ x) := by
+      rw [show τ x = ρ.conj e x by rfl, GaloisRep.trace_conj]
+      change LinearMap.trace k (Fin 2 → k) (ρ x) =
+        1 + LinearMap.det (e.conj (ρ x))
+      have hdet' : LinearMap.det (e.conj (ρ x)) = LinearMap.det (ρ x) := by
+        simpa only [LinearEquiv.conj_apply, LinearMap.comp_assoc] using
+          LinearMap.det_conj (ρ x) e
+      rw [hdet']
+      exact hcharLin x
+    have hcharτ (x : Γ K) : (τ.GL x).1.trace = 1 + (τ.GL x).1.det := by
+      have hx := hcharτLin x
+      rw [LinearMap.trace_eq_matrix_trace k (Pi.basisFun k (Fin 2)),
+        ← LinearMap.det_toMatrix (Pi.basisFun k (Fin 2))] at hx
+      exact hx
+    have hτe₀ : τ g e₀ = e₀ := by
+      rw [show τ g e₀ = e (ρ g (e.symm e₀)) by
+        simp [τ, GaloisRep.conj_apply_apply], ← hev]
+      simp [hρv]
+    let a : k := (τ.GL g).1 0 1
+    let d : k := (τ.GL g).1 1 1
+    have hτg : (τ.GL g).1 = !![1, a; 0, d] := by
+      ext i j
+      fin_cases j
+      · have hi := congrFun hτe₀ i
+        rw [FramedGaloisRep.GL_apply, LinearMap.toMatrix'_apply] at ⊢
+        fin_cases i <;> simpa [e₀] using hi
+      · fin_cases i <;> rfl
+    have hτgne : (τ.GL g).1 ≠ 1 := by
+      intro hτone
+      apply hgne
+      have hτlin : τ g = LinearMap.id := by
+        apply LinearMap.toMatrix'.injective
+        rw [LinearMap.toMatrix'_id]
+        exact hτone
+      have hρlin : ρ g = LinearMap.id := by
+        apply LinearMap.ext
+        intro x
+        apply e.injective
+        have hx := congrArg (fun u : Module.End k (Fin 2 → k) ↦ u (e x)) hτlin
+        simpa [τ, GaloisRep.conj_apply_apply] using hx
+      change LinearMap.toMatrix' (ρ g) = 1
+      rw [hρlin, LinearMap.toMatrix'_id]
+    intro hρ
+    have hτirred : τ.IsIrreducible := (GaloisRep.isIrreducible_conj_iff ρ e).mp hρ
+    by_cases hd : d = 1
+    · have ha : a ≠ 0 := by
+        intro ha
+        apply hτgne
+        rw [hτg, ha, hd]
+        ext i j
+        fin_cases i <;> fin_cases j <;> simp
+      have hτg' : (τ.GL g).1 = !![1, a; 0, 1] := by simpa [hd] using hτg
+      exact (not_isIrreducible_of_unipotent_normal_form τ hcharτ g a ha hτg') hτirred
+    · exact (not_isIrreducible_of_upper_normal_form_of_ne τ hcharτ g a d hd hτg)
+        hτirred
 
 end GaloisRep
