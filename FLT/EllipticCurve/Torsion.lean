@@ -250,6 +250,22 @@ noncomputable def piZModPowNeZeroAddEquiv {ι : Type*} [Fintype ι]
     ext i
     rfl
 
+/-- Every cyclic factor of a product equivalent to `A[n]` has modulus dividing
+`n`, since every element of `A[n]` is killed by `n`. -/
+lemma cyclic_factor_dvd_of_torsion_equiv {A : Type*} [AddCommGroup A]
+    {n : ℕ} {ι : Type*} [Fintype ι] (m : ι → ℕ)
+    (E : Submodule.torsionBy ℤ A n ≃+ (∀ i, ZMod (m i))) (i : ι) :
+    m i ∣ n := by
+  let x : Submodule.torsionBy ℤ A n := E.symm (fun _ ↦ 1)
+  have hx : n • x = 0 := by
+    apply Subtype.ext
+    rw [← Nat.cast_smul_eq_nsmul ℤ]
+    exact x.prop
+  have hy := congrArg (fun y ↦ y i) (congrArg E hx)
+  have : (n : ZMod (m i)) = 0 := by
+    simpa [x] using hy
+  exact (ZMod.natCast_eq_zero_iff n (m i)).mp this
+
 /-- Structure-theorem data for `A[n]`, together with the numerical constraints
 on its cyclic prime-power factors supplied by all the smaller torsion cardinalities. -/
 theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
