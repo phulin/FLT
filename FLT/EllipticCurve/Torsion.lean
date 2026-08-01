@@ -90,6 +90,27 @@ noncomputable def torsionNsmulHom {A : Type*} [AddCommGroup A] (d e : ℕ) :
   map_zero' := by simp
   map_add' x y := by simp [smul_add]
 
+/-- The kernel of multiplication by `d` from `(d * e)`-torsion to `e`-torsion
+is canonically the `d`-torsion. -/
+noncomputable def torsionNsmulHomKerEquiv {A : Type*} [AddCommGroup A] (d e : ℕ) :
+    Submodule.torsionBy ℤ A d ≃+
+      (torsionNsmulHom (A := A) d e).ker where
+  toFun x := ⟨⟨x, by
+    rw [Submodule.mem_torsionBy_iff]
+    rw [← Nat.cast_mul, Nat.cast_smul_eq_nsmul]
+    have hx : d • (x : A) = 0 := by
+      rw [← Nat.cast_smul_eq_nsmul ℤ]
+      exact x.prop
+    calc
+      (d * e) • (x : A) = e • (d • (x : A)) := mul_nsmul (x : A) d e
+      _ = 0 := by rw [hx, nsmul_zero]⟩, by
+        ext
+        exact x.prop⟩
+  invFun x := ⟨x, congrArg (fun z : Submodule.torsionBy ℤ A e ↦ (z : A)) x.prop⟩
+  left_inv _ := rfl
+  right_inv _ := rfl
+  map_add' _ _ := rfl
+
 /-- If the `d`-, `e`-, and `(d * e)`-torsion groups have the cardinalities of
 rank-`r` free modules, multiplication by `d` maps the `(d * e)`-torsion onto
 the `e`-torsion. -/
@@ -110,29 +131,8 @@ lemma torsionNsmulHom_surjective_of_card {A : Type*} [AddCommGroup A] {d e r : �
       rw [hcard_e]
       exact pow_ne_zero _ he.ne'
   have hker : Nat.card f.ker = d ^ r := by
-    let g : Submodule.torsionBy ℤ A d →+ f.ker := {
-      toFun x := ⟨⟨x, by
-        rw [Submodule.mem_torsionBy_iff]
-        rw [← Nat.cast_mul, Nat.cast_smul_eq_nsmul]
-        have hx : d • (x : A) = 0 := by
-          rw [← Nat.cast_smul_eq_nsmul ℤ]
-          exact x.prop
-        calc
-          (d * e) • (x : A) = e • (d • (x : A)) := mul_nsmul (x : A) d e
-          _ = 0 := by rw [hx, nsmul_zero]⟩, by
-          ext
-          exact x.prop⟩
-      map_zero' := rfl
-      map_add' _ _ := rfl }
-    have hg : Function.Bijective g := by
-      constructor
-      · intro x y hxy
-        exact Subtype.ext (congrArg (fun z : f.ker ↦ (z : A)) hxy)
-      · rintro ⟨⟨x, hx⟩, hfx⟩
-        refine ⟨⟨x, ?_⟩, rfl⟩
-        exact congrArg (fun z : Submodule.torsionBy ℤ A e ↦ (z : A))
-          (show f ⟨x, hx⟩ = 0 from hfx)
-    exact (Nat.card_eq_of_bijective g hg).symm.trans hcard_d
+    rw [← Nat.card_congr (torsionNsmulHomKerEquiv d e).toEquiv]
+    exact hcard_d
   have hrange : Nat.card f.range = e ^ r := by
     have hprod := f.ker.card_mul_index
     have hcard_domain : Nat.card (Submodule.torsionBy ℤ A ((d : ℤ) * (e : ℤ))) =
