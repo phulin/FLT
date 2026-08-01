@@ -5,9 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
-public import Mathlib.Algebra.Module.Torsion.Basic
-public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
-public import Mathlib.FieldTheory.IsSepClosed
+public import FLT.EllipticCurve.Torsion
 
 /-!
 
@@ -35,4 +33,17 @@ variable (n : ℕ) [NeZero (n : k)]
 -- then the n-torsion of E(k) is free rank 2 over ℤ/nℤ
 theorem WeierstrassCurve.torsion_rank_two :
     Nonempty (AddSubgroup.torsionBy (E⁄k).Point (n : ℤ) ≃+ (ZMod n) × (ZMod n)) :=
-  sorry
+  by
+    haveI : (E.baseChange k).IsElliptic := by
+      change (E.map (algebraMap k k)).IsElliptic
+      infer_instance
+    let e₀ :
+        Submodule.torsionBy ℤ (E⁄k).toAffine.Point (n : ℤ) ≃+
+          AddSubgroup.torsionBy (E⁄k).Point (n : ℤ) := {
+      toFun P := ⟨P, P.2⟩
+      invFun P := ⟨P, P.2⟩
+      left_inv _ := rfl
+      right_inv _ := rfl
+      map_add' _ _ := rfl }
+    obtain ⟨e⟩ := (E.baseChange k).n_torsion_dimension (NeZero.ne (n : k))
+    exact ⟨e₀.symm.trans e⟩
