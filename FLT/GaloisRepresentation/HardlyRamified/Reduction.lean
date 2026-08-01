@@ -8,6 +8,7 @@ module
 public import FLT.GaloisRepresentation.HardlyRamified.Lift
 public import FLT.GaloisRepresentation.HardlyRamified.Family
 public import FLT.GaloisRepresentation.HardlyRamified.Threeadic
+public import FLT.Deformations.RepresentationTheory.TraceReducibility
 
 /-!
 # Reduction of hardly ramified representations
