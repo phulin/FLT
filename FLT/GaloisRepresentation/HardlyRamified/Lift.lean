@@ -148,6 +148,8 @@ theorem exists_minimalLift_over_coefficientRing [CharP k p] (hp : 3 < p)
     [IsModuleTopology ℤ_[p] R]
     [Algebra R k] [IsLocalHom (algebraMap R k)] [IsScalarTower ℤ_[p] R k]
     [ContinuousSMul R k]
+    (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (hresidueEquiv : ∀ r, residueEquiv (IsLocalRing.residue R r) = algebraMap R k r)
     (ρ : FramedGaloisRep ℚ k (Fin 2))
     [Representation.IsAbsolutelyIrreducible.{u} ρ.toRepresentation]
     (hρirred : ρ.IsIrreducible)
@@ -180,7 +182,8 @@ theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p]
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
   obtain ⟨R, hRcomm, hRdomain, hRlocal, hRtop, hRtopRing, hRpAlg, hRlocalHom,
       hRfinite, hRfree, hRmoduleTopology, hRkAlg, hRkTower, hRkContinuous,
-      hRkLocalHom⟩ := Deformation.exists_unramified_coefficientRing (k := k) (p := p)
+      hRkLocalHom, residueEquiv, hresidueEquiv⟩ :=
+    Deformation.exists_unramified_coefficientRing (k := k) (p := p)
   letI : CommRing R := hRcomm
   letI : IsDomain R := hRdomain
   letI : IsLocalRing R := hRlocal
@@ -196,7 +199,7 @@ theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p]
   letI : ContinuousSMul R k := hRkContinuous
   letI : IsLocalHom (algebraMap R k) := hRkLocalHom
   obtain ⟨W, hWadd, hWmodule, hWfinite, hWfree, hWrank, σ, r, hσ⟩ :=
-    exists_minimalLift_over_coefficientRing hpodd hp R ρ hρirred hρ
+    exists_minimalLift_over_coefficientRing hpodd hp R residueEquiv hresidueEquiv ρ hρirred hρ
   exact ⟨R, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
     inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
     inferInstance, inferInstance, W, hWadd, hWmodule, hWfinite, hWfree, hWrank, σ, r, hσ⟩

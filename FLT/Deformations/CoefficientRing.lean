@@ -36,6 +36,20 @@ variable {k : Type u} [Finite k] [Field k]
 
 set_option linter.style.haveILetI false
 
+/-- A surjection from a local ring to a field identifies that field with the residue field. -/
+noncomputable def residueFieldEquivOfSurjective
+    (R : Type*) [CommRing R] [IsLocalRing R]
+    (k : Type*) [Field k] (f : R →+* k) (hf : Function.Surjective f) :
+    ResidueField R ≃+* k :=
+  (Ideal.quotEquivOfEq (IsLocalRing.ker_eq_maximalIdeal f hf).symm).trans
+    (RingHom.quotientKerEquivOfSurjective hf)
+
+@[simp]
+lemma residueFieldEquivOfSurjective_residue
+    (R : Type*) [CommRing R] [IsLocalRing R]
+    (k : Type*) [Field k] (f : R →+* k) (hf : Function.Surjective f) (r : R) :
+    residueFieldEquivOfSurjective R k f hf (residue R r) = f r := rfl
+
 /-- A finite field receiving a local map from `ℤ_[p]` admits an unramified
 coefficient ring.  The ring is a finite free local domain over `ℤ_[p]`, its
 residue map is the prescribed map to `k`, and it carries the finite-module
@@ -49,7 +63,8 @@ theorem exists_unramified_coefficientRing :
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
       (_ : IsModuleTopology ℤ_[p] R)
       (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k),
-      IsLocalHom (algebraMap R k) := by
+      ∃ (_ : IsLocalHom (algebraMap R k)) (e : ResidueField R ≃+* k),
+        ∀ r, e (residue R r) = algebraMap R k r := by
   letI : Finite (ResidueField ℤ_[p]) :=
     Finite.of_equiv (ZMod p) PadicInt.residueField.symm.toEquiv
   obtain ⟨L, hLf, hQpL, hLfin, hLsep, hZpL, hZpQpL, S, hScomm, hSdom, hSdvr,
@@ -137,9 +152,12 @@ theorem exists_unramified_coefficientRing :
         exact hZpk)
   letI : ContinuousSMul R k :=
     ⟨(hRk.comp continuous_fst).mul continuous_snd⟩
+  let residueEquiv : ResidueField R ≃+* k :=
+    residueFieldEquivOfSurjective R k (algebraMap R k) hRksurj
   exact ⟨R, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
     inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
-    inferInstance, inferInstance, inferInstance⟩
+    inferInstance, inferInstance, inferInstance, residueEquiv,
+    residueFieldEquivOfSurjective_residue R k (algebraMap R k) hRksurj⟩
 
 
 end Deformation
