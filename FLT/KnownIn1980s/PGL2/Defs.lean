@@ -5,14 +5,8 @@ Authors: Duxing Yang
 -/
 module
 
-public import Mathlib.FieldTheory.Finite.GaloisField
-public import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
-public import Mathlib.GroupTheory.SemidirectProduct
-public import Mathlib.GroupTheory.SpecificGroups.Alternating
-public import Mathlib.GroupTheory.SpecificGroups.Dihedral
-public import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Basic
-public import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Projective
-public import Mathlib.LinearAlgebra.Matrix.ProjectiveSpecialLinearGroup
+public import FLT.KnownIn1980s.PGL2.Base
+import FLT.Slop.PGL2.FiniteSubgroups.DicksonClassification
 
 /-!
 # Public statements for Dickson's classification in `PGL₂`
@@ -28,15 +22,6 @@ namespace Dickson
 
 variable (p : ℕ) [Fact (Nat.Prime p)]
 
-/-- An algebraic closure `K p` of the finite field `𝔽_p = ZMod p`. -/
-noncomputable abbrev K : Type := AlgebraicClosure (ZMod p)
-
-/-- The projective general linear group `PGL₂(K p)`, i.e. `GL₂(K p)` modulo its centre. -/
-abbrev PGL : Type := Matrix.ProjGenLinGroup (Fin 2) (K p)
-
-/-- The projective special linear group `PSL₂(K p)`. -/
-abbrev PSL : Type := Matrix.ProjectiveSpecialLinearGroup (Fin 2) (K p)
-
 variable [h_odd : Fact (p > 2)]
 
 theorem classification_tame (G : Subgroup (PGL p)) [Finite G]
@@ -47,7 +32,8 @@ theorem classification_tame (G : Subgroup (PGL p)) [Finite G]
     (Nonempty (G ≃* alternatingGroup (Fin 4))) ∨
     (Nonempty (G ≃* Equiv.Perm (Fin 4))) ∨
     (Nonempty (G ≃* alternatingGroup (Fin 5))) := by
-  sorry
+  exact @classification_tame_slop p ‹_› ‹_› G (Fintype.ofFinite G)
+    hG_tame hG_nontrivial
 
 theorem classification_wild (G : Subgroup (PGL p)) [Finite G]
     (hG_p : p ∣ Nat.card G) :
@@ -60,6 +46,6 @@ theorem classification_wild (G : Subgroup (PGL p)) [Finite G]
       Nonempty (G ≃* (GL (Fin 2) (GaloisField p m) ⧸
         Subgroup.center (GL (Fin 2) (GaloisField p m))))) ∨
     (p = 3 ∧ Nonempty (G ≃* alternatingGroup (Fin 5))) := by
-  sorry
+  exact @classification_wild_slop p ‹_› ‹_› G ‹Finite G› hG_p
 
 end Dickson

@@ -5,7 +5,7 @@ Authors: Duxing Yang
 -/
 module
 
-public import FLT.KnownIn1980s.PGL2.Defs
+public import FLT.KnownIn1980s.PGL2.Base
 public import Mathlib.LinearAlgebra.Matrix.Action
 public import Mathlib.FieldTheory.Finite.GaloisField
 public import Mathlib.GroupTheory.SpecificGroups.Alternating
@@ -25,7 +25,7 @@ of the finite subgroups of `PGL₂(𝔽̄_p)` for `p` an odd prime.
 We define the group `PGLOf F := PGL₂(F)` for a field `F` (as the quotient of `GL₂(F)` by its
 centre) and the projective line `ProjectiveLine p := ℙ¹(K p)` together with its natural
 `PGLOf (K p)`-action, where `K p` is the algebraic closure of `𝔽_p` from
-`FLT.KnownIn1980s.PGL2.Defs`. The whole `FLT.Slop.PGL2` development is stated in terms of
+`FLT.KnownIn1980s.PGL2.Base`. The whole `FLT.Slop.PGL2` development is stated in terms of
 `PGLOf (K p)`, which is definitionally (but not reducibly) equal to the public `Dickson.PGL p`.
 
 The main results are:
