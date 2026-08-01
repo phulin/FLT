@@ -112,6 +112,15 @@ omit [NumberField K] in
 lemma GaloisRep.conj_apply_apply (ρ : GaloisRep K A M) (e : M ≃ₗ[A] N) (σ : Γ K) (x : N) :
     ρ.conj e σ x = e (ρ σ (e.symm x)) := rfl
 
+omit [NumberField K] in
+@[simp]
+lemma GaloisRep.conj_trans
+    {P : Type*} [AddCommGroup P] [Module A P]
+    (ρ : GaloisRep K A M) (e : M ≃ₗ[A] N) (f : N ≃ₗ[A] P) :
+    (ρ.conj e).conj f = ρ.conj (e.trans f) := by
+  ext σ x
+  rfl
+
 @[simp]
 lemma GaloisRep.map_conj (ρ : GaloisRep K A M) (e : M ≃ₗ[A] N) (f : K →+* L) :
     (ρ.conj e).map f = (ρ.map f).conj e := rfl
