@@ -29,6 +29,19 @@ power, the Schoof--Fontaine devissage of the associated finite flat group scheme
 character congruent to `1 + det`.  Concretely, one moves every multiplicative Jordan--Hölder
 factor to the subobject and every constant factor to the quotient; the obstruction is the
 nonexistence of a hardly ramified extension in the opposite order. -/
+theorem three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow_succ
+    {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
+    [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [IsModuleTopology ℤ_[3] R]
+    (V : Type*) [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
+    (hV : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
+    (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ) (g : Γ ℚ) :
+    LinearMap.trace R V (ρ g) - (1 + LinearMap.det (ρ g)) ∈
+      IsLocalRing.maximalIdeal R ^ (n + 1) := by
+  sorry
+
+/-- The finite-level character congruence for every maximal-ideal power.  The zeroth power is
+the unit ideal; positive powers are the arithmetic Schoof--Fontaine input. -/
 theorem three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow
     {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
     [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
@@ -38,7 +51,11 @@ theorem three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow
     (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ) (g : Γ ℚ) :
     LinearMap.trace R V (ρ g) - (1 + LinearMap.det (ρ g)) ∈
       IsLocalRing.maximalIdeal R ^ n := by
-  sorry
+  cases n with
+  | zero => simp
+  | succ n =>
+      simpa only [Nat.succ_eq_add_one] using
+        three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow_succ V hV hρ n g
 
 /-- The finite-level Schoof--Fontaine congruences determine the 3-adic character because a
 module-finite local algebra over `ℤ_[3]` is Noetherian and hence separated for its maximal-ideal
