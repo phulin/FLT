@@ -524,12 +524,13 @@ class GaloisRep.IsFlatAt [IsLocalRing A] (ρ : GaloisRep K A M) : Prop where
     (ρ.baseChange (A ⧸ I)).HasFlatProlongationAt v
 
 /-- The finite-flat group-scheme input behind functoriality of the flat deformation
-condition.  A flat model for an Artinian-coefficient representation remains realizable after
-extension to another Artinian coefficient ring.  This is the extension argument of Conrad,
+condition. A flat model for an Artinian-coefficient representation remains realizable after
+extension to a module-finite Artinian coefficient algebra. This is the extension argument of Conrad,
 *The flat deformation functor*, Theorem 1.6: a composition series for the target coefficient
 ring reduces the construction to extensions of finite flat group schemes. -/
 theorem GaloisRep.HasFlatProlongationAt.baseChange_artinian [IsTopologicalRing B]
-    [IsArtinianRing A] [IsArtinianRing B] [Algebra A B] [ContinuousSMul A B]
+    [IsArtinianRing A] [IsArtinianRing B] [Algebra A B] [Module.Finite A B]
+    [ContinuousSMul A B]
     (ρ : GaloisRep K A M) (hρ : ρ.HasFlatProlongationAt v) :
     (ρ.baseChange B).HasFlatProlongationAt v := by
   sorry
@@ -542,7 +543,8 @@ under extensions.  This is the coefficient-ring base-change theorem used in the 
 of the flat deformation functor (cf. Conrad, Theorem 1.6 of CSS). -/
 theorem GaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
     [IsLocalRing A] [IsLocalRing B] [Algebra A B] [ContinuousSMul A B]
-    [IsLocalHom (algebraMap A B)] [IsProartinian A] [IsProartinian B]
+    [IsLocalHom (algebraMap A B)] [IsResidueAlgebra A B]
+    [IsProartinian A] [IsProartinian B]
     (ρ : GaloisRep K A M) [ρ.IsFlatAt v] :
     (ρ.baseChange B).IsFlatAt v := by
   constructor
@@ -551,18 +553,20 @@ theorem GaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
   have hI : IsOpen (X := A) (I : Set A) :=
     hJ.preimage (continuous_algebraMap A B)
   have hflatI := GaloisRep.IsFlatAt.cond (v := v) (ρ := ρ) I hI
-  letI : Algebra (A ⧸ I) (B ⧸ J) :=
+  let : Algebra (A ⧸ I) (B ⧸ J) :=
     Ideal.Quotient.algebraQuotientOfLEComap (le_refl I)
-  letI : IsScalarTower A (A ⧸ I) (B ⧸ J) := inferInstance
-  letI : DiscreteTopology (A ⧸ I) := QuotientAddGroup.discreteTopology hI
-  letI : DiscreteTopology (B ⧸ J) := QuotientAddGroup.discreteTopology hJ
-  letI : ContinuousSMul (A ⧸ I) (B ⧸ J) :=
+  let : IsScalarTower A (A ⧸ I) (B ⧸ J) := inferInstance
+  let : DiscreteTopology (A ⧸ I) := QuotientAddGroup.discreteTopology hI
+  let : DiscreteTopology (B ⧸ J) := QuotientAddGroup.discreteTopology hJ
+  let : ContinuousSMul (A ⧸ I) (B ⧸ J) :=
     DiscreteTopology.instContinuousSMul (A ⧸ I) (B ⧸ J)
-  letI : ContinuousSMul A (B ⧸ J) :=
+  let : ContinuousSMul A (B ⧸ J) :=
     continuousSMul_of_algebraMap A (B ⧸ J)
       (continuous_quot_mk.comp (continuous_algebraMap A B))
-  letI : IsArtinianRing (A ⧸ I) := IsProartinian.isArtinianRing_quotient I hI
-  letI : IsArtinianRing (B ⧸ J) := IsProartinian.isArtinianRing_quotient J hJ
+  let : IsArtinianRing (A ⧸ I) := IsProartinian.isArtinianRing_quotient I hI
+  let : IsArtinianRing (B ⧸ J) := IsProartinian.isArtinianRing_quotient J hJ
+  let : Module.Finite (A ⧸ I) (B ⧸ J) :=
+    moduleFinite_quotient_comap_of_isResidueAlgebra (R := A) (S := B) J hJ
   have hiter :
       ((ρ.baseChange (A ⧸ I)).baseChange (B ⧸ J)).HasFlatProlongationAt v :=
     hflatI.baseChange_artinian v
@@ -586,28 +590,35 @@ theorem GaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
     (TensorProduct.AlgebraTensorModule.cancelBaseChange A B (B ⧸ J) (B ⧸ J) M).symm
 
 /-- Flatness at a finite place is invariant under a change of basis. -/
-instance GaloisRep.IsFlatAt.conj [IsLocalRing A]
-    (ρ : GaloisRep K A M) (v : Ω K) [ρ.IsFlatAt v] (e : M ≃ₗ[A] N) :
+lemma GaloisRep.IsFlatAt.conj [IsLocalRing A]
+    {ρ : GaloisRep K A M} (hρ : ρ.IsFlatAt v) (e : M ≃ₗ[A] N) :
     (ρ.conj e).IsFlatAt v where
   cond I hI := by
     rw [GaloisRep.baseChange_conj]
-    exact (GaloisRep.IsFlatAt.cond (ρ := ρ) I hI).conj v (e.baseChange A (A ⧸ I))
+    exact (hρ.cond I hI).conj v (e.baseChange A (A ⧸ I))
+
+instance GaloisRep.IsFlatAt.conj_instance [IsLocalRing A]
+    (ρ : GaloisRep K A M) (v : Ω K) [hρ : ρ.IsFlatAt v] (e : M ≃ₗ[A] N) :
+    (ρ.conj e).IsFlatAt v :=
+  hρ.conj v e
 
 /-- The matrix-valued form of `GaloisRep.IsFlatAt.baseChange`. -/
-instance FramedGaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
-    [IsLocalRing A] [IsLocalRing B]
-    [IsProartinian A] [IsProartinian B]
+theorem FramedGaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
+    [IsLocalRing A] [IsLocalRing B] [IsProartinian A] [IsProartinian B]
     (ρ : FramedGaloisRep K A n) (f : A →+* B) (hf : Continuous f)
-    [IsLocalHom f] [ρ.IsFlatAt v] :
+    [IsLocalHom f] [ρ.IsFlatAt v]
+    (hres : letI : Algebra A B := f.toAlgebra; IsResidueAlgebra A B) :
     (ρ.baseChange f hf).IsFlatAt v := by
   rw [FramedGaloisRep.baseChange_def]
-  letI : Algebra A B := f.toAlgebra
-  letI : ContinuousSMul A B := continuousSMul_of_algebraMap A B hf
-  letI : IsLocalHom (algebraMap A B) := ‹IsLocalHom f›
-  have : (GaloisRep.baseChange B ρ).IsFlatAt v :=
+  let : Algebra A B := f.toAlgebra
+  let : ContinuousSMul A B := continuousSMul_of_algebraMap A B hf
+  let : IsLocalHom (algebraMap A B) := ‹IsLocalHom f›
+  let : IsResidueAlgebra A B := hres
+  have hbase : (GaloisRep.baseChange B ρ).IsFlatAt v :=
     GaloisRep.IsFlatAt.baseChange v ρ
   unfold GaloisRep.frame
-  infer_instance
+  exact hbase.conj v
+    (((Pi.basisFun A n).baseChange B).repr ≪≫ₗ Finsupp.linearEquivFunOnFinite B B n)
 
 end Flat
 

@@ -6,9 +6,11 @@ Authors: Andrew Yang, Kevin Buzzard, Ruben Van de Velde
 module
 
 public import FLT.Patching.Utils.AdicTopology
+public import FLT.Deformations.IsResidueAlgebra
 import FLT.Deformations.Lemmas
 import Mathlib.CategoryTheory.Category.Init
 import Mathlib.RingTheory.Artinian.Ring
+import Mathlib.RingTheory.HopkinsLevitzki
 import Mathlib.Topology.Connected.Separation
 
 /-!
@@ -101,5 +103,47 @@ lemma isLocalHom_of_isContinuous_of_isProartinian
   obtain ⟨n, hn⟩ := exists_maximalIdeal_pow_le_of_isProartinian ((maximalIdeal S).comap f)
     (isOpen_maximalIdeal_of_isProartinian.preimage h)
   refine hn (Ideal.pow_mem_pow ha' n) (by simpa using ha.pow n)
+
+omit [TopologicalSpace R] [IsTopologicalRing R] in
+/-- If a local pro-Artinian residue algebra is quotiented by an open ideal, then the
+resulting quotient is finite as a module over the quotient of the source by the pulled-back
+ideal. The residue-field quotient is finite because the two rings have the same residue field;
+Hopkins--Levitzki then lifts this through the Artinian target ring. -/
+lemma moduleFinite_quotient_comap_of_isResidueAlgebra [IsProartinian S]
+    [Algebra R S] [IsResidueAlgebra R S]
+    (J : Ideal S) (hJ : IsOpen (X := S) (J : Set S)) :
+    let I := J.comap (algebraMap R S)
+    letI : Algebra (R ⧸ I) (S ⧸ J) :=
+      Ideal.Quotient.algebraQuotientOfLEComap (le_refl I)
+    Module.Finite (R ⧸ I) (S ⧸ J) := by
+  dsimp only
+  let I : Ideal R := J.comap (algebraMap R S)
+  let : Algebra (R ⧸ I) (S ⧸ J) :=
+    Ideal.Quotient.algebraQuotientOfLEComap (le_refl I)
+  let : IsArtinianRing (S ⧸ J) := IsProartinian.isArtinianRing_quotient J hJ
+  by_cases hJtop : J = ⊤
+  · subst J
+    let : Finite (S ⧸ (⊤ : Ideal S)) := inferInstance
+    exact Module.Finite.of_finite
+  · let : Nontrivial (S ⧸ J) := Ideal.Quotient.nontrivial_iff.mpr hJtop
+    have hItop : I ≠ ⊤ := Ideal.comap_ne_top _ hJtop
+    let : Nontrivial (R ⧸ I) := Ideal.Quotient.nontrivial_iff.mpr hItop
+    let : IsLocalRing (R ⧸ I) :=
+      IsLocalRing.of_surjective' _ Ideal.Quotient.mk_surjective
+    let : IsLocalRing (S ⧸ J) :=
+      IsLocalRing.of_surjective' _ Ideal.Quotient.mk_surjective
+    let : IsScalarTower R (R ⧸ I) (S ⧸ J) := inferInstance
+    let : IsResidueAlgebra R (S ⧸ J) := inferInstance
+    let : IsResidueAlgebra R (R ⧸ I) := inferInstance
+    let : IsResidueAlgebra (R ⧸ I) (S ⧸ J) :=
+      IsResidueAlgebra.of_restrictScalars (𝓞 := R) (A := R ⧸ I) (B := S ⧸ J)
+    let : Module.Finite (R ⧸ I) (ResidueField (S ⧸ J)) :=
+      Module.Finite.of_surjective (Algebra.linearMap _ _)
+        (IsResidueAlgebra.algebraMap_surjective (R ⧸ I) (S ⧸ J))
+    let : Module.Finite (R ⧸ I) ((S ⧸ J) ⧸ Ring.jacobson (S ⧸ J)) := by
+      rw [IsLocalRing.ringJacobson_eq_maximalIdeal]
+      change Module.Finite (R ⧸ I) (ResidueField (S ⧸ J))
+      infer_instance
+    exact IsSemiprimaryRing.finite_of_isArtinian (R ⧸ I) (S ⧸ J) (S ⧸ J)
 
 end IsLocalRing

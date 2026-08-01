@@ -151,9 +151,12 @@ def flatFunctor (v : Ω K) : Subfunctor (repnFunctor n (Γ K) 𝓞) where
   map {R S} f ρ hρ := by
     have : (toFramedGaloisRep ρ).IsFlatAt v := hρ
     simp only [Set.preimage_ofPred_eq, toFramedGaloisRep_map, Set.mem_ofPred_eq] at ⊢
-    letI : IsLocalHom f.hom.toRingHom := inferInstance
-    exact FramedGaloisRep.IsFlatAt.baseChange v (toFramedGaloisRep ρ)
+    let : IsLocalHom f.hom.toRingHom := inferInstance
+    apply FramedGaloisRep.IsFlatAt.baseChange v (toFramedGaloisRep ρ)
       f.hom.toRingHom f.hom.cont
+    let : Algebra R S := f.hom.toRingHom.toAlgebra
+    let : IsScalarTower 𝓞 R S := inferInstance
+    exact IsResidueAlgebra.of_restrictScalars (𝓞 := 𝓞) (A := R) (B := S)
 
 set_option backward.isDefEq.respectTransparency.types false in
 /-- The subfunctor of unramified (at `v`) representations. -/
