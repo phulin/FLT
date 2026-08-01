@@ -21,10 +21,10 @@ Material destined for Mathlib.
 
 namespace IsDedekindDomain.FiniteAdeleRing
 
+/- Compatibility scope for project files that have not yet migrated to mathlib's
+namespace-scoped finite adèle notation. -/
 @[inherit_doc]
 scoped[Adele] notation:max "𝔸ᶠ[" A ", " K "]" => IsDedekindDomain.FiniteAdeleRing A K
-
-open scoped Adele
 
 variable (R K : Type*) [CommRing R] [Field K] [IsDedekindDomain R] [Algebra R K]
   [IsFractionRing R K]

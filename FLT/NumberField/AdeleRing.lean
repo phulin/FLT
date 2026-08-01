@@ -58,7 +58,7 @@ The desired instances are constructed later as `scoped` instances in `FLT.Number
 -/
 
 @[expose] public section
-open scoped TensorProduct Adele
+open scoped TensorProduct
 
 universe u
 
@@ -68,14 +68,15 @@ namespace NumberField.AdeleRing
 
 open IsDedekindDomain
 
-open scoped NumberField.InfiniteAdeleRing IsDedekindDomain.FiniteAdeleRing
+open scoped NumberField.AdeleRing IsDedekindDomain.FiniteAdeleRing
 
 variable (K L : Type*) [Field K] [NumberField K] [Field L] [NumberField L]
 
-section BaseChange
-
-/-- `𝔸 K` for `K` a number field, is notation for `AdeleRing (𝓞 K) K`. -/
+/- Retain the project's established `𝔸 K` notation while mathlib uses `𝔸[K]`. -/
 scoped[Adele] notation:max "𝔸" K => AdeleRing (𝓞 K) K
+local notation:max "𝔸" K => AdeleRing (𝓞 K) K
+
+section BaseChange
 
 instance [SMul (𝔸 K) (𝔸 L)] : SMul (K∞ × 𝔸ᶠ[K]) (L∞ × 𝔸ᶠ[L]) :=
   inferInstanceAs (SMul (𝔸 K) (𝔸 L))
@@ -350,7 +351,7 @@ are provided as scoped instances to avoid creating diamonds when `K = L`. -/
 
 open IsDedekindDomain AdeleRing
 
-open scoped InfiniteAdeleRing TensorProduct.RightActions NumberField.AdeleRing NumberField.LiesOver
+open scoped TensorProduct.RightActions NumberField.AdeleRing NumberField.LiesOver
 
 variable {K L : Type*} [Field K] [Field L] [NumberField K] [NumberField L] [Algebra K L]
 
@@ -815,6 +816,8 @@ namespace NumberField.AdeleRing
 open IsDedekindDomain AdeleRing InfiniteAdeleRing
 
 open scoped TensorProduct.RightActions
+
+local notation:max "𝔸" K => AdeleRing (𝓞 K) K
 
 variable (K L : Type*) [Field K] [NumberField K] [Field L] [NumberField L] [Algebra K L]
 

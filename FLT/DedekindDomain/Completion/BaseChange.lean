@@ -671,7 +671,7 @@ variable {v} (w : v.Extension B)
 lemma _root_.WithZero.ofAdd_neg_ofNat_pow (n : ℕ) :
     (WithZero.coe (Multiplicative.ofAdd (-n : ℤ))) = (Multiplicative.ofAdd (-1 : ℤ)) ^ n := by
   congr
-  rw [← ofAdd_nsmul, nsmul_eq_mul, Int.mul_neg_one]
+  simp
 
 theorem ramificationIdx_eq_ramificationIdx :
     (v.completionIdeal K).ramificationIdx' (w.1.completionIdeal L) =

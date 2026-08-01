@@ -287,7 +287,8 @@ lemma adicCompletion_smul_def (v : HeightOneSpectrum (𝓞 F)) (g : GL₂(v.adic
     (v : HeightOneSpectrum (𝓞 F)) (x) :
     IsDedekindDomain.FiniteAdeleRing.toAdicCompletion v x = x v := rfl
 
-@[simp] lemma FiniteAdeleRing.coe_zero : ⇑(0 : 𝔸ᶠ[𝓞 F, F]) = 0 := rfl
+@[simp] lemma FiniteAdeleRing.coe_zero :
+    ⇑(0 : IsDedekindDomain.FiniteAdeleRing (𝓞 F) F) = 0 := rfl
 
 set_option backward.isDefEq.respectTransparency false in
 @[simp]

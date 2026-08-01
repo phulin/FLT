@@ -31,7 +31,7 @@ open scoped TensorProduct
 
 universe u
 
-open NumberField IsDedekindDomain RestrictedProduct Adele
+open NumberField IsDedekindDomain RestrictedProduct
 
 section Instances
 
@@ -40,7 +40,11 @@ variable (K : Type*) [Field K] [NumberField K]
 open HeightOneSpectrum
 
 /-- `𝔸ᶠ[K]` is notation for `FiniteAdeleRing (𝓞 K) K`. -/
-scoped[Adele] notation:max "𝔸ᶠ[" K "]" => 𝔸ᶠ[𝓞 K, K]
+scoped[Adele] notation:max "𝔸ᶠ[" K "]" =>
+  IsDedekindDomain.FiniteAdeleRing (𝓞 K) K
+
+open scoped Adele
+
 namespace IsDedekindDomain.FiniteAdeleRing
 
 open IsDedekindDomain HeightOneSpectrum RestrictedProduct in
