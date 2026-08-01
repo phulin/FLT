@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import FLT.GaloisRepresentation.HardlyRamified.ModThree
+public import FLT.Deformations.CoefficientRing
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
@@ -130,10 +131,37 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
     ρ.toRepresentation hρirred hc_fixed
 
 /--
+The arithmetic input to the hardly-ramified lifting theorem, after fixing an unramified
+coefficient DVR with residue field `k`.  This is the minimal-lift theorem of
+Khare--Wintenberger, *Serre's modularity conjecture (I)*, Theorem 3.3: potential modularity and
+an `R = T` theorem make the minimal deformation ring finite over the coefficient ring, while
+the presentation bounds make it flat and hence provide a characteristic-zero point.
+
+The coefficient-ring construction, the exceptional characteristic-three case, and the removal
+of a chosen residual basis are all handled separately below.
+-/
+theorem exists_minimalLift_over_coefficientRing [CharP k p] (hp : 3 < p)
+    (R : Type u) [CommRing R] [IsDomain R] [IsLocalRing R]
+    [TopologicalSpace R] [IsTopologicalRing R]
+    [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
+    [Module.Finite ℤ_[p] R] [Module.Free ℤ_[p] R]
+    [IsModuleTopology ℤ_[p] R]
+    [Algebra R k] [IsLocalHom (algebraMap R k)] [IsScalarTower ℤ_[p] R k]
+    [ContinuousSMul R k]
+    (ρ : FramedGaloisRep ℚ k (Fin 2))
+    [Representation.IsAbsolutelyIrreducible.{u} ρ.toRepresentation]
+    (hρirred : ρ.IsIrreducible)
+    (hρ : IsHardlyRamified hpodd (by simp) ρ) :
+    ∃ (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (_ : Module.Free R W) (hW : Module.rank R W = 2)
+      (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
+    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
+
+/--
 The arithmetic core of the lifting theorem in residue characteristic greater than three,
-after choosing a basis of the residual representation.  Keeping this input framed isolates
-the deformation-theoretic construction from both the exceptional characteristic-three case
-and the basis-independence argument below.
+after choosing a basis of the residual representation.  The unramified coefficient DVR is
+constructed independently, so the remaining arithmetic input is precisely
+`exists_minimalLift_over_coefficientRing`.
 -/
 theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p] (hp : 3 < p)
     (ρ : FramedGaloisRep ℚ k (Fin 2))
@@ -149,7 +177,29 @@ theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p]
       (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
-    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
+    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
+  obtain ⟨R, hRcomm, hRdomain, hRlocal, hRtop, hRtopRing, hRpAlg, hRlocalHom,
+      hRfinite, hRfree, hRmoduleTopology, hRkAlg, hRkTower, hRkContinuous,
+      hRkLocalHom⟩ := Deformation.exists_unramified_coefficientRing (k := k) (p := p)
+  letI : CommRing R := hRcomm
+  letI : IsDomain R := hRdomain
+  letI : IsLocalRing R := hRlocal
+  letI : TopologicalSpace R := hRtop
+  letI : IsTopologicalRing R := hRtopRing
+  letI : Algebra ℤ_[p] R := hRpAlg
+  letI : IsLocalHom (algebraMap ℤ_[p] R) := hRlocalHom
+  letI : Module.Finite ℤ_[p] R := hRfinite
+  letI : Module.Free ℤ_[p] R := hRfree
+  letI : IsModuleTopology ℤ_[p] R := hRmoduleTopology
+  letI : Algebra R k := hRkAlg
+  letI : IsScalarTower ℤ_[p] R k := hRkTower
+  letI : ContinuousSMul R k := hRkContinuous
+  letI : IsLocalHom (algebraMap R k) := hRkLocalHom
+  obtain ⟨W, hWadd, hWmodule, hWfinite, hWfree, hWrank, σ, r, hσ⟩ :=
+    exists_minimalLift_over_coefficientRing hpodd hp R ρ hρirred hρ
+  exact ⟨R, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, inferInstance, W, hWadd, hWmodule, hWfinite, hWfree, hWrank, σ, r, hσ⟩
 
 /-- Absolute irreducibility needed by the deformation-theoretic lifting theorem follows from
 irreducibility and the cyclotomic determinant. -/
