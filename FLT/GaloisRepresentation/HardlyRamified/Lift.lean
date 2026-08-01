@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import FLT.GaloisRepresentation.HardlyRamified.ModThree
+public import FLT.Deformations.RepresentationTheory.Irreducible
 public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
 /-!
@@ -32,12 +33,64 @@ variable {k : Type u} [Finite k] [Field k]
 
 open TensorProduct
 
+local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
+local notation3 K:max "ᵃˡᵍ" => AlgebraicClosure K
+
+/-- A complex conjugation in the absolute Galois group of `ℚ`: it is an involution and its
+`p`-adic cyclotomic character is `-1`.  The construction extends ordinary complex conjugation
+from the algebraic numbers inside `ℂ` to the chosen algebraic closure of `ℚ`. -/
+theorem exists_odd_involution :
+    ∃ c : Γ ℚ, c * c = 1 ∧
+      ((cyclotomicCharacter (ℚ ᵃˡᵍ) p c.toRingEquiv : ℤ_[p]ˣ) : ℤ_[p]) = -1 := by
+  sorry
+
+/-- An irreducible hardly ramified residual representation is absolutely irreducible.  The
+cyclotomic determinant makes complex conjugation an odd involution, and hence gives a
+one-dimensional fixed space. -/
+theorem isAbsolutelyIrreducible_of_isIrreducible
+    [CharP k p] (hp : 3 < p) (ρ : FramedGaloisRep ℚ k (Fin 2))
+    (hρirred : ρ.IsIrreducible) (hρ : IsHardlyRamified hpodd (by simp) ρ) :
+    Representation.IsAbsolutelyIrreducible.{u} ρ.toRepresentation := by
+  obtain ⟨c, hc_sq, hc_cyclo⟩ := exists_odd_involution (p := p)
+  letI : Fact (2 < p) := ⟨by omega⟩
+  have hneg : (-1 : k) ≠ 1 := CharP.neg_one_ne_one k p
+  have hc_rep_sq : (ρ.toRepresentation c).comp (ρ.toRepresentation c) = LinearMap.id := by
+    change ρ c * ρ c = 1
+    rw [← map_mul, hc_sq, map_one]
+  have hc_det : LinearMap.det (ρ.toRepresentation c) = -1 := by
+    change ρ.det c = -1
+    rw [hρ.det c, hc_cyclo, map_neg, map_one]
+  have hc_fixed :
+      Module.finrank k (Module.End.eigenspace (ρ.toRepresentation c) 1) = 1 :=
+    Representation.finrank_eigenspace_one_of_sq_eq_one_of_det_eq_neg_one
+      (by simp) (ρ.toRepresentation c) hneg hc_rep_sq hc_det
+  exact Representation.IsAbsolutelyIrreducible.of_finrank_eigenspace_eq_one
+    ρ.toRepresentation hρirred hc_fixed
+
 /--
 The arithmetic core of the lifting theorem in residue characteristic greater than three,
 after choosing a basis of the residual representation.  Keeping this input framed isolates
 the deformation-theoretic construction from both the exceptional characteristic-three case
 and the basis-independence argument below.
 -/
+theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p] (hp : 3 < p)
+    (ρ : FramedGaloisRep ℚ k (Fin 2))
+    [Representation.IsAbsolutelyIrreducible.{u} ρ.toRepresentation]
+    (hρirred : ρ.IsIrreducible)
+    (hρ : IsHardlyRamified hpodd (by simp) ρ) :
+    ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsLocalRing R)
+      (_ : TopologicalSpace R) (_ : IsTopologicalRing R)
+      (_ : Algebra ℤ_[p] R) (_ : IsLocalHom (algebraMap ℤ_[p] R))
+      (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
+      (_ : IsModuleTopology ℤ_[p] R)
+      (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
+      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (_ : Module.Free R W) (hW : Module.rank R W = 2)
+      (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
+    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
+
+/-- Absolute irreducibility needed by the deformation-theoretic lifting theorem follows from
+irreducibility and the cyclotomic determinant. -/
 theorem lifts_framed_of_three_lt_of_charP [CharP k p] (hp : 3 < p)
     (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrreducible)
     (hρ : IsHardlyRamified hpodd (by simp) ρ) :
@@ -50,7 +103,11 @@ theorem lifts_framed_of_three_lt_of_charP [CharP k p] (hp : 3 < p)
       (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
-    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
+    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
+  letI : Representation.IsAbsolutelyIrreducible.{u} ρ.toRepresentation :=
+    isAbsolutelyIrreducible_of_isIrreducible hpodd hp ρ hρirred hρ
+  exact lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible
+    hpodd hp ρ hρirred hρ
 
 /-- The local coefficient-field hypothesis already forces the residue field to have
 characteristic `p`; this is the form used by the public lifting theorem. -/
