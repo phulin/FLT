@@ -215,27 +215,32 @@ def Field.AbsoluteGaloisGroup.adicArithFrob : Γ Kᵥ :=
 
 local notation "Frobᵥ" => Field.AbsoluteGaloisGroup.adicArithFrob v
 
+/-- The canonical embedding into the adic completion used to define the local restriction map. -/
+noncomputable
+def Field.AbsoluteGaloisGroup.adicEmbedding : K →+* Kᵥ :=
+  algebraMap K Kᵥ
+
 /-- The chosen local arithmetic Frobenius, viewed in the global absolute Galois group through
 the fixed embedding of algebraic closures used by `Field.absoluteGaloisGroup.map`. -/
 noncomputable
 def Field.AbsoluteGaloisGroup.globalAdicArithFrob : Γ K :=
-  Field.absoluteGaloisGroup.map (algebraMap K Kᵥ) Frobᵥ
+  Field.absoluteGaloisGroup.map (Field.AbsoluteGaloisGroup.adicEmbedding v) Frobᵥ
 
 /-- The defining compatibility of the chosen global Frobenius with its local Frobenius under
 the fixed embedding of algebraic closures. -/
 lemma Field.AbsoluteGaloisGroup.map_globalAdicArithFrob (x : Kᵃˡᵍ) :
-    AlgebraicClosure.map (algebraMap K Kᵥ)
+    AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v)
         (Field.AbsoluteGaloisGroup.globalAdicArithFrob v x) =
-      Frobᵥ (AlgebraicClosure.map (algebraMap K Kᵥ) x) :=
-  Field.absoluteGaloisGroup.lift_map (algebraMap K Kᵥ) Frobᵥ x
+      Frobᵥ (AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v) x) :=
+  Field.absoluteGaloisGroup.lift_map (Field.AbsoluteGaloisGroup.adicEmbedding v) Frobᵥ x
 
 /-- Prove an equality after applying the chosen global Frobenius by checking it after the fixed
 embedding into the local algebraic closure. -/
 lemma Field.AbsoluteGaloisGroup.globalAdicArithFrob_eq_of_map_eq {x y : Kᵃˡᵍ}
-    (h : Frobᵥ (AlgebraicClosure.map (algebraMap K Kᵥ) x) =
-      AlgebraicClosure.map (algebraMap K Kᵥ) y) :
+    (h : Frobᵥ (AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v) x) =
+      AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v) y) :
     Field.AbsoluteGaloisGroup.globalAdicArithFrob v x = y := by
-  apply (AlgebraicClosure.map (algebraMap K Kᵥ)).injective
+  apply (AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v)).injective
   exact (Field.AbsoluteGaloisGroup.map_globalAdicArithFrob v x).trans h
 
 lemma Field.AbsoluteGaloisGroup.isArithFrobAt_adicArithFrob :
