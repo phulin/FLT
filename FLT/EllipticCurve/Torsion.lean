@@ -84,9 +84,14 @@ theorem WeierstrassCurve.n_torsion_rank [IsSepClosed k] {n : ℕ} (hnp : n.Prime
   rw [e''.rank_eq, rank_ulift, rank_prod', CommSemiring.rank_self]
   norm_num
 
--- follows easily from the above
-noncomputable instance (n : ℕ) : Module.Finite (ZMod n) (E.nTorsion n) := by
-  sorry
+/-- Positive torsion is finite as a module over `ZMod n`. -/
+theorem WeierstrassCurve.n_torsion_module_finite {n : ℕ} (hn : 0 < n) :
+    Module.Finite (ZMod n) (E.nTorsion n) := by
+  letI : Finite (E.nTorsion n) := E.n_torsion_finite hn
+  exact Module.Finite.of_finite
+
+noncomputable instance (n : ℕ) [NeZero n] : Module.Finite (ZMod n) (E.nTorsion n) :=
+  E.n_torsion_module_finite (Nat.pos_of_ne_zero (NeZero.ne n))
 
 -- This should be a straightforward but perhaps long unravelling of the definition
 /-- The map on points for an elliptic curve over `k` induced by a morphism of `k`-algebras
