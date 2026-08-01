@@ -95,6 +95,21 @@ set_option backward.isDefEq.respectTransparency false in
 lemma coe_unitOfNeZero (a : 𝓞) (ha : a ≠ 0) :
     (unitOfNeZero a ha : D) = (1 : ℚ) ⊗ₜ a := rfl
 
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma coe_inv_unitOfNeZero (a : 𝓞) (ha : a ≠ 0) :
+    (↑((unitOfNeZero a ha)⁻¹) : D) =
+      ((Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a := rfl
+
+/-- A rational scalar, viewed as a unit of the rational Hurwitz quaternions. -/
+noncomputable def scalarUnit (q : ℚˣ) : Dˣ :=
+  Units.map (Algebra.TensorProduct.includeLeft : ℚ →ₐ[ℤ] D).toRingHom.toMonoidHom q
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma coe_scalarUnit (q : ℚˣ) : (scalarUnit q : D) = (q : ℚ) ⊗ₜ (1 : 𝓞) := by
+  rfl
+
 end HurwitzRat
 
 open scoped HurwitzRat HurwitzHat
@@ -248,29 +263,194 @@ lemma exists_integral_generator {x y : 𝓞^} (N : ℕ+)
     _ = (δ * (((N : ℤ) : 𝓞^) * HurwitzHat.ofHurwitz (star a))) *
           HurwitzHat.ofHurwitz a := by noncomm_ring
 
+noncomputable abbrev reassoc : D^ ≃ₐ[ℤ] ℚ ⊗[ℤ] 𝓞^ :=
+  Algebra.TensorProduct.assoc ℤ ℤ ℤ ℚ 𝓞 ZHat
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma reassoc_j₂ (x : 𝓞^) : reassoc (j₂ x) = (1 : ℚ) ⊗ₜ x := by
+  change reassoc (reassoc.symm (1 ⊗ₜ x)) = _
+  simp
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma reassoc_j₁_tmul_one (q : ℚ) :
+    reassoc (j₁ (q ⊗ₜ (1 : 𝓞) : D)) =
+      q ⊗ₜ ((1 : 𝓞) ⊗ₜ (1 : ZHat)) := by
+  change (Algebra.TensorProduct.assoc ℤ ℤ ℤ ℚ 𝓞 ZHat)
+    ((((q ⊗ₜ (1 : 𝓞)) : ℚ ⊗[ℤ] 𝓞) ⊗ₜ (1 : ZHat))) = _
+  rw [Algebra.TensorProduct.assoc_tmul]
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma reassoc_j₁_tmul (q : ℚ) (a : 𝓞) :
+    reassoc (j₁ (q ⊗ₜ a : D)) = q ⊗ₜ HurwitzHat.ofHurwitz a := by
+  change (Algebra.TensorProduct.assoc ℤ ℤ ℤ ℚ 𝓞 ZHat)
+    ((((q ⊗ₜ a) : ℚ ⊗[ℤ] 𝓞) ⊗ₜ (1 : ZHat))) = _
+  rw [Algebra.TensorProduct.assoc_tmul]
+  rfl
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma reassoc_tmul_mul_j₂ (q : ℚ) (a : 𝓞) (x : 𝓞^) :
+    reassoc (j₁ (q ⊗ₜ a : D) * j₂ x) =
+      q ⊗ₜ (HurwitzHat.ofHurwitz a * x) := by
+  rw [map_mul, reassoc_j₁_tmul, reassoc_j₂,
+    Algebra.TensorProduct.tmul_mul_tmul, mul_one]
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma reassoc_canonical (q : ℚ) (x : 𝓞^) :
+    reassoc (j₁ (q ⊗ₜ (1 : 𝓞) : D) * j₂ x) = q ⊗ₜ x := by
+  rw [map_mul, reassoc_j₁_tmul_one, reassoc_j₂,
+    Algebra.TensorProduct.tmul_mul_tmul, mul_one]
+  rw [show ((1 : 𝓞) ⊗ₜ[ℤ] (1 : ZHat)) = (1 : 𝓞^) by
+    exact (Algebra.TensorProduct.one_def (R := ℤ) (A := 𝓞) (B := ZHat)).symm,
+    one_mul]
+
 -- should I rearrange tensors? Not sure if D^ should be (ℚ ⊗ 𝓞) ⊗ ℤhat or ℚ ⊗ (𝓞 ⊗ Zhat)
 set_option backward.isDefEq.respectTransparency false in
 lemma canonicalForm (z : D^) : ∃ (N : ℕ+) (z' : 𝓞^), z = j₁ ((N⁻¹ : ℚ) ⊗ₜ 1 : D) * j₂ z' := by
-  let e := Algebra.TensorProduct.assoc ℤ ℤ ℤ ℚ 𝓞 ZHat
-  obtain ⟨N, z', hz⟩ := TensorProduct.rat_canonicalForm (e z)
+  obtain ⟨N, z', hz⟩ := TensorProduct.rat_canonicalForm (reassoc z)
   refine ⟨N, z', ?_⟩
-  apply e.injective
+  apply reassoc.injective
   rw [hz]
-  have hj₂ : e (j₂ z') = (1 : ℚ) ⊗ₜ z' := by
-    change e (e.symm (1 ⊗ₜ z')) = _
-    simp
-  have hj₁ : e (j₁ ((N⁻¹ : ℚ) ⊗ₜ 1 : D)) =
-      (N⁻¹ : ℚ) ⊗ₜ ((1 : 𝓞) ⊗ₜ (1 : ZHat)) := by
-    change e ((((N⁻¹ : ℚ) ⊗ₜ (1 : 𝓞)) : D) ⊗ₜ (1 : ZHat)) = _
-    rw [Algebra.TensorProduct.assoc_tmul]
-  rw [map_mul, hj₁, hj₂]
-  rw [Algebra.TensorProduct.tmul_mul_tmul, mul_one]
-  congr 1
-  · simp
-  · have hone : ((1 : 𝓞) ⊗ₜ[ℤ] (1 : ZHat)) = (1 : 𝓞 ⊗[ℤ] ZHat) :=
-      (Algebra.TensorProduct.one_def (R := ℤ) (A := 𝓞) (B := ZHat)).symm
-    rw [hone, one_mul]
+  simpa [one_div] using (reassoc_canonical (N⁻¹ : ℚ) z').symm
 
-lemma completed_units (z : D^ˣ) : ∃ (u : Dˣ) (v : 𝓞^ˣ), (z : D^) = j₁ u * j₂ v := sorry
+set_option backward.isDefEq.respectTransparency false in
+/-- Clearing the canonical denominators converts a product equal to one in `D^`
+into an integral product in `𝓞^`. -/
+lemma canonical_numerators_mul {z w : D^} (N M : ℕ+) (x y : 𝓞^)
+    (hz : z = j₁ ((N⁻¹ : ℚ) ⊗ₜ 1 : D) * j₂ x)
+    (hw : w = j₁ ((M⁻¹ : ℚ) ⊗ₜ 1 : D) * j₂ y)
+    (hzw : z * w = 1) :
+    HurwitzHat.ofHurwitz ((N * M : ℕ+) : 𝓞) = x * y := by
+  have he := congrArg reassoc hzw
+  rw [hz, hw, map_mul, reassoc_canonical, reassoc_canonical, map_one] at he
+  rw [Algebra.TensorProduct.tmul_mul_tmul] at he
+  have hone : (1 : ℚ ⊗[ℤ] 𝓞^) = (1 : ℚ) ⊗ₜ (1 : 𝓞^) :=
+    Algebra.TensorProduct.one_def (R := ℤ) (A := ℚ) (B := 𝓞^)
+  rw [hone] at he
+  have he' := congrArg
+    (fun t : ℚ ⊗[ℤ] 𝓞^ => (((N : ℚ) * (M : ℚ)) ⊗ₜ (1 : 𝓞^)) * t) he
+  simp only [Algebra.TensorProduct.tmul_mul_tmul, one_mul, mul_one] at he'
+  have hN : (N : ℚ) ≠ 0 := by exact_mod_cast N.ne_zero
+  have hM : (M : ℚ) ≠ 0 := by exact_mod_cast M.ne_zero
+  have hcoeff : (N : ℚ) * (M : ℚ) * ((N : ℚ)⁻¹ * (M : ℚ)⁻¹) = 1 := by
+    field_simp
+  rw [hcoeff] at he'
+  have hright : ((N : ℚ) * (M : ℚ)) ⊗ₜ[ℤ] (1 : 𝓞^) =
+      (1 : ℚ) ⊗ₜ[ℤ] HurwitzHat.ofHurwitz ((N * M : ℕ+) : 𝓞) := by
+    calc
+      ((N : ℚ) * (M : ℚ)) ⊗ₜ[ℤ] (1 : 𝓞^) =
+          (((N : ℤ) * (M : ℤ)) • (1 : ℚ)) ⊗ₜ[ℤ] (1 : 𝓞^) := by simp
+      _ = (1 : ℚ) ⊗ₜ[ℤ] (((N : ℤ) * (M : ℤ)) • (1 : 𝓞^)) := by
+        rw [← TensorProduct.smul_tmul', ← TensorProduct.tmul_smul]
+      _ = (1 : ℚ) ⊗ₜ[ℤ] HurwitzHat.ofHurwitz ((N * M : ℕ+) : 𝓞) := by simp
+  have hinc : (1 : ℚ) ⊗ₜ[ℤ] (x * y) =
+      (1 : ℚ) ⊗ₜ[ℤ] HurwitzHat.ofHurwitz ((N * M : ℕ+) : 𝓞) := by
+    rw [← hright]
+    exact he'
+  apply Eq.symm
+  exact (Algebra.TensorProduct.includeRight_injective (R := ℤ) (A := ℚ) (B := 𝓞^)
+    Int.cast_injective) hinc
+
+set_option backward.isDefEq.respectTransparency false in
+/-- A nonzero Hurwitz integer remains right-regular in its profinite completion. -/
+lemma right_mul_ofHurwitz_injective (a : 𝓞) (ha : a ≠ 0) :
+    Function.Injective (fun x : 𝓞^ => x * HurwitzHat.ofHurwitz a) := by
+  intro x y hxy
+  have h := congrArg (fun t : 𝓞^ => t * HurwitzHat.ofHurwitz (star a)) hxy
+  have h' : x * HurwitzHat.ofHurwitz (Hurwitz.norm a : 𝓞) =
+      y * HurwitzHat.ofHurwitz (Hurwitz.norm a : 𝓞) := by
+    simpa [Hurwitz.norm_eq_mul_conj, map_mul, mul_assoc] using h
+  have hnorm : Hurwitz.norm a ≠ 0 := (Hurwitz.norm_eq_zero a).not.mpr ha
+  apply smul_right_injective (M := 𝓞^) hnorm
+  simpa [zsmul_eq_mul, Int.cast_comm] using h'
+
+set_option backward.isDefEq.respectTransparency false in
+/-- If a positive integer is a right multiple of `y`, then right multiplication by `y`
+is injective on the torsion-free completion `𝓞^`. -/
+lemma right_mul_injective_of_pnat {x y : 𝓞^} (N : ℕ+)
+    (hN : HurwitzHat.ofHurwitz (N : 𝓞) = y * x) :
+    Function.Injective (fun b : 𝓞^ => b * y) := by
+  intro b c hbc
+  have h := congrArg (fun t : 𝓞^ => t * x) hbc
+  have h' : b * (y * x) = c * (y * x) := by
+    simpa [mul_assoc] using h
+  rw [← hN] at h'
+  have hN' : (N : ℤ) ≠ 0 := by exact_mod_cast N.ne_zero
+  apply smul_right_injective (M := 𝓞^) hN'
+  simpa [zsmul_eq_mul, Int.cast_comm, Nat.cast_comm] using h'
+
+set_option backward.isDefEq.respectTransparency false in
+lemma completed_units (z : D^ˣ) : ∃ (u : Dˣ) (v : 𝓞^ˣ), (z : D^) = j₁ u * j₂ v := by
+  obtain ⟨N, x, hx⟩ := canonicalForm (z : D^)
+  obtain ⟨M, y, hy⟩ := canonicalForm (↑(z⁻¹) : D^)
+  have hxy : HurwitzHat.ofHurwitz ((N * M : ℕ+) : 𝓞) = x * y :=
+    canonical_numerators_mul N M x y hx hy (by simpa using z.val_inv)
+  have hyx : HurwitzHat.ofHurwitz ((M * N : ℕ+) : 𝓞) = y * x :=
+    canonical_numerators_mul M N y x hy hx (by simpa using z.inv_val)
+  obtain ⟨a, ha, ⟨b, hb⟩, ⟨c, hc⟩⟩ := exists_integral_generator (N * M) hxy
+  let v : 𝓞^ˣ :=
+    { val := b
+      inv := c
+      val_inv := by
+        apply right_mul_ofHurwitz_injective a ha
+        calc
+          (b * c) * HurwitzHat.ofHurwitz a = b * (c * HurwitzHat.ofHurwitz a) :=
+            mul_assoc _ _ _
+          _ = b * y := by rw [← hc]
+          _ = HurwitzHat.ofHurwitz a := hb.symm
+          _ = 1 * HurwitzHat.ofHurwitz a := (one_mul _).symm
+      inv_val := by
+        apply right_mul_injective_of_pnat (M * N) hyx
+        calc
+          (c * b) * y = c * (b * y) := mul_assoc _ _ _
+          _ = c * HurwitzHat.ofHurwitz a := by rw [← hb]
+          _ = y := hc.symm
+          _ = 1 * y := (one_mul _).symm }
+  have hMq : (M : ℚ) ≠ 0 := by exact_mod_cast M.ne_zero
+  let qM : ℚˣ := Units.mk0 (M : ℚ) hMq
+  let u : Dˣ := HurwitzRat.scalarUnit qM * (HurwitzRat.unitOfNeZero a ha)⁻¹
+  have hu : (u : D) =
+      ((M : ℚ) * (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a := by
+    dsimp only [u]
+    rw [Units.val_mul, HurwitzRat.coe_scalarUnit, HurwitzRat.coe_inv_unitOfNeZero,
+      Algebra.TensorProduct.tmul_mul_tmul, one_mul]
+    rfl
+  refine ⟨u, v, ?_⟩
+  change (z : D^) = j₁ (u : D) * j₂ b
+  rw [hu]
+  have hcand :
+      (j₁ (((M : ℚ) * (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a : D) * j₂ b) *
+        (↑(z⁻¹) : D^) = 1 := by
+    apply reassoc.injective
+    rw [map_mul, hy, reassoc_tmul_mul_j₂, reassoc_canonical,
+      Algebra.TensorProduct.tmul_mul_tmul, map_one]
+    rw [mul_assoc (HurwitzHat.ofHurwitz (star a)) b y, ← hb, ← map_mul,
+      Hurwitz.conj_mul_self]
+    rw [show HurwitzHat.ofHurwitz (Hurwitz.norm a : 𝓞) =
+      (Hurwitz.norm a : ℤ) • (1 : 𝓞^) by simp]
+    rw [TensorProduct.tmul_smul, TensorProduct.smul_tmul']
+    rw [show (1 : ℚ ⊗[ℤ] 𝓞^) = (1 : ℚ) ⊗ₜ (1 : 𝓞^) by
+      exact Algebra.TensorProduct.one_def (R := ℤ) (A := ℚ) (B := 𝓞^)]
+    congr 1
+    change (Hurwitz.norm a : ℚ) *
+      ((M : ℚ) * (Hurwitz.norm a : ℚ)⁻¹ * (M : ℚ)⁻¹) = 1
+    have hnorm : (Hurwitz.norm a : ℚ) ≠ 0 := by
+      exact_mod_cast (Hurwitz.norm_eq_zero a).not.mpr ha
+    field_simp
+  have hzinv : (↑(z⁻¹) : D^) * (z : D^) = 1 := by simpa using z.inv_val
+  calc
+    (z : D^) = 1 * z := (one_mul _).symm
+    _ = ((j₁ (((M : ℚ) * (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a : D) * j₂ b) *
+        (↑(z⁻¹) : D^)) * z := by rw [hcand]
+    _ = (j₁ (((M : ℚ) * (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a : D) * j₂ b) *
+        ((↑(z⁻¹) : D^) * z) := mul_assoc _ _ _
+    _ = (j₁ (((M : ℚ) * (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a : D) * j₂ b) * 1 := by
+      rw [hzinv]
+    _ = j₁ (((M : ℚ) * (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a : D) * j₂ b :=
+      mul_one _
 
 end HurwitzRatHat
