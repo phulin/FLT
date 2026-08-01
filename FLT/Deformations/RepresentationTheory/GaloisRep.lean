@@ -307,6 +307,23 @@ lemma GaloisRep.baseChange_conj [IsTopologicalRing B] [Algebra A B] [ContinuousS
   ext σ
   rfl
 
+open TensorProduct.AlgebraTensorModule in
+omit [NumberField K] [IsTopologicalRing A] in
+/-- Iterated coefficient extension agrees, after the canonical tensor-product change of basis,
+with coefficient extension along the composite algebra map. -/
+lemma GaloisRep.baseChange_baseChange
+    {C : Type*} [CommRing C] [TopologicalSpace C]
+    [IsTopologicalRing B] [IsTopologicalRing C]
+    [Algebra A B] [Algebra B C] [Algebra A C] [IsScalarTower A B C]
+    [ContinuousSMul A B] [ContinuousSMul B C] [ContinuousSMul A C]
+    [Module.Finite A M] [Module.Free A M] (ρ : GaloisRep K A M) :
+    (ρ.baseChange B).baseChange C =
+      (ρ.baseChange C).conj (cancelBaseChange A B C C M).symm := by
+  apply GaloisRep.ext
+  intro σ
+  rw [GaloisRep.conj_apply]
+  exact LinearMap.baseChange_baseChange (A := B) (B := C) (ρ σ)
+
 /-- Make a framed `n` dimensional `A`-linear galois rep into a `B`-linear rep by composing with
 `GLₙ(A) → GLₙ(B)`. -/
 noncomputable
