@@ -40,7 +40,7 @@ The quadratic case of the lifting theorem is the local-field input to
 
 @[expose] public section
 
-universe u
+universe u v
 
 open IsLocalRing Polynomial
 
@@ -54,7 +54,7 @@ field of a discrete valuation ring `R` lifts to an unramified extension `L` of i
 valuation ring `S` with fraction field `L`, containing `R` via a local homomorphism, whose residue
 field is `k'`. (The residue degree being `[L : K]` forces ramification index `1`.) -/
 theorem exists_unramified_extension_of_residueField
-    (k' : Type u) [Field k'] [Algebra (ResidueField R) k']
+    (k' : Type v) [Field k'] [Algebra (ResidueField R) k']
     [FiniteDimensional (ResidueField R) k'] [Algebra.IsSeparable (ResidueField R) k'] :
     ∃ (L : Type u) (_ : Field L) (_ : Algebra K L) (_ : FiniteDimensional K L)
       (_ : Algebra.IsSeparable K L) (_ : Algebra R L) (_ : IsScalarTower R K L) (S : Type u)
