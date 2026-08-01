@@ -228,12 +228,35 @@ noncomputable def torsionByTorsionAddEquiv {A : Type*} [AddCommGroup A]
   right_inv _ := rfl
   map_add' _ _ := rfl
 
+/-- Zero exponents contribute only trivial `ZMod 1` factors to a product of
+cyclic prime-power groups, so they can be discarded. -/
+noncomputable def piZModPowNeZeroAddEquiv {ι : Type*} [Fintype ι]
+    (p e : ι → ℕ) :
+    (∀ i, ZMod (p i ^ e i)) ≃+
+      (∀ i : {i // e i ≠ 0}, ZMod (p i ^ e i)) where
+  toFun x i := x i
+  invFun x i := if hi : e i = 0 then 0 else x ⟨i, hi⟩
+  left_inv x := by
+    ext i
+    change (if hi : e i = 0 then 0 else x i) = x i
+    split_ifs with hi
+    · exact (ZMod.subsingleton_iff.2 <| by rw [hi, pow_zero]).elim _ _
+    · rfl
+  right_inv x := by
+    ext i
+    change (if hi : e i = 0 then 0 else x ⟨i, hi⟩) = x i
+    rw [dif_neg i.prop]
+  map_add' x y := by
+    ext i
+    rfl
+
 /-- Structure-theorem data for `A[n]`, together with the numerical constraints
 on its cyclic prime-power factors supplied by all the smaller torsion cardinalities. -/
 theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
     (hn : 0 < n) (r : ℕ)
     (h : ∀ d : ℕ, d ∣ n → Nat.card (Submodule.torsionBy ℤ A d) = d ^ r) :
     ∃ (ι : Type) (_ : Fintype ι) (p : ι → ℕ) (_ : ∀ i, (p i).Prime) (e : ι → ℕ)
+      (_he : ∀ i, e i ≠ 0)
       (_E : Submodule.torsionBy ℤ A n ≃+ (∀ i, ZMod (p i ^ e i))),
       ∀ d : ℕ, d ∣ n → ∏ i, (p i ^ e i).gcd d = d ^ r := by
   letI : Finite (Submodule.torsionBy ℤ A n) :=
@@ -242,15 +265,19 @@ theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
       exact pow_ne_zero _ hn.ne'
   obtain ⟨ι, hι, p, hp, e, ⟨E₀⟩⟩ :=
     AddCommGroup.equiv_directSum_zmod_of_finite (Submodule.torsionBy ℤ A n)
-  let E : Submodule.torsionBy ℤ A n ≃+ (∀ i, ZMod (p i ^ e i)) :=
-    E₀.trans (DirectSum.addEquivProd fun i ↦ ZMod (p i ^ e i))
-  refine ⟨ι, hι, p, hp, e, E, ?_⟩
+  let ι' := {i : ι // e i ≠ 0}
+  let p' : ι' → ℕ := fun i ↦ p i
+  let e' : ι' → ℕ := fun i ↦ e i
+  let E : Submodule.torsionBy ℤ A n ≃+ (∀ i : ι', ZMod (p' i ^ e' i)) :=
+    (E₀.trans (DirectSum.addEquivProd fun i ↦ ZMod (p i ^ e i))).trans
+      (piZModPowNeZeroAddEquiv p e)
+  refine ⟨ι', inferInstance, p', fun i ↦ hp i, e', fun i ↦ i.prop, E, ?_⟩
   intro d hd
-  have hm : ∀ i, p i ^ e i ≠ 0 := fun i ↦ pow_ne_zero _ (hp i).ne_zero
+  have hm : ∀ i, p' i ^ e' i ≠ 0 := fun i ↦ pow_ne_zero _ (hp i).ne_zero
   calc
-    ∏ i, (p i ^ e i).gcd d =
-        Nat.card (Submodule.torsionBy ℤ (∀ i, ZMod (p i ^ e i)) d) :=
-      (natCard_torsionBy_pi_zmod (fun i ↦ p i ^ e i) hm d).symm
+    ∏ i, (p' i ^ e' i).gcd d =
+        Nat.card (Submodule.torsionBy ℤ (∀ i, ZMod (p' i ^ e' i)) d) :=
+      (natCard_torsionBy_pi_zmod (fun i ↦ p' i ^ e' i) hm d).symm
     _ = Nat.card (Submodule.torsionBy ℤ (Submodule.torsionBy ℤ A n) d) :=
       (Nat.card_congr (E.torsionBy d).toEquiv).symm
     _ = Nat.card (Submodule.torsionBy ℤ A d) :=
