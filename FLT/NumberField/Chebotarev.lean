@@ -45,6 +45,17 @@ end IsArithFrobAt
 
 namespace Field.AbsoluteGaloisGroup
 
+/-- Membership in the rational height-one prime associated to `q` is divisibility by `q`. -/
+lemma mem_toHeightOneSpectrumRingOfIntegersRat_asIdeal_iff_dvd
+    {p q : ℕ} (hq : q.Prime) :
+    (p : NumberField.RingOfIntegers ℚ) ∈
+      hq.toHeightOneSpectrumRingOfIntegersRat.asIdeal ↔ q ∣ p := by
+  simp only [Nat.Prime.toHeightOneSpectrumRingOfIntegersRat, RingEquiv.heightOneSpectrum,
+    RingEquiv.symm_symm, Nat.Prime.toHeightOneSpectrumInt, Equiv.coe_fn_mk,
+    RingEquiv.heightOneSpectrumComap, Ideal.mem_comap, map_natCast,
+    Ideal.mem_span_singleton]
+  exact Int.ofNat_dvd
+
 /-- The residue field at the height-one prime of `𝒪 ℚ` associated to `q` has cardinality
 `q`. -/
 lemma card_quotient_toHeightOneSpectrumRingOfIntegersRat {q : ℕ} (hq : q.Prime) :
