@@ -449,11 +449,53 @@ def GaloisRep.HasFlatProlongationAt (ρ : GaloisRep K A M) : Prop :=
     (f : Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ) →+[Γ Kᵥ] (ρ.toLocal v).Space),
     Function.Bijective f
 
+/-- A change of basis preserves the existence of a finite flat prolongation. -/
+lemma GaloisRep.HasFlatProlongationAt.conj
+    {ρ : GaloisRep K A M} (hρ : ρ.HasFlatProlongationAt v) (e : M ≃ₗ[A] N) :
+    (ρ.conj e).HasFlatProlongationAt v := by
+  rcases hρ with ⟨G, hG, hHopf, hFlat, hFinite, hEtale, f, hf⟩
+  letI : CommRing G := hG
+  letI : HopfAlgebra 𝒪ᵥ G := hHopf
+  letI : Module.Flat 𝒪ᵥ G := hFlat
+  letI : Module.Finite 𝒪ᵥ G := hFinite
+  letI : Algebra.Etale Kᵥ (Kᵥ ⊗[𝒪ᵥ] G) := hEtale
+  let X := Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ)
+  let f₀ : X → M := f
+  have hf₀ : Function.Bijective f₀ := hf
+  have hf₀_zero : f₀ 0 = 0 := f.map_zero
+  have hf₀_add (x y : X) : f₀ (x + y) = f₀ x + f₀ y := f.map_add x y
+  have hf₀_smul (g : Γ Kᵥ) (x : X) :
+      f₀ (g • x) = ρ.toLocal v g (f₀ x) := f.map_smul g x
+  let f' : Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ) →+[Γ Kᵥ]
+      ((ρ.conj e).toLocal v).Space := {
+    toFun x := e (f₀ x)
+    map_zero' := by
+      rw [hf₀_zero, e.map_zero]
+      rfl
+    map_add' x y := by
+      rw [hf₀_add, e.map_add]
+      rfl
+    map_smul' g x := by
+      rw [hf₀_smul]
+      change e (ρ.toLocal v g (f₀ x)) =
+        e (ρ.toLocal v g (e.symm (e (f₀ x))))
+      rw [e.symm_apply_apply] }
+  exact ⟨G, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    f', e.bijective.comp hf₀⟩
+
 /-- A galois rep `ρ : Γ K → Aut_A(M)` is flat at `v` if `A/I ⊗ M` has a flat prolongation at `v`
 for all open ideals `I`. -/
 class GaloisRep.IsFlatAt [IsLocalRing A] (ρ : GaloisRep K A M) : Prop where
   cond : ∀ (I : Ideal A), IsOpen (I : Set A) →
     (ρ.baseChange (A ⧸ I)).HasFlatProlongationAt v
+
+/-- Flatness at a finite place is invariant under a change of basis. -/
+instance GaloisRep.IsFlatAt.conj [IsLocalRing A]
+    (ρ : GaloisRep K A M) (v : Ω K) [ρ.IsFlatAt v] (e : M ≃ₗ[A] N) :
+    (ρ.conj e).IsFlatAt v where
+  cond I hI := by
+    rw [GaloisRep.baseChange_conj]
+    exact (GaloisRep.IsFlatAt.cond (ρ := ρ) I hI).conj v (e.baseChange A (A ⧸ I))
 
 end Flat
 
