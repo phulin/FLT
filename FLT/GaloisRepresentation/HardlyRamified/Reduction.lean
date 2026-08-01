@@ -9,6 +9,7 @@ public import FLT.GaloisRepresentation.HardlyRamified.Lift
 public import FLT.GaloisRepresentation.HardlyRamified.Family
 public import FLT.GaloisRepresentation.HardlyRamified.Threeadic
 public import FLT.Deformations.RepresentationTheory.TraceReducibility
+public import FLT.NumberField.Chebotarev
 
 /-!
 # Reduction of hardly ramified representations
@@ -106,12 +107,34 @@ theorem not_isIrreducible_of_frobenius_trace
     (hV : Module.rank k V = 2) (ρ : GaloisRep ℚ k V)
     (hρ : IsHardlyRamified hpodd hV ρ)
     (htrace : ∃ S : Finset (HeightOneSpectrum (𝓞 ℚ)),
-      ∀ (q : ℕ) (hq : q.Prime) (hq5 : 5 ≤ q),
+      ∀ (q : ℕ) (hq : q.Prime) (_hq5 : 5 ≤ q),
         let w := hq.toHeightOneSpectrumRingOfIntegersRat
         w ∉ S → (p : 𝓞 ℚ) ∉ w.asIdeal → (3 : 𝓞 ℚ) ∉ w.asIdeal →
           LinearMap.trace k V (ρ.toLocal w (Frob w)) = 1 + (q : k)) :
     ¬ ρ.IsIrreducible := by
-  sorry
+  obtain ⟨S, hS⟩ := htrace
+  let D := Field.AbsoluteGaloisGroup.rationalFrobeniusConjugates S p
+  apply GaloisRep.not_isIrreducible_of_dense_linear_trace_eq_one_add_det hV ρ D
+    (Field.AbsoluteGaloisGroup.dense_rationalFrobeniusConjugates S p)
+  intro g hg
+  change ∃ (q : ℕ) (hq : q.Prime), 5 ≤ q ∧
+    let w := hq.toHeightOneSpectrumRingOfIntegersRat
+    w ∉ S ∧ (p : NumberField.RingOfIntegers ℚ) ∉ w.asIdeal ∧
+      (3 : NumberField.RingOfIntegers ℚ) ∉ w.asIdeal ∧
+      IsConj (Field.AbsoluteGaloisGroup.globalAdicArithFrob w) g at hg
+  rcases hg with ⟨q, hq, hq5, hwS, hpw, h3w, hconj⟩
+  let w := hq.toHeightOneSpectrumRingOfIntegersRat
+  apply GaloisRep.linear_trace_eq_one_add_det_of_isConj ρ hconj.symm
+  have htr : LinearMap.trace k V
+      (ρ (Field.AbsoluteGaloisGroup.globalAdicArithFrob w)) = 1 + (q : k) := by
+    simpa only [GaloisRep.toLocal_adicArithFrob] using hS q hq hq5 hwS hpw h3w
+  have hdet : LinearMap.det
+      (ρ (Field.AbsoluteGaloisGroup.globalAdicArithFrob w)) = (q : k) := by
+    change ρ.det (Field.AbsoluteGaloisGroup.globalAdicArithFrob w) = (q : k)
+    rw [hρ.det]
+    rw [Field.AbsoluteGaloisGroup.cyclotomicCharacter_globalAdicArithFrob hq hpw]
+    simp
+  rw [htr, hdet]
 
 /-- Every hardly ramified residual representation is reducible, assuming the lifting,
 compatible-family, 3-adic, and Chebotarev--Brauer--Nesbitt inputs assembled above. -/
