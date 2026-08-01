@@ -287,6 +287,14 @@ lemma GaloisRep.trace_baseChange [IsTopologicalRing B] [Algebra A B] [Continuous
       algebraMap A B (LinearMap.trace A M (ρ σ)) :=
   LinearMap.trace_baseChange (ρ σ) B
 
+omit [NumberField K] in
+/-- Determinants commute with scalar extension of a Galois representation. -/
+lemma GaloisRep.det_baseChange [IsTopologicalRing B] [Algebra A B] [ContinuousSMul A B]
+    [Module.Free A M] [Module.Finite A M]
+    (ρ : GaloisRep K A M) (σ : Γ K) :
+    (ρ.baseChange B).det σ = algebraMap A B (ρ.det σ) :=
+  LinearMap.det_baseChange (ρ σ)
+
 omit [NumberField K] [IsTopologicalRing A] in
 /-- Characteristic polynomials commute with scalar extension of a Galois representation. -/
 lemma GaloisRep.charpoly_baseChange [IsTopologicalRing B] [Algebra A B] [ContinuousSMul A B]
