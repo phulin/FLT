@@ -445,6 +445,47 @@ def GaloisRep.IsIrreducible {k : Type*} [Field k] [TopologicalSpace k] [Module k
     (ρ : GaloisRep K k M) : Prop := ρ.toRepresentation.IsIrreducible
 
 omit [NumberField K] in
+/-- Conjugating a representation identifies its subrepresentations. -/
+def GaloisRep.subrepresentationConjOrderIso
+    {k V W : Type*} [Field k] [TopologicalSpace k]
+    [AddCommGroup V] [Module k V] [AddCommGroup W] [Module k W]
+    (ρ : GaloisRep K k V) (e : V ≃ₗ[k] W) :
+    Subrepresentation ρ.toRepresentation ≃o
+      Subrepresentation (ρ.conj e).toRepresentation where
+  toFun U :=
+    { toSubmodule := U.toSubmodule.map e.toLinearMap
+      apply_mem_toSubmodule := by
+        rintro g _ ⟨v, hv, rfl⟩
+        refine ⟨ρ g v, U.apply_mem_toSubmodule g hv, ?_⟩
+        change e (ρ g v) = (ρ.conj e) g (e v)
+        simp }
+  invFun U :=
+    { toSubmodule := U.toSubmodule.comap e.toLinearMap
+      apply_mem_toSubmodule := by
+        intro g v hv
+        have h := U.apply_mem_toSubmodule g hv
+        change (ρ.conj e) g (e v) ∈ U.toSubmodule at h
+        change e (ρ g v) ∈ U.toSubmodule
+        simpa using h }
+  left_inv U := by
+    ext v
+    simp
+  right_inv U := by
+    ext w
+    simp
+  map_rel_iff' :=
+    LinearMap.map_le_map_iff' (LinearMap.ker_eq_bot.mpr e.injective)
+
+omit [NumberField K] in
+/-- Irreducibility is unchanged by conjugating a representation by a linear equivalence. -/
+theorem GaloisRep.isIrreducible_conj_iff
+    {k V W : Type*} [Field k] [TopologicalSpace k]
+    [AddCommGroup V] [Module k V] [AddCommGroup W] [Module k W]
+    (ρ : GaloisRep K k V) (e : V ≃ₗ[k] W) :
+    ρ.IsIrreducible ↔ (ρ.conj e).IsIrreducible :=
+  (subrepresentationConjOrderIso ρ e).isSimpleOrder_iff
+
+omit [NumberField K] in
 /-- A two-dimensional representation with a nonzero invariant line is reducible. -/
 theorem GaloisRep.not_isIrreducible_of_invariant_line
     {k V : Type*} [Field k] [TopologicalSpace k]
