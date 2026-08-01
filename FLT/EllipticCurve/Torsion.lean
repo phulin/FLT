@@ -30,7 +30,8 @@ open WeierstrassCurve WeierstrassCurve.Affine
 
 /-- The `n`-torsion subgroup of an elliptic curve `E` over `k`: the kernel of multiplication
 by `n` on the group of `k`-points of `E`. -/
-abbrev WeierstrassCurve.nTorsion (n : ℕ) : Type u := Submodule.torsionBy ℤ (E⁄k).Point n
+abbrev WeierstrassCurve.nTorsion (n : ℕ) : Type u :=
+  Submodule.torsionBy ℤ E.toAffine.Point n
 
 --variable (n : ℕ) in
 --#synth AddCommGroup (E.nTorsion n)
@@ -115,6 +116,51 @@ lemma WeierstrassCurve.Points.map_comp (K L M : Type u) [Field K] [Field L] [Fie
   ext P
   exact WeierstrassCurve.Affine.Point.map_map _ _ _
 
+omit [E.IsElliptic] [DecidableEq k] in
+/-- For the Krull topology, the set of automorphisms sending one elliptic-curve point to
+another is open. -/
+lemma WeierstrassCurve.Points.isOpen_setOf_map_eq
+    (K : Type u) [Field K] [Algebra k K] [Algebra.IsIntegral k K]
+    [DecidableEq K] (P Q : (E⁄K).Point) :
+    IsOpen {g : K ≃ₐ[k] K | WeierstrassCurve.Points.map E (g : K →ₐ[k] K) P = Q} := by
+  letI : ContinuousSMulDiscrete (K ≃ₐ[k] K) K :=
+    continuousSMulDiscrete_iff_isOpen_stabilizer.mpr fun x ↦
+      stabilizer_isOpen_of_isIntegral x
+  cases P with
+  | zero =>
+      cases Q with
+      | zero =>
+          convert (isOpen_univ : IsOpen (Set.univ : Set (K ≃ₐ[k] K))) using 1
+          ext g
+          simp only [Set.mem_ofPred_eq, Set.mem_univ, iff_true]
+          rfl
+      | some x' y' hQ =>
+          convert (isOpen_empty : IsOpen (∅ : Set (K ≃ₐ[k] K))) using 1
+          ext g
+          rw [Set.mem_empty_iff_false, iff_false]
+          intro h
+          change WeierstrassCurve.Affine.Point.zero =
+            WeierstrassCurve.Affine.Point.some x' y' hQ at h
+          cases h
+  | some x y hP =>
+      cases Q with
+      | zero =>
+          convert (isOpen_empty : IsOpen (∅ : Set (K ≃ₐ[k] K))) using 1
+          ext g
+          rw [Set.mem_empty_iff_false, iff_false]
+          intro h
+          change WeierstrassCurve.Affine.Point.some (g x) (g y) _ =
+            WeierstrassCurve.Affine.Point.zero at h
+          cases h
+      | some x' y' hQ =>
+          convert (ContinuousSMulDiscrete.isOpen_smul_eq (K ≃ₐ[k] K) x x').inter
+            (ContinuousSMulDiscrete.isOpen_smul_eq (K ≃ₐ[k] K) y y') using 1
+          ext g
+          simp only [WeierstrassCurve.Points.map, WeierstrassCurve.Affine.Point.map_some,
+            Set.mem_ofPred_eq, Set.mem_inter_iff, WeierstrassCurve.Affine.Point.some.injEq,
+            AlgEquiv.smul_def]
+          rfl
+
 /-- The Galois action on the points of an elliptic curve. -/
 noncomputable instance WeierstrassCurve.galoisRepresentationSmul
     (K : Type u) [Field K] [DecidableEq K] [Algebra k K] :
@@ -131,14 +177,79 @@ noncomputable instance WeierstrassCurve.galoisRepresentation
       smul_zero g := WeierstrassCurve.Affine.Point.map_zero (g : K →ₐ[k] K)
       smul_add g P Q := map_add (WeierstrassCurve.Affine.Point.map (g : K →ₐ[k] K)) P Q
 
--- the next `sorry` is data but the only thing which should be missing is
--- the continuity argument, which follows from the finiteness asserted above.
-
 /-- A classical decidable instance on `AlgebraicClosure ℚ`, given that there is
 no hope of a constructive one with the current definition of algebraic closure. -/
 noncomputable instance : DecidableEq (AlgebraicClosure ℚ) := Classical.typeDecidableEq _
 
 /-- The continuous Galois representation associated to an elliptic curve over a field. -/
-def WeierstrassCurve.galoisRep {K : Type u} [Field K] (E : WeierstrassCurve K) [E.IsElliptic]
+noncomputable def WeierstrassCurve.galoisRep {K : Type u} [Field K]
+    (E : WeierstrassCurve K) [E.IsElliptic]
     [DecidableEq K] [DecidableEq (AlgebraicClosure K)] (n : ℕ) (hn : 0 < n) :
-  GaloisRep K (ZMod n) ((E.map (algebraMap K (AlgebraicClosure K))).nTorsion n) := sorry
+    GaloisRep K (ZMod n) ((E.map (algebraMap K (AlgebraicClosure K))).nTorsion n) := by
+  let T := (E⁄(AlgebraicClosure K)).nTorsion n
+  change GaloisRep K (ZMod n) T
+  let act (g : AlgebraicClosure K ≃ₐ[K] AlgebraicClosure K) : T →+ T :=
+    let g' : AlgebraicClosure K →ₐ[K] AlgebraicClosure K := g
+    {
+      toFun := fun P ↦ ⟨WeierstrassCurve.Points.map E g' P.1, by
+        rw [Submodule.mem_torsionBy_iff]
+        rw [← map_zsmul]
+        have hP : (n : ℤ) • P.1 = 0 :=
+          (Submodule.mem_torsionBy_iff (R := ℤ) (a := (n : ℤ)) P.1).mp P.2
+        rw [hP, map_zero]⟩
+      map_zero' := Subtype.ext (map_zero (WeierstrassCurve.Points.map E g'))
+      map_add' := fun P Q ↦
+        Subtype.ext (map_add (WeierstrassCurve.Points.map E g') P.1 Q.1)
+    }
+  let ρ : Field.absoluteGaloisGroup K →* Module.End (ZMod n) T := {
+    toFun := fun g ↦ (act g).toZModLinearMap n
+    map_one' := by
+      ext P
+      change WeierstrassCurve.Points.map E (AlgHom.id K (AlgebraicClosure K)) P.1 = P.1
+      exact DFunLike.congr_fun
+        (WeierstrassCurve.Points.map_id E (AlgebraicClosure K)) P.1
+    map_mul' := fun g h ↦ by
+      ext P
+      change WeierstrassCurve.Points.map E ((g * h : Field.absoluteGaloisGroup K) :
+        AlgebraicClosure K →ₐ[K] AlgebraicClosure K) P.1 =
+        WeierstrassCurve.Points.map E (g : AlgebraicClosure K →ₐ[K] AlgebraicClosure K)
+          (WeierstrassCurve.Points.map E
+            (h : AlgebraicClosure K →ₐ[K] AlgebraicClosure K) P.1)
+      exact DFunLike.congr_fun
+        (WeierstrassCurve.Points.map_comp E (AlgebraicClosure K) (AlgebraicClosure K)
+          (AlgebraicClosure K) (h : _ →ₐ[K] _) (g : _ →ₐ[K] _)).symm P.1
+  }
+  letI : TopologicalSpace (Module.End (ZMod n) T) :=
+    moduleTopology (ZMod n) (Module.End (ZMod n) T)
+  refine ContinuousMonoidHom.mk ρ ?_
+  haveI : DiscreteTopology (Module.End (ZMod n) T) := by
+    constructor
+    apply le_antisymm
+    · letI : TopologicalSpace (Module.End (ZMod n) T) := ⊥
+      letI : DiscreteTopology (Module.End (ZMod n) T) := discreteTopology_bot _
+      letI : ContinuousAdd (Module.End (ZMod n) T) :=
+        ⟨continuous_of_discreteTopology⟩
+      letI : ContinuousSMul (ZMod n) (Module.End (ZMod n) T) :=
+        ⟨continuous_of_discreteTopology⟩
+      exact moduleTopology_le (ZMod n) (Module.End (ZMod n) T)
+    · exact bot_le
+  rw [continuous_discrete_rng]
+  intro f
+  letI : (E⁄(AlgebraicClosure K)).IsElliptic := by
+    change (E.map (algebraMap K (AlgebraicClosure K))).IsElliptic
+    infer_instance
+  haveI : Finite T := (E⁄(AlgebraicClosure K)).n_torsion_finite hn
+  suffices IsOpen (⋂ P : T, {g | ρ g P = f P}) by
+    convert this using 1
+    ext g
+    simp only [Set.mem_preimage, Set.mem_singleton_iff, Set.mem_iInter, Set.mem_ofPred_eq]
+    exact LinearMap.ext_iff
+  apply isOpen_iInter_of_finite
+  intro P
+  convert WeierstrassCurve.Points.isOpen_setOf_map_eq E (AlgebraicClosure K)
+    P.1 (f P).1 using 1
+  ext g
+  simp only [Set.mem_ofPred_eq]
+  change (act g P = f P) ↔ _
+  rw [Subtype.ext_iff]
+  rfl
