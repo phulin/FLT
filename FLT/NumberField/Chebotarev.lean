@@ -45,6 +45,8 @@ end IsArithFrobAt
 
 namespace Field.AbsoluteGaloisGroup
 
+attribute [local instance 100000] IntermediateField.algebra'
+
 /-- Membership in the rational height-one prime associated to `q` is divisibility by `q`. -/
 lemma mem_toHeightOneSpectrumRingOfIntegersRat_asIdeal_iff_dvd
     {p q : ℕ} (hq : q.Prime) :
@@ -214,15 +216,65 @@ noncomputable def rationalFrobeniusConjugates
 /-- Weak Chebotarev for a finite normal subextension of `AlgebraicClosure ℚ`: outside any
 finite set of rational places, some arithmetic Frobenius has a conjugate agreeing with a
 prescribed absolute Galois element on the subextension. -/
+theorem exists_restrictNormal_rationalFrobenius_isConj_of_not_mem
+    (T : Finset (HeightOneSpectrum (𝓞 ℚ)))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ))
+    [FiniteDimensional ℚ E] [Normal ℚ E] (τ : E ≃ₐ[ℚ] E) :
+    ∃ (q : ℕ) (hq : q.Prime),
+      let w := hq.toHeightOneSpectrumRingOfIntegersRat
+      w ∉ T ∧ IsConj ((Frob w).restrictNormal E) τ := by
+  sorry
+
+/-- Lift finite-level Chebotarev from `Gal(E/ℚ)` to the absolute Galois group.  The
+conjugating automorphism of `E` extends to `AlgebraicClosure ℚ` because both extensions are
+normal. -/
 theorem exists_rationalFrobeniusConjugate_agreeOn_of_not_mem
     (T : Finset (HeightOneSpectrum (𝓞 ℚ)))
     (E : IntermediateField ℚ (AlgebraicClosure ℚ))
-    (_hE : FiniteDimensional ℚ E) (_hEnormal : Normal ℚ E) (σ : Γ ℚ) :
+    (hE : FiniteDimensional ℚ E) (hEnormal : Normal ℚ E) (σ : Γ ℚ) :
     ∃ (q : ℕ) (hq : q.Prime),
       let w := hq.toHeightOneSpectrumRingOfIntegersRat
       w ∉ T ∧ ∃ g : Γ ℚ, IsConj (Frob w) g ∧
         ∀ x : AlgebraicClosure ℚ, x ∈ E → g x = σ x := by
-  sorry
+  classical
+  letI : FiniteDimensional ℚ E := hE
+  letI : Normal ℚ (AlgebraicClosure ℚ) := normal_iff.2 fun x ↦
+    ⟨((AlgebraicClosure.isAlgebraic ℚ).isAlgebraic x).isIntegral, IsAlgClosed.splits _⟩
+  letI : Normal ℚ E := hEnormal
+  obtain ⟨q, hq, hwT, hconj⟩ :=
+    exists_restrictNormal_rationalFrobenius_isConj_of_not_mem T E
+      (σ.restrictNormal E)
+  rcases isConj_iff.mp hconj with ⟨cE, hcE⟩
+  obtain ⟨c, hc⟩ :=
+    AlgEquiv.restrictNormalHom_surjective
+      (F := ℚ) (K₁ := E) (E := AlgebraicClosure ℚ) cE
+  let c' : Γ ℚ := c
+  have hc' : c'.restrictNormal E = cE := hc
+  have hcHom : (AlgEquiv.restrictNormalHom E) c' = cE := by
+    change c'.restrictNormal E = cE
+    exact hc'
+  let g : Γ ℚ := c' * Frob hq.toHeightOneSpectrumRingOfIntegersRat * c'⁻¹
+  refine ⟨q, hq, hwT, g, isConj_iff.mpr ⟨c', rfl⟩, ?_⟩
+  intro x hx
+  have hrestrict : g.restrictNormal E = σ.restrictNormal E := by
+    change (AlgEquiv.restrictNormalHom E) g = (AlgEquiv.restrictNormalHom E) σ
+    rw [show g = c' * Frob hq.toHeightOneSpectrumRingOfIntegersRat * c'⁻¹ by rfl,
+      map_mul, map_mul, map_inv, hcHom]
+    exact hcE
+  have hfix : σ⁻¹ * g ∈ E.fixingSubgroup := by
+    rw [← E.restrictNormalHom_ker]
+    change (AlgEquiv.restrictNormalHom E) (σ⁻¹ * g) = 1
+    have hrestrictHom : (AlgEquiv.restrictNormalHom E) g =
+        (AlgEquiv.restrictNormalHom E) σ := by
+      change g.restrictNormal E = σ.restrictNormal E
+      exact hrestrict
+    rw [map_mul, map_inv, hrestrictHom]
+    simp
+  have hfixx := (IntermediateField.mem_fixingSubgroup_iff E (σ⁻¹ * g)).mp hfix x hx
+  change σ⁻¹ (g x) = x at hfixx
+  calc
+    g x = σ (σ⁻¹ (g x)) := (σ.apply_symm_apply (g x)).symm
+    _ = σ x := congrArg σ hfixx
 
 /-- A finite-quotient form of rational Chebotarev: every left coset of the fixing subgroup
 of a finite normal subextension contains a conjugate of an allowed arithmetic Frobenius.
