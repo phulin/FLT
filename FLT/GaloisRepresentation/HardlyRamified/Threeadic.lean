@@ -24,10 +24,25 @@ local notation "Frob" => Field.AbsoluteGaloisGroup.adicArithFrob
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 
-/-- The arithmetic classification input for 3-adic hardly ramified representations: their
-character is the sum of the trivial and cyclotomic characters.  This is the part of the
-Schoof--Fontaine argument that uses the mod-3 classification, stable lattices, and finite flat
-group schemes. -/
+/-- Finite-level arithmetic input for the 3-adic classification.  At every maximal-ideal
+power, the Schoof--Fontaine devissage of the associated finite flat group scheme makes the
+character congruent to `1 + det`.  Concretely, one moves every multiplicative Jordan--Hölder
+factor to the subobject and every constant factor to the quotient; the obstruction is the
+nonexistence of a hardly ramified extension in the opposite order. -/
+theorem three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow
+    {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
+    [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [IsModuleTopology ℤ_[3] R]
+    (V : Type*) [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
+    (hV : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
+    (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ) (g : Γ ℚ) :
+    LinearMap.trace R V (ρ g) - (1 + LinearMap.det (ρ g)) ∈
+      IsLocalRing.maximalIdeal R ^ n := by
+  sorry
+
+/-- The finite-level Schoof--Fontaine congruences determine the 3-adic character because a
+module-finite local algebra over `ℤ_[3]` is Noetherian and hence separated for its maximal-ideal
+adic filtration. -/
 theorem three_adic_trace_eq_one_add_det
     {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
     [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
@@ -36,7 +51,14 @@ theorem three_adic_trace_eq_one_add_det
     (hV : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
     (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) :
     ∀ g : Γ ℚ, LinearMap.trace R V (ρ g) = 1 + LinearMap.det (ρ g) := by
-  sorry
+  letI : IsNoetherianRing R := IsNoetherianRing.of_finite ℤ_[3] R
+  intro g
+  apply sub_eq_zero.mp
+  rw [← Ideal.mem_bot (R := R),
+    ← Ideal.iInf_pow_eq_bot_of_isLocalRing (IsLocalRing.maximalIdeal R)
+      (IsLocalRing.maximalIdeal.isMaximal R).ne_top,
+    Ideal.mem_iInf]
+  exact fun n ↦ three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow V hV hρ n g
 
 /--
 A 3-adic hardly ramified representation has trace(Frob_p) = 1 + p for all p ≠ 2,3
