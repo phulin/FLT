@@ -7,6 +7,7 @@ module
 
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
 public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
 public import Mathlib.Topology.Instances.ZMod
 public import FLT.Deformations.RepresentationTheory.GaloisRep
 
@@ -143,6 +144,47 @@ lemma torsionNsmulHom_surjective_of_card {A : Type*} [AddCommGroup A] {d e r : �
   rw [← f.range_eq_top, ← AddSubgroup.card_eq_iff_eq_top]
   rw [hrange]
   exact hcard_e.symm
+
+/-- Torsion in a finite product of additive groups is computed coordinatewise. -/
+noncomputable def torsionByPiAddEquiv {ι : Type*} [Fintype ι]
+    (B : ι → Type*) [∀ i, AddCommGroup (B i)] (d : ℕ) :
+    Submodule.torsionBy ℤ (∀ i, B i) d ≃+
+      (∀ i, Submodule.torsionBy ℤ (B i) d) where
+  toFun x i := ⟨x.1 i, congrFun x.prop i⟩
+  invFun x := ⟨fun i ↦ x i, funext fun i ↦ (x i).prop⟩
+  left_inv _ := rfl
+  right_inv _ := rfl
+  map_add' _ _ := rfl
+
+/-- The `d`-torsion in the cyclic group `ZMod m` has cardinality `gcd m d`. -/
+lemma natCard_torsionBy_zmod (m d : ℕ) (hm : m ≠ 0) :
+    Nat.card (Submodule.torsionBy ℤ (ZMod m) d) = m.gcd d := by
+  letI : NeZero m := ⟨hm⟩
+  let f : ZMod m →+ ZMod m := nsmulAddMonoidHom d
+  let e : Submodule.torsionBy ℤ (ZMod m) d ≃+ f.ker := {
+    toFun x := ⟨x, by
+      change d • (x : ZMod m) = 0
+      rw [← Nat.cast_smul_eq_nsmul ℤ]
+      exact x.prop⟩
+    invFun x := ⟨x, by
+      rw [Submodule.mem_torsionBy_iff, Nat.cast_smul_eq_nsmul]
+      exact x.prop⟩
+    left_inv _ := rfl
+    right_inv _ := rfl
+    map_add' _ _ := rfl }
+  rw [Nat.card_congr e.toEquiv]
+  simpa only [f, Nat.card_zmod] using
+    IsAddCyclic.card_nsmulAddMonoidHom_ker (ZMod m) d
+
+/-- The `d`-torsion cardinality of a finite product of cyclic groups is the
+product of the corresponding gcds. -/
+lemma natCard_torsionBy_pi_zmod {ι : Type*} [Fintype ι] (m : ι → ℕ)
+    (hm : ∀ i, m i ≠ 0) (d : ℕ) :
+    Nat.card (Submodule.torsionBy ℤ (∀ i, ZMod (m i)) d) = ∏ i, (m i).gcd d := by
+  rw [Nat.card_congr (torsionByPiAddEquiv (fun i ↦ ZMod (m i)) d).toEquiv, Nat.card_pi]
+  congr 1
+  funext i
+  exact natCard_torsionBy_zmod (m i) d (hm i)
 
 -- This theorem was well-known in the early part of the 20th century.
 theorem group_theory_lemma {A : Type*} [AddCommGroup A] {n : ℕ} (hn : 0 < n) (r : ℕ)
