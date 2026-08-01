@@ -221,6 +221,14 @@ noncomputable
 def Field.AbsoluteGaloisGroup.globalAdicArithFrob : Γ K :=
   Field.absoluteGaloisGroup.map (algebraMap K Kᵥ) Frobᵥ
 
+/-- The defining compatibility of the chosen global Frobenius with its local Frobenius under
+the fixed embedding of algebraic closures. -/
+lemma Field.AbsoluteGaloisGroup.map_globalAdicArithFrob (x : Kᵃˡᵍ) :
+    AlgebraicClosure.map (algebraMap K Kᵥ)
+        (Field.AbsoluteGaloisGroup.globalAdicArithFrob v x) =
+      Frobᵥ (AlgebraicClosure.map (algebraMap K Kᵥ) x) :=
+  Field.absoluteGaloisGroup.lift_map (algebraMap K Kᵥ) Frobᵥ x
+
 lemma Field.AbsoluteGaloisGroup.isArithFrobAt_adicArithFrob :
     IsArithFrobAt 𝒪ᵥ Frobᵥ (𝔪 (IntegralClosure 𝒪ᵥ (Kᵥᵃˡᵍ))) :=
   .arithFrobAt' 𝒪ᵥ (Γ Kᵥ) (𝔪 (IntegralClosure 𝒪ᵥ (Kᵥᵃˡᵍ)))
