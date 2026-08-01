@@ -289,6 +289,15 @@ lemma GaloisRep.baseChange_map [IsTopologicalRing B] [Algebra A B] [ContinuousSM
     [Module.Finite A M] [Module.Free A M]
     (ρ : GaloisRep K A M) (f : K →+* L) : (ρ.baseChange B).map f = (ρ.map f).baseChange B := rfl
 
+omit [NumberField K] [IsTopologicalRing A] in
+/-- Scalar extension commutes with changing the basis of a Galois representation. -/
+lemma GaloisRep.baseChange_conj [IsTopologicalRing B] [Algebra A B] [ContinuousSMul A B]
+    [Module.Finite A M] [Module.Free A M] [Module.Finite A N] [Module.Free A N]
+    (ρ : GaloisRep K A M) (e : M ≃ₗ[A] N) :
+    (ρ.conj e).baseChange B = (ρ.baseChange B).conj (e.baseChange A B) := by
+  ext σ
+  rfl
+
 /-- Make a framed `n` dimensional `A`-linear galois rep into a `B`-linear rep by composing with
 `GLₙ(A) → GLₙ(B)`. -/
 noncomputable
