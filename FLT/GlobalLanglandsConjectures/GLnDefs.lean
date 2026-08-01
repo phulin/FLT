@@ -439,11 +439,12 @@ variable {n : ℕ}
 set_option backward.isDefEq.respectTransparency false in
 /-- A function on `GL_n(𝔸_f) × GL_n(ℝ)` is smooth if it is continuous, locally constant
 in the finite-adelic variable, and `C^∞` in the archimedean variable. -/
-structure IsSmooth (f : GL (Fin n) (FiniteAdeleRing ℤ ℚ) × GL (Fin n) ℝ → ℂ) : Prop where
+structure IsSmooth (f : GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ) ×
+    GL (Fin n) ℝ → ℂ) : Prop where
   continuous : Continuous f
   loc_cst (y : GL (Fin n) ℝ) :
     IsLocallyConstant (fun x ↦ f (x, y))
-  smooth (x : GL (Fin n) (FiniteAdeleRing ℤ ℚ)) :
+  smooth (x : GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ)) :
     ContMDiff 𝓘(ℝ, Matrix (Fin n) (Fin n) ℝ) 𝓘(ℝ, ℂ) ∞ (fun y ↦ f (x, y))
 
 open Matrix
@@ -499,11 +500,15 @@ def _root_.RingHom.GL {A B : Type*} [CommRing A] [CommRing B] (φ : A →+* B)
 
 /-- The function `f : GL_n(𝔸_f) × GL_n(ℝ) → ℂ` is right-`U`-invariant in the
 finite-adelic variable, where `U` is an open compact subgroup. -/
-structure IsConstantOn (U : Subgroup (GL (Fin n) (FiniteAdeleRing ℤ ℚ)))
-  (f : (GL (Fin n) (FiniteAdeleRing ℤ ℚ)) × (GL (Fin n) ℝ) → ℂ) : Prop where
+structure IsConstantOn
+  (U : Subgroup (GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ)))
+  (f : (GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ)) ×
+    (GL (Fin n) ℝ) → ℂ) : Prop where
   is_open : IsOpen U.carrier
   is_compact : IsCompact U.carrier
-  finite_level (u : U.carrier) (x : GL (Fin n) (FiniteAdeleRing ℤ ℚ)) (y : GL (Fin n) ℝ) :
+  finite_level (u : U.carrier)
+    (x : GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ))
+    (y : GL (Fin n) ℝ) :
     f (x * u, y) = f (x, y)
 
 /-- The annihilator of an element `a : M` in the module of `R`-linear maps `M →ₗ[R] N`:
@@ -518,11 +523,14 @@ def annihilator {R} [CommSemiring R]
 @[ext]
 structure AutomorphicFormForGLnOverQ (n : ℕ) (ρ : Weight n) where
   /-- The underlying function `GL_n(𝔸_f) × GL_n(ℝ) → ℂ`. -/
-  toFun : GL (Fin n) (FiniteAdeleRing ℤ ℚ) × GL (Fin n) ℝ → ℂ
+  toFun : GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ) × GL (Fin n) ℝ → ℂ
   is_smooth : IsSmooth toFun
-  is_periodic : ∀ (g : GL (Fin n) ℚ) (x : GL (Fin n) (FiniteAdeleRing ℤ ℚ)) (y : GL (Fin n) ℝ),
+  is_periodic : ∀ (g : GL (Fin n) ℚ)
+    (x : GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ))
+    (y : GL (Fin n) ℝ),
     toFun (RingHom.GL (algebraMap _ _) _ g * x, RingHom.GL (algebraMap _ _) _ g * y) = toFun (x, y)
-  is_slowly_increasing (x : GL (Fin n) (FiniteAdeleRing ℤ ℚ)) :
+  is_slowly_increasing
+    (x : GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ)) :
     IsSlowlyIncreasing (fun y ↦ toFun (x, y))
   has_finite_level : ∃ U, IsConstantOn U toFun
   -- is_finite_cod (x : GL (Fin n) (FiniteAdeleRing ℤ ℚ)) :
@@ -535,7 +543,7 @@ structure AutomorphicFormForGLnOverQ (n : ℕ) (ρ : Weight n) where
   --   -- fails in 4.29
   --   --let foo := (Z (GL (Fin n) ℝ) (Matrix (Fin n) (Fin n) ℝ) ⧸ bar)
   --   --FiniteDimensional ℂ (Z (GL (Fin n) ℝ) (Matrix (Fin n) (Fin n) ℝ) ⧸ (annihilator f).comap m)
-  --   sorry
+  --   The proof is deferred until this field is restored.
   -- missing: invariance under compact open subgroup
   -- missing: infinite part has a weight
 
@@ -544,7 +552,8 @@ namespace AutomorphicFormForGLnOverQ
 -- not entirely sure what I'm doing here. Is it as simple as this?
 -- attribute [coe] toFun
 variable (n : ℕ) (ρ : Weight n) in
-instance : CoeFun (AutomorphicFormForGLnOverQ n ρ) (fun _ ↦ (GL (Fin n) (FiniteAdeleRing ℤ ℚ)) ×
+instance : CoeFun (AutomorphicFormForGLnOverQ n ρ) (fun _ ↦
+    (GL (Fin n) (FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ)) ×
       (GL (Fin n) ℝ) → ℂ) :=
   ⟨toFun⟩
 

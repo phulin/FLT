@@ -7,6 +7,8 @@ module
 
 public import FLT.GlobalLanglandsConjectures.GLnDefs
 
+import FLT.Mathlib.NumberTheory.NumberField.FiniteAdeleRing
+
 /-!
 # Proof of a case of the global Langlands conjectures.
 
@@ -80,11 +82,10 @@ def ofComplex (c : ℂ) : AutomorphicFormForGLnOverQ 0 ρ := {
     }
     is_periodic := by simp
     is_slowly_increasing x := ⟨‖c‖, 0, by simp⟩
-    -- is_finite_cod := by
-    --   intros x
-    --   sorry
+    -- The finite-codimension condition is currently omitted from the structure.
     has_finite_level := by
-      let U : Subgroup (GL (Fin 0) (IsDedekindDomain.FiniteAdeleRing ℤ ℚ)) := {
+      let U : Subgroup (GL (Fin 0) (IsDedekindDomain.FiniteAdeleRing
+          (NumberField.RingOfIntegers ℚ) ℚ)) := {
         carrier := {1},
         one_mem' := by simp,
         mul_mem' := by simp
@@ -94,9 +95,9 @@ def ofComplex (c : ℂ) : AutomorphicFormForGLnOverQ 0 ρ := {
       exact {
           is_open := by
             change IsOpen ({1} : Set (GL (Fin 0)
-              (IsDedekindDomain.FiniteAdeleRing ℤ ℚ)))
+              (IsDedekindDomain.FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ)))
             convert (isOpen_univ : IsOpen (Set.univ : Set (GL (Fin 0)
-              (IsDedekindDomain.FiniteAdeleRing ℤ ℚ)))) using 1
+              (IsDedekindDomain.FiniteAdeleRing (NumberField.RingOfIntegers ℚ) ℚ)))) using 1
             ext g
             simp only [Set.mem_singleton_iff, Set.mem_univ, iff_true]
             exact Subsingleton.eq_one g
@@ -150,8 +151,15 @@ def ofComplex (z : ℂ) {n : ℕ} (ρ : Weight n) (hρ : ρ.IsTrivial) :
       }
       is_periodic := by simp
       is_slowly_increasing _ := ⟨‖z‖, 0, by simp⟩
-      -- is_finite_cod := sorry -- needs a better name
-      has_finite_level := sorry -- needs a better name
+      -- The finite-codimension condition is currently omitted from the structure.
+      has_finite_level := by
+        let U := IsDedekindDomain.FiniteAdeleRing.generalLinearMaximalCompact
+          ℚ (n := Fin n)
+        exact ⟨U,
+          IsDedekindDomain.FiniteAdeleRing.generalLinearMaximalCompact.isOpen
+            (K := ℚ) (n := Fin n),
+          IsDedekindDomain.FiniteAdeleRing.generalLinearMaximalCompact.isCompact
+            (K := ℚ) (n := Fin n), by simp⟩
 
 -- no idea why it's not computable
 /-- The classification of automorphic forms for `GL₀/ℚ` of weight `ρ`: they are in
