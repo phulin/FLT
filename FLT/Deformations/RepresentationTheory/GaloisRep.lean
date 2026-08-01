@@ -445,6 +445,35 @@ def GaloisRep.IsIrreducible {k : Type*} [Field k] [TopologicalSpace k] [Module k
     (ρ : GaloisRep K k M) : Prop := ρ.toRepresentation.IsIrreducible
 
 omit [NumberField K] in
+/-- A two-dimensional representation with a nonzero invariant line is reducible. -/
+theorem GaloisRep.not_isIrreducible_of_invariant_line
+    {k V : Type*} [Field k] [TopologicalSpace k]
+    [AddCommGroup V] [Module k V] [Module.Finite k V]
+    {ρ : GaloisRep K k V} (hV : Module.rank k V = 2)
+    (v : V) (hv : v ≠ 0) (hinv : ∀ g : Γ K, ρ g v ∈ k ∙ v) :
+    ¬ ρ.IsIrreducible := by
+  intro hρ
+  let U : Subrepresentation ρ.toRepresentation :=
+    { toSubmodule := k ∙ v
+      apply_mem_toSubmodule := by
+        intro g w hw
+        obtain ⟨a, rfl⟩ := Submodule.mem_span_singleton.mp hw
+        rw [map_smul]
+        exact Submodule.smul_mem _ _ (hinv g) }
+  let _ : ρ.toRepresentation.IsIrreducible := hρ
+  obtain hU | hU := eq_bot_or_eq_top U
+  · have hvbot : v ∈ (⊥ : Subrepresentation ρ.toRepresentation) :=
+      hU ▸ Submodule.mem_span_singleton_self v
+    have hvbot' : v ∈ (⊥ : Submodule k V) := hvbot
+    exact hv (by simpa using hvbot')
+  · have hsub : k ∙ v = (⊤ : Submodule k V) :=
+      congrArg Subrepresentation.toSubmodule hU
+    have hspan : Module.finrank k (k ∙ v) = 1 := finrank_span_singleton hv
+    rw [hsub] at hspan
+    have hfinV : Module.finrank k V = 2 := Module.finrank_eq_of_rank_eq hV
+    simpa [hfinV] using hspan
+
+omit [NumberField K] in
 /-- A two-dimensional representation with a nonzero invariant one-dimensional quotient is
 reducible.  The quotient is expressed as a surjective linear functional on which the group acts
 trivially. -/
