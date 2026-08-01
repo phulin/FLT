@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
+public import Mathlib.FieldTheory.Finiteness
 public import Mathlib.Topology.Instances.ZMod
 public import FLT.Deformations.RepresentationTheory.GaloisRep
 
@@ -52,6 +53,32 @@ theorem WeierstrassCurve.n_torsion_finite {n : ℕ} (hn : 0 < n) : Finite (E.nTo
 theorem WeierstrassCurve.n_torsion_card [IsSepClosed k] {n : ℕ} (hn : (n : k) ≠ 0) :
     Nat.card (E.nTorsion n) = n^2 := sorry
 
+/-- A group killed by a prime `p` and having cardinality `p ^ r` is the standard
+`r`-dimensional vector space over `ZMod p`. -/
+theorem group_theory_lemma_of_prime {A : Type*} [AddCommGroup A] {p r : ℕ}
+    (hp : p.Prime)
+    (hcard : Nat.card (Submodule.torsionBy ℤ A p) = p ^ r) :
+    Nonempty ((Submodule.torsionBy ℤ A p) ≃+ (Fin r → ZMod p)) := by
+  letI : Fact p.Prime := ⟨hp⟩
+  letI moduleInst : Module (ZMod p) (Submodule.torsionBy ℤ A p) :=
+    AddCommGroup.zmodModule <| by
+      intro ⟨x, hx⟩
+      simpa using hx
+  letI finiteInst : Finite (Submodule.torsionBy ℤ A p) :=
+    Nat.finite_of_card_ne_zero <| by rw [hcard]; exact pow_ne_zero _ hp.ne_zero
+  letI finiteModule : Module.Finite (ZMod p) (Submodule.torsionBy ℤ A p) :=
+    Module.Finite.of_finite
+  have hfinrank : Module.finrank (ZMod p) (Submodule.torsionBy ℤ A p) = r := by
+    have hpow := @Module.natCard_eq_pow_finrank
+      (ZMod p) (Submodule.torsionBy ℤ A p) inferInstance inferInstance moduleInst finiteModule
+    rw [Nat.card_zmod, hcard] at hpow
+    exact Nat.pow_right_injective hp.two_le hpow.symm
+  let freeModule : Module.Free (ZMod p) (Submodule.torsionBy ℤ A p) :=
+    Module.Free.of_divisionRing (ZMod p) (Submodule.torsionBy ℤ A p)
+  let b := @Module.finBasisOfFinrankEq (ZMod p) (Submodule.torsionBy ℤ A p)
+    inferInstance inferInstance moduleInst freeModule inferInstance finiteModule r hfinrank
+  exact ⟨b.equivFun.toAddEquiv⟩
+
 -- This theorem was well-known in the early part of the 20th century.
 theorem group_theory_lemma {A : Type*} [AddCommGroup A] {n : ℕ} (hn : 0 < n) (r : ℕ)
     (h : ∀ d : ℕ, d ∣ n → Nat.card (Submodule.torsionBy ℤ A d) = d ^ r) :
@@ -77,12 +104,12 @@ theorem WeierstrassCurve.n_torsion_rank [IsSepClosed k] {n : ℕ} (hnp : n.Prime
     (hn : (n : k) ≠ 0) :
     Module.rank (ZMod n) (E.nTorsion n) = 2 := by
   letI : Fact n.Prime := ⟨hnp⟩
-  obtain ⟨e⟩ := E.n_torsion_dimension hn
-  let e' : E.nTorsion n ≃ₗ[ZMod n] (ZMod n) × (ZMod n) :=
+  obtain ⟨e⟩ := group_theory_lemma_of_prime hnp (E.n_torsion_card hn)
+  let e' : E.nTorsion n ≃ₗ[ZMod n] (Fin 2 → ZMod n) :=
     LinearEquiv.ofBijective (e.toAddMonoidHom.toZModLinearMap n) e.bijective
-  let e'' : E.nTorsion n ≃ₗ[ZMod n] ULift.{u} ((ZMod n) × (ZMod n)) :=
+  let e'' : E.nTorsion n ≃ₗ[ZMod n] ULift.{u} (Fin 2 → ZMod n) :=
     e'.trans ULift.moduleEquiv.symm
-  rw [e''.rank_eq, rank_ulift, rank_prod', CommSemiring.rank_self]
+  rw [e''.rank_eq, rank_ulift, rank_fun']
   norm_num
 
 /-- Positive torsion is finite as a module over `ZMod n`. -/
