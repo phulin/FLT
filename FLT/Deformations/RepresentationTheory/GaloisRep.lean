@@ -244,6 +244,14 @@ lemma GaloisRep.trace_conj [Module.Free A M] [Module.Finite A M]
     LinearMap.trace A N (ρ.conj e σ) = LinearMap.trace A M (ρ σ) :=
   LinearMap.trace_conj' (ρ σ) e
 
+omit [NumberField K] in
+/-- Conjugating a Galois representation does not change the determinant of any group element. -/
+lemma GaloisRep.det_conj [Module.Free A M] [Module.Finite A M]
+    [Module.Free A N] [Module.Finite A N]
+    (ρ : GaloisRep K A M) (e : M ≃ₗ[A] N) (σ : Γ K) :
+    (ρ.conj e).det σ = ρ.det σ :=
+  LinearMap.det_conj (ρ σ) e
+
 omit [NumberField K] [IsTopologicalRing A] in
 /-- Conjugating a Galois representation does not change characteristic polynomials. -/
 lemma GaloisRep.charpoly_conj [Module.Free A M] [Module.Finite A M]
