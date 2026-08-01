@@ -392,6 +392,17 @@ lemma prime_power_index_equiv {ι : Type*} [Fintype ι]
       (Equiv.sigmaCongrRight fiberFin).trans (Equiv.sigmaEquivProd _ _)
   exact ⟨idx, fun _ ↦ rfl⟩
 
+/-- Reorder a product indexed by `α × β`, with component type depending only
+on `α`, as `β` copies of the product over `α`. -/
+noncomputable def piPrimeCopiesAddEquiv {α β : Type*} (B : α → Type*)
+    [∀ a, AddCommGroup (B a)] :
+    (∀ x : α × β, B x.1) ≃+ (∀ _b : β, ∀ a : α, B a) where
+  toFun x b a := x (a, b)
+  invFun x ab := x ab.2 ab.1
+  left_inv _ := rfl
+  right_inv _ := rfl
+  map_add' _ _ := rfl
+
 /-- Structure-theorem data for `A[n]`, together with the numerical constraints
 on its cyclic prime-power factors supplied by all the smaller torsion cardinalities. -/
 theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
@@ -429,7 +440,33 @@ theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
 -- This theorem was well-known in the early part of the 20th century.
 theorem group_theory_lemma {A : Type*} [AddCommGroup A] {n : ℕ} (hn : 0 < n) (r : ℕ)
     (h : ∀ d : ℕ, d ∣ n → Nat.card (Submodule.torsionBy ℤ A d) = d ^ r) :
-    Nonempty ((Submodule.torsionBy ℤ A n) ≃+ (Fin r → (ZMod n))) := sorry
+    Nonempty ((Submodule.torsionBy ℤ A n) ≃+ (Fin r → (ZMod n))) := by
+  classical
+  obtain ⟨ι, hι, p, hp, e, he, E, hgcd⟩ := group_theory_structure_data hn r h
+  letI : Fintype ι := hι
+  have hdiv : ∀ i, p i ^ e i ∣ n :=
+    cyclic_factor_dvd_of_torsion_equiv (fun i ↦ p i ^ e i) E
+  have hexp : ∀ i, e i = n.factorization (p i) :=
+    prime_power_exponent_eq_factorization p hp e he hn hdiv hgcd
+  obtain ⟨idx, hidx⟩ := prime_power_index_equiv p hp e he hn hdiv hgcd
+  let B : n.primeFactors × Fin r → Type := fun x ↦
+    ZMod (x.1.val ^ n.factorization x.1.val)
+  let efactors : (∀ i, ZMod (p i ^ e i)) ≃+ (∀ i, B (idx i)) :=
+    AddEquiv.piCongrRight fun i ↦ (ZMod.ringEquivCongr <| by
+      calc
+        p i ^ e i = p i ^ n.factorization (p i) := congrArg (p i ^ ·) (hexp i)
+        _ = (idx i).1.val ^ n.factorization (idx i).1.val := by rw [hidx i]).toAddEquiv
+  let eindex : (∀ i, B (idx i)) ≃+ (∀ x, B x) :=
+    (RingEquiv.piCongrLeft B idx).toAddEquiv
+  let ecopies : (∀ x, B x) ≃+
+      (∀ _j : Fin r, ∀ q : n.primeFactors,
+        ZMod (q.val ^ n.factorization q.val)) :=
+    piPrimeCopiesAddEquiv fun q : n.primeFactors ↦
+      ZMod (q.val ^ n.factorization q.val)
+  let ecrt : (∀ _j : Fin r, ∀ q : n.primeFactors,
+      ZMod (q.val ^ n.factorization q.val)) ≃+ (Fin r → ZMod n) :=
+    AddEquiv.piCongrRight fun _ ↦ (ZMod.equivPi n hn.ne').symm.toAddEquiv
+  exact ⟨(((E.trans efactors).trans eindex).trans ecopies).trans ecrt⟩
 
 -- I only need this if n is prime but there's no harm thinking about it in general I guess.
 -- It follows from the previous theorem using pure group theory (possibly including the
