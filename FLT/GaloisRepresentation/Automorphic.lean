@@ -11,6 +11,9 @@ public import FLT.Deformations.RepresentationTheory.GaloisRep
 public import Mathlib.NumberTheory.Cyclotomic.CyclotomicCharacter
 public import Mathlib.NumberTheory.Padics.Complex
 public import Mathlib.RingTheory.SimpleRing.Principal
+import FLT.Mathlib.Algebra.Central.TensorProduct
+import FLT.Mathlib.RingTheory.SimpleRing.TensorProduct
+import Mathlib.RingTheory.SimpleRing.Congr
 
 /-!
 # Automorphic Galois representations
@@ -97,7 +100,16 @@ instance {F E D : Type*}
     [Field F]
     [Field E] [Algebra F E]
     [Ring D] [Algebra F D] [IsQuaternionAlgebra F D] :
-    IsQuaternionAlgebra E (E ⊗[F] D) := sorry -- Ask Edison?
+    IsQuaternionAlgebra E (E ⊗[F] D) := by
+  refine
+    { isSimpleRing := by
+        let e : E ⊗[F] D ≃ₐ[F] D ⊗[F] E := Algebra.TensorProduct.comm F E D
+        exact IsSimpleRing.of_surjective e.symm.toRingEquiv.toRingHom inferInstance
+          e.symm.surjective
+      isCentral := inferInstance
+      dim_four := ?_ }
+  rw [Module.rank_baseChange, IsQuaternionAlgebra.dim_four]
+  exact Cardinal.lift_natCast 4
 
 variable {p : ℕ} [Fact p.Prime] in
 noncomputable instance : NormedSpace ℚ_[p] (PadicAlgCl p) := spectralNorm.normedSpace ..
