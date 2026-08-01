@@ -364,6 +364,34 @@ lemma prime_power_exponent_eq_factorization {ι : Type*} [Fintype ι]
   rw [hsum, hconst, Nat.mul_comm] at hlt
   exact Nat.lt_irrefl _ hlt
 
+/-- The prime-power factors can be indexed by a prime factor of `n` and one
+of `r` copies, compatibly with their underlying prime. -/
+lemma prime_power_index_equiv {ι : Type*} [Fintype ι]
+    (p : ι → ℕ) (hp : ∀ i, (p i).Prime) (e : ι → ℕ) (he : ∀ i, e i ≠ 0)
+    {n r : ℕ} (hn : 0 < n) (hdiv : ∀ i, p i ^ e i ∣ n)
+    (hgcd : ∀ d, d ∣ n → ∏ i, (p i ^ e i).gcd d = d ^ r) :
+    ∃ idx : ι ≃ (n.primeFactors × Fin r), ∀ i, (idx i).1.val = p i := by
+  classical
+  let f : ι → n.primeFactors := fun i ↦
+    ⟨p i, Nat.mem_primeFactors.mpr
+      ⟨hp i, (dvd_pow_self (p i) (he i)).trans (hdiv i), hn.ne'⟩⟩
+  let efiber (q : n.primeFactors) : {i // f i = q} ≃ {i // p i = q.val} :=
+    { toFun := fun i ↦ ⟨i, congrArg Subtype.val i.prop⟩
+      invFun := fun i ↦ ⟨i, Subtype.ext i.prop⟩
+      left_inv := fun _ ↦ rfl
+      right_inv := fun _ ↦ rfl }
+  have hcardFiber (q : n.primeFactors) : Fintype.card {i // f i = q} = r := by
+    rw [Fintype.card_congr (efiber q)]
+    exact card_prime_fiber_of_gcd_product p hp e he
+      (Nat.prime_of_mem_primeFactors q.prop)
+      (hgcd q (Nat.dvd_of_mem_primeFactors q.prop))
+  let fiberFin (q : n.primeFactors) : {i // f i = q} ≃ Fin r :=
+    Fintype.equivOfCardEq (by simpa using hcardFiber q)
+  let idx : ι ≃ (n.primeFactors × Fin r) :=
+    (Equiv.sigmaFiberEquiv f).symm.trans <|
+      (Equiv.sigmaCongrRight fiberFin).trans (Equiv.sigmaEquivProd _ _)
+  exact ⟨idx, fun _ ↦ rfl⟩
+
 /-- Structure-theorem data for `A[n]`, together with the numerical constraints
 on its cyclic prime-power factors supplied by all the smaller torsion cardinalities. -/
 theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
