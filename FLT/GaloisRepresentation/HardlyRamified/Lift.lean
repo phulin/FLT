@@ -5,7 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
-public import FLT.GaloisRepresentation.HardlyRamified.Defs
+public import FLT.GaloisRepresentation.HardlyRamified.ModThree
 
 /-!
 # Lifting hardly ramified residual representations
@@ -32,11 +32,13 @@ variable {k : Type u} [Finite k] [Field k]
 open TensorProduct
 
 /--
-The arithmetic core of the lifting theorem, after choosing a basis of the residual
-representation.  Keeping this input framed isolates the deformation-theoretic construction
-from the basis-independence argument in `lifts` below.
+The arithmetic core of the lifting theorem in residue characteristic greater than three,
+after choosing a basis of the residual representation.  Keeping this input framed isolates
+the deformation-theoretic construction from both the exceptional characteristic-three case
+and the basis-independence argument below.
 -/
-theorem lifts_framed (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrreducible)
+theorem lifts_framed_of_three_lt (hp : 3 < p)
+    (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrreducible)
     (hρ : IsHardlyRamified hpodd (by simp) ρ) :
     ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsLocalRing R)
       (_ : TopologicalSpace R) (_ : IsTopologicalRing R)
@@ -48,6 +50,28 @@ theorem lifts_framed (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrred
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
+
+/-- The framed lifting theorem.  The characteristic-three case is vacuous by the mod-three
+classification, so all arithmetic lifting work may be carried out under `3 < p`. -/
+theorem lifts_framed (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrreducible)
+    (hρ : IsHardlyRamified hpodd (by simp) ρ) :
+    ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsLocalRing R)
+      (_ : TopologicalSpace R) (_ : IsTopologicalRing R)
+      (_ : Algebra ℤ_[p] R) (_ : IsLocalHom (algebraMap ℤ_[p] R))
+      (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
+      (_ : IsModuleTopology ℤ_[p] R)
+      (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
+      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (_ : Module.Free R W) (hW : Module.rank R W = 2)
+      (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
+    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
+  by_cases hp3 : p = 3
+  · subst p
+    exact (mod_three_not_isIrreducible (Fin 2 → k) (by simp) hρ hρirred).elim
+  · apply lifts_framed_of_three_lt hpodd
+      (by
+        have hpge : 3 ≤ p := (Fact.out : p.Prime).odd_iff.mp hpodd
+        omega) ρ hρirred hρ
 
 /--
 An irreducible mod p hardly ramified representation lifts to a p-adic one.
