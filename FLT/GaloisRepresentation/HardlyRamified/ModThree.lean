@@ -33,4 +33,14 @@ theorem mod_three {k : Type u} [Finite k] [Field k] [Algebra ℤ_[3] k] --
     ∀ g : Γ ℚ, ∀ v : V, π (ρ g v) = π v := by
   sorry
 
+/-- In particular, a hardly ramified mod-3 representation is reducible. -/
+theorem mod_three_not_isIrreducible {k : Type u} [Finite k] [Field k] [Algebra ℤ_[3] k]
+    [TopologicalSpace k] [DiscreteTopology k]
+    (V : Type*) [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (hV : Module.rank k V = 2) {ρ : GaloisRep ℚ k V}
+    (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) :
+    ¬ ρ.IsIrreducible := by
+  obtain ⟨π, hπ, hπρ⟩ := mod_three V hV hρ
+  exact ρ.not_isIrreducible_of_surjective_invariant_quotient hV π hπ hπρ
+
 end GaloisRepresentation.IsHardlyRamified

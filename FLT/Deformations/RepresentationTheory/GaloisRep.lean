@@ -407,3 +407,35 @@ def GaloisRep.toRepresentation (ρ : GaloisRep K A M) : Representation A (Γ K) 
 /-- Irreducibility of a Galois representation over a field. -/
 def GaloisRep.IsIrreducible {k : Type*} [Field k] [TopologicalSpace k] [Module k M]
     (ρ : GaloisRep K k M) : Prop := ρ.toRepresentation.IsIrreducible
+
+omit [NumberField K] in
+/-- A two-dimensional representation with a nonzero invariant one-dimensional quotient is
+reducible.  The quotient is expressed as a surjective linear functional on which the group acts
+trivially. -/
+theorem GaloisRep.not_isIrreducible_of_surjective_invariant_quotient
+    {k V : Type*} [Field k] [TopologicalSpace k]
+    [AddCommGroup V] [Module k V] [Module.Finite k V]
+    {ρ : GaloisRep K k V} (hV : Module.rank k V = 2)
+    (π : V →ₗ[k] k) (hπ : Function.Surjective π)
+    (hπρ : ∀ g : Γ K, ∀ v : V, π (ρ g v) = π v) :
+    ¬ ρ.IsIrreducible := by
+  intro hρ
+  let π' : Representation.IntertwiningMap ρ.toRepresentation
+      (Representation.trivial k (Γ K) k) :=
+    π.intertwiningMap_of_isIntertwiningMap _ _ hπρ
+  let _ : ρ.toRepresentation.IsIrreducible := hρ
+  have hπ' : π' ≠ 0 := by
+    intro hzero
+    obtain ⟨v, hv⟩ := hπ 1
+    have := congrArg (fun f : Representation.IntertwiningMap ρ.toRepresentation
+      (Representation.trivial k (Γ K) k) => f v) hzero
+    simp only [π', Representation.IntertwiningMap.coe_zero, Pi.zero_apply] at this
+    exact one_ne_zero (hv ▸ this)
+  have hinj : Function.Injective π := by
+    have hinj' := (Representation.IsIrreducible.injective_or_eq_zero π').resolve_right hπ'
+    exact fun _ _ h ↦ hinj' h
+  have hfinV : Module.finrank k V = 2 := Module.finrank_eq_of_rank_eq hV
+  have hle : Module.finrank k V ≤ Module.finrank k k :=
+    LinearMap.finrank_le_finrank_of_injective hinj
+  rw [hfinV, Module.finrank_self] at hle
+  omega
