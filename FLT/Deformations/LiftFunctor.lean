@@ -24,11 +24,11 @@ open CategoryTheory IsLocalRing
 
 namespace Deformation
 
-universe u
+universe u v
 
-variable {n : Type} [Fintype n] [DecidableEq n] (G : Type u) [Group G] [TopologicalSpace G]
+variable {n : Type} [Fintype n] [DecidableEq n] (G : Type v) [Group G] [TopologicalSpace G]
 variable (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞]
-variable {K : Type u} [Field K] [NumberField K]
+variable {K : Type v} [Field K] [NumberField K]
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 local notation3 K:max "ᵃˡᵍ" => AlgebraicClosure K
@@ -37,7 +37,7 @@ local notation "Ω" K => IsDedekindDomain.HeightOneSpectrum (NumberField.RingOfI
 open scoped TypeCat
 variable (n) in
 /-- `repnFunctor n G 𝓞` is the functor taking `R` to continuous reps `G → GLₙ(R)`. -/
-def repnFunctor : ProartinianCat 𝓞 ⥤ Type u where
+def repnFunctor : ProartinianCat 𝓞 ⥤ Type (max u v) where
   obj R := G →ₜ* GL n R
   map {R S} f := ↾ (fun ρ ↦ .comp (Units.mapₜ f.hom.mapMatrix.toContinuousMonoidHom) ρ)
 
@@ -76,7 +76,7 @@ set_option backward.isDefEq.respectTransparency false in
 /-- `repnQuotFunctor n G 𝓞` is the functor taking `R` to continuous reps `G → GLₙ(R)` up to
 conjugation by some `γ` in the kernel of `GLₙ(R) → GLₙ(𝕜)`. -/
 noncomputable
-def repnQuotFunctor : ProartinianCat 𝓞 ⥤ Type u where
+def repnQuotFunctor : ProartinianCat 𝓞 ⥤ Type (max u v) where
   obj R := MulAction.orbitRel.Quotient ((Matrix.GeneralLinearGroup.map (n := n)
     (ProartinianCat.toResidueField R).hom.toRingHom).ker.comap (ConjAct.ofConjAct.toMonoidHom))
     (G →ₜ* GL n R)
