@@ -357,6 +357,12 @@ noncomputable
 abbrev GaloisRep.toLocal (ρ : GaloisRep K A M) (v : Ω K) : GaloisRep (v.adicCompletion K) A M :=
   ρ.map (algebraMap _ _)
 
+omit [IsTopologicalRing A] in
+@[simp]
+lemma GaloisRep.toLocal_adicArithFrob (ρ : GaloisRep K A M) (v : Ω K) :
+    ρ.toLocal v (Field.AbsoluteGaloisGroup.adicArithFrob v) =
+      ρ (Field.AbsoluteGaloisGroup.globalAdicArithFrob v) := rfl
+
 universe v u
 variable {R : Type u} [CommRing R]
 

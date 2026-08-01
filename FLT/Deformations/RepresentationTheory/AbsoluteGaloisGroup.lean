@@ -215,6 +215,12 @@ def Field.AbsoluteGaloisGroup.adicArithFrob : Γ Kᵥ :=
 
 local notation "Frobᵥ" => Field.AbsoluteGaloisGroup.adicArithFrob v
 
+/-- The chosen local arithmetic Frobenius, viewed in the global absolute Galois group through
+the fixed embedding of algebraic closures used by `Field.absoluteGaloisGroup.map`. -/
+noncomputable
+def Field.AbsoluteGaloisGroup.globalAdicArithFrob : Γ K :=
+  Field.absoluteGaloisGroup.map (algebraMap K Kᵥ) Frobᵥ
+
 lemma Field.AbsoluteGaloisGroup.isArithFrobAt_adicArithFrob :
     IsArithFrobAt 𝒪ᵥ Frobᵥ (𝔪 (IntegralClosure 𝒪ᵥ (Kᵥᵃˡᵍ))) :=
   .arithFrobAt' 𝒪ᵥ (Γ Kᵥ) (𝔪 (IntegralClosure 𝒪ᵥ (Kᵥᵃˡᵍ)))
