@@ -325,31 +325,34 @@ abbrev QHat := ℚ ⊗[ℤ] ZHat
 
 noncomputable example : QHat := (22 / 7) ⊗ₜ ZHat.e
 
-namespace QHat
+open scoped TensorProduct
 
-lemma canonicalForm (z : QHat) : ∃ (N : ℕ+) (z' : ZHat), z = (1 / N : ℚ) ⊗ₜ z' := by
+/-- Every element of a tensor product `ℚ ⊗[ℤ] M` has a common positive denominator. -/
+lemma TensorProduct.rat_canonicalForm {M : Type*} [AddCommGroup M] (z : ℚ ⊗[ℤ] M) :
+    ∃ (N : ℕ+) (z' : M), z = (1 / N : ℚ) ⊗ₜ z' := by
   induction z using TensorProduct.induction_on with
   | zero =>
-    refine ⟨1, 0, ?_⟩
-    simp
+    refine ⟨1, 0, by simp⟩
   | tmul q z =>
-    refine ⟨⟨q.den, q.den_pos ⟩, q.num * z, ?_⟩
-    simp_rw [← zsmul_eq_mul, TensorProduct.tmul_smul, TensorProduct.smul_tmul']
-    simp only [PNat.mk_coe, zsmul_eq_mul]
-    simp only [← q.mul_den_eq_num, mul_assoc,
-      one_div, ne_eq, Nat.cast_eq_zero, Rat.den_ne_zero, not_false_eq_true,
-        mul_one, mul_inv_cancel₀]
+    refine ⟨⟨q.den, q.den_pos⟩, q.num • z, ?_⟩
+    rw [TensorProduct.tmul_smul, TensorProduct.smul_tmul']
+    congr 1
+    nth_rewrite 1 [← q.num_div_den]
+    simp [div_eq_mul_inv]
   | add x y hx hy =>
     obtain ⟨N₁, z₁, rfl⟩ := hx
     obtain ⟨N₂, z₂, rfl⟩ := hy
-    refine ⟨N₁ * N₂, (N₁ : ℤ) * z₂ + (N₂ : ℤ) * z₁, ?_⟩
-    simp only [TensorProduct.tmul_add, ← zsmul_eq_mul,
-      TensorProduct.tmul_smul, TensorProduct.smul_tmul']
-    simp only [one_div, PNat.mul_coe, Nat.cast_mul, mul_inv_rev, zsmul_eq_mul, Int.cast_natCast,
-      ne_eq, Nat.cast_eq_zero, PNat.ne_zero, not_false_eq_true, mul_inv_cancel_left₀]
+    refine ⟨N₁ * N₂, (N₁ : ℤ) • z₂ + (N₂ : ℤ) • z₁, ?_⟩
+    rw [TensorProduct.tmul_add, TensorProduct.tmul_smul, TensorProduct.tmul_smul]
+    simp only [one_div, PNat.mul_coe, Nat.cast_mul, mul_inv_rev]
     rw [add_comm]
-    congr
-    simp [mul_comm]
+    congr 2 <;> simp [zsmul_eq_mul]
+    field_simp
+
+namespace QHat
+
+lemma canonicalForm (z : QHat) : ∃ (N : ℕ+) (z' : ZHat), z = (1 / N : ℚ) ⊗ₜ z' := by
+  exact TensorProduct.rat_canonicalForm z
 
 /-- An element `z` of `ℤ̂` is coprime to `N` if its image in `ℤ/Nℤ` is a unit. -/
 def IsCoprime (N : ℕ+) (z : ZHat) : Prop := IsUnit (z N)

@@ -8,6 +8,7 @@ module
 public import FLT.Data.Hurwitz
 public import FLT.Data.QHat
 import Mathlib.CategoryTheory.Category.Init
+import Mathlib.RingTheory.Flat.TorsionFree
 import Mathlib.Tactic.Positivity.Finset
 
 /-!
@@ -38,6 +39,9 @@ scoped notation "𝓞^" => HurwitzHat
 
 noncomputable instance : Ring 𝓞^ := Algebra.TensorProduct.instRing
 
+instance flat : Module.Flat ℤ 𝓞^ :=
+  Module.Flat.instTensorProduct (R := ℤ) (S := ℤ) (M := 𝓞) (N := ZHat)
+
 end HurwitzHat
 
 /-- The quaternion algebra ℚ + ℚi + ℚj + ℚk. -/
@@ -49,6 +53,9 @@ namespace HurwitzRat
 scoped notation "D" => HurwitzRat
 
 noncomputable instance : Ring D := Algebra.TensorProduct.instRing
+
+instance flat : Module.Flat ℤ D :=
+  Module.Flat.instTensorProduct (R := ℤ) (S := ℤ) (M := ℚ) (N := 𝓞)
 
 end HurwitzRat
 
@@ -71,7 +78,9 @@ noncomputable abbrev j₁ : D →ₐ[ℤ] D^ := Algebra.TensorProduct.includeLef
 -- (Algebra.TensorProduct.assoc ℤ ℚ 𝓞 ZHat).symm.trans Algebra.TensorProduct.includeLeft
 
 lemma injective_hRat :
-    Function.Injective j₁ := sorry -- flatness
+    Function.Injective j₁ := by
+  exact Algebra.TensorProduct.includeLeft_injective (R := ℤ) (S := ℤ) (A := D) (B := ZHat)
+    Int.cast_injective
 
 -- this stopped working in 4.29
 noncomputable instance : Ring (ℚ ⊗[ℤ] 𝓞^) := Algebra.TensorProduct.instRing
@@ -87,11 +96,33 @@ noncomputable abbrev j₂ : 𝓞^ →ₐ[ℤ] D^ :=
   (Algebra.TensorProduct.includeRight : 𝓞^ →ₐ[ℤ] ℚ ⊗[ℤ] 𝓞^)
 
 lemma injective_zHat :
-    Function.Injective j₂ := sorry -- flatness
+    Function.Injective j₂ := by
+  exact (Algebra.TensorProduct.assoc ℤ ℤ ℤ ℚ 𝓞 ZHat).symm.injective.comp
+    (Algebra.TensorProduct.includeRight_injective (R := ℤ) (A := ℚ) (B := 𝓞^)
+      Int.cast_injective)
 
 -- should I rearrange tensors? Not sure if D^ should be (ℚ ⊗ 𝓞) ⊗ ℤhat or ℚ ⊗ (𝓞 ⊗ Zhat)
+set_option backward.isDefEq.respectTransparency false in
 lemma canonicalForm (z : D^) : ∃ (N : ℕ+) (z' : 𝓞^), z = j₁ ((N⁻¹ : ℚ) ⊗ₜ 1 : D) * j₂ z' := by
-  sorry
+  let e := Algebra.TensorProduct.assoc ℤ ℤ ℤ ℚ 𝓞 ZHat
+  obtain ⟨N, z', hz⟩ := TensorProduct.rat_canonicalForm (e z)
+  refine ⟨N, z', ?_⟩
+  apply e.injective
+  rw [hz]
+  have hj₂ : e (j₂ z') = (1 : ℚ) ⊗ₜ z' := by
+    change e (e.symm (1 ⊗ₜ z')) = _
+    simp
+  have hj₁ : e (j₁ ((N⁻¹ : ℚ) ⊗ₜ 1 : D)) =
+      (N⁻¹ : ℚ) ⊗ₜ ((1 : 𝓞) ⊗ₜ (1 : ZHat)) := by
+    change e ((((N⁻¹ : ℚ) ⊗ₜ (1 : 𝓞)) : D) ⊗ₜ (1 : ZHat)) = _
+    rw [Algebra.TensorProduct.assoc_tmul]
+  rw [map_mul, hj₁, hj₂]
+  rw [Algebra.TensorProduct.tmul_mul_tmul, mul_one]
+  congr 1
+  · simp
+  · have hone : ((1 : 𝓞) ⊗ₜ[ℤ] (1 : ZHat)) = (1 : 𝓞 ⊗[ℤ] ZHat) :=
+      (Algebra.TensorProduct.one_def (R := ℤ) (A := 𝓞) (B := ZHat)).symm
+    rw [hone, one_mul]
 
 lemma completed_units (z : D^ˣ) : ∃ (u : Dˣ) (v : 𝓞^ˣ), (z : D^) = j₁ u * j₂ v := sorry
 

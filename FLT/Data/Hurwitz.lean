@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import Mathlib.Analysis.Quaternion
+public import Mathlib.LinearAlgebra.FreeModule.Basic
 
 /-!
 # Hurwitz integers
@@ -337,6 +338,18 @@ noncomputable instance ring : Ring 𝓞 :=
     toQuaternion_npow
     toQuaternion_natCast
     toQuaternion_intCast
+
+/-- The additive group of the Hurwitz integers is the free rank-four group on the
+coordinates `1`, `ω`, `i`, and `ωi`. -/
+noncomputable def equivInt4 : 𝓞 ≃+ (ℤ × ℤ × ℤ × ℤ) where
+  toFun z := (z.re, z.imO, z.imI, z.imOI)
+  invFun z := ⟨z.1, z.2.1, z.2.2.1, z.2.2.2⟩
+  left_inv _ := rfl
+  right_inv z := by rcases z with ⟨a, b, c, d⟩; rfl
+  map_add' _ _ := rfl
+
+noncomputable instance free : Module.Free ℤ 𝓞 :=
+  Module.Free.of_equiv equivInt4.toIntLinearEquiv.symm
 
 @[simp] lemma natCast_re (n : ℕ) : (n : 𝓞).re = n := by
   induction n with
