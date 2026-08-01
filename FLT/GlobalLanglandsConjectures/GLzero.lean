@@ -46,10 +46,16 @@ State them first.
 
 @[expose] public section
 
+open scoped Manifold
+
 namespace AutomorphicForm
 
+attribute [local instance] Matrix.linftyOpNormedAddCommGroup Matrix.linftyOpNormedSpace
+  Matrix.linftyOpNormedRing Matrix.linftyOpNormedAlgebra
+
 /-- A `GLₙ`-weight `ρ` is trivial if it is the one-dimensional trivial representation. -/
-def GLn.Weight.IsTrivial {n : ℕ} (ρ : Weight n) : Prop := sorry -- (ρ = trivial 1d rep)
+def GLn.Weight.IsTrivial {n : ℕ} (ρ : Weight n) : Prop :=
+  ρ.w.d = 1 ∧ ∀ g, ρ.w.rho g = 1
 
 open GLn
 
@@ -125,6 +131,7 @@ namespace GLn
 -- For general n, it will only work for ρ the trivial representation, but we didn't
 -- define the trivial representation yet.
 -- Some of the other fields will work for all n.
+set_option backward.isDefEq.respectTransparency false in
 /-- Make an automorphic form for `GLₙ/ℚ` of trivial weight `ρ` from a complex number `z`,
 returning the constant function with value `z`. -/
 def ofComplex (z : ℂ) {n : ℕ} (ρ : Weight n) (hρ : ρ.IsTrivial) :
@@ -139,7 +146,7 @@ def ofComplex (z : ℂ) {n : ℕ} (ρ : Weight n) (hρ : ρ.IsTrivial) :
           by_cases hz : z ∈ s
           · simp [hz]
           · simp [hz]
-        smooth := sorry
+        smooth := fun _ ↦ contMDiff_const
       }
       is_periodic := by simp
       is_slowly_increasing _ := ⟨‖z‖, 0, by simp⟩
@@ -150,10 +157,10 @@ def ofComplex (z : ℂ) {n : ℕ} (ρ : Weight n) (hρ : ρ.IsTrivial) :
 /-- The classification of automorphic forms for `GL₀/ℚ` of weight `ρ`: they are in
 bijection with `ℂ`. -/
 noncomputable def classification (ρ : Weight 0) : AutomorphicFormForGLnOverQ 0 ρ ≃ ℂ where
-  toFun f := f 1
-  invFun z := ofComplex z ρ sorry
-  left_inv := sorry
-  right_inv := sorry
+  toFun := GL0.classification ρ
+  invFun := (GL0.classification ρ).symm
+  left_inv := (GL0.classification ρ).left_inv
+  right_inv := (GL0.classification ρ).right_inv
 
 -- Can this be beefed up to an isomorphism of complex
 -- vector spaces?
