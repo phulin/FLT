@@ -76,6 +76,18 @@ namespace GaloisRep
 
 variable {K k : Type*} [Field K] [Field k] [TopologicalSpace k] [IsTopologicalRing k]
 
+/-- A two-dimensional representation with a trivial one-dimensional quotient has character
+`1 + det`. -/
+theorem trace_eq_one_add_det_of_surjective_invariant_quotient
+    {V : Type v} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (hV : Module.rank k V = 2) (ρ : GaloisRep K k V)
+    (π : V →ₗ[k] k) (hπ : Function.Surjective π)
+    (hπρ : ∀ g : Γ K, ∀ x : V, π (ρ g x) = π x) :
+    ∀ g : Γ K, LinearMap.trace k V (ρ g) = 1 + LinearMap.det (ρ g) := by
+  intro g
+  exact LinearMap.trace_eq_one_add_det_of_surjective_invariant_quotient
+    hV (ρ g) π hπ (hπρ g)
+
 private abbrev e₀ : Fin 2 → k := Pi.single 0 1
 private abbrev e₁ : Fin 2 → k := Pi.single 1 1
 

@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import FLT.GaloisRepresentation.HardlyRamified.Defs
+public import FLT.Deformations.RepresentationTheory.TraceReducibility
 
 /-!
 # Mod-3 hardly ramified representations
@@ -42,5 +43,16 @@ theorem mod_three_not_isIrreducible {k : Type u} [Finite k] [Field k] [Algebra �
     ¬ ρ.IsIrreducible := by
   obtain ⟨π, hπ, hπρ⟩ := mod_three V hV hρ
   exact ρ.not_isIrreducible_of_surjective_invariant_quotient hV π hπ hπρ
+
+/-- The mod-3 classification also gives the character identity `trace = 1 + det`. -/
+theorem mod_three_trace_eq_one_add_det
+    {k : Type u} [Finite k] [Field k] [Algebra ℤ_[3] k]
+    [TopologicalSpace k] [DiscreteTopology k]
+    (V : Type*) [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (hV : Module.rank k V = 2) {ρ : GaloisRep ℚ k V}
+    (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) :
+    ∀ g : Γ ℚ, LinearMap.trace k V (ρ g) = 1 + LinearMap.det (ρ g) := by
+  obtain ⟨π, hπ, hπρ⟩ := mod_three V hV hρ
+  exact ρ.trace_eq_one_add_det_of_surjective_invariant_quotient hV π hπ hπρ
 
 end GaloisRepresentation.IsHardlyRamified
