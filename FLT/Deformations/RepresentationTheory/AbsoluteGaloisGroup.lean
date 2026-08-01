@@ -229,6 +229,15 @@ lemma Field.AbsoluteGaloisGroup.map_globalAdicArithFrob (x : Kᵃˡᵍ) :
       Frobᵥ (AlgebraicClosure.map (algebraMap K Kᵥ) x) :=
   Field.absoluteGaloisGroup.lift_map (algebraMap K Kᵥ) Frobᵥ x
 
+/-- Prove an equality after applying the chosen global Frobenius by checking it after the fixed
+embedding into the local algebraic closure. -/
+lemma Field.AbsoluteGaloisGroup.globalAdicArithFrob_eq_of_map_eq {x y : Kᵃˡᵍ}
+    (h : Frobᵥ (AlgebraicClosure.map (algebraMap K Kᵥ) x) =
+      AlgebraicClosure.map (algebraMap K Kᵥ) y) :
+    Field.AbsoluteGaloisGroup.globalAdicArithFrob v x = y := by
+  apply (AlgebraicClosure.map (algebraMap K Kᵥ)).injective
+  exact (Field.AbsoluteGaloisGroup.map_globalAdicArithFrob v x).trans h
+
 lemma Field.AbsoluteGaloisGroup.isArithFrobAt_adicArithFrob :
     IsArithFrobAt 𝒪ᵥ Frobᵥ (𝔪 (IntegralClosure 𝒪ᵥ (Kᵥᵃˡᵍ))) :=
   .arithFrobAt' 𝒪ᵥ (Γ Kᵥ) (𝔪 (IntegralClosure 𝒪ᵥ (Kᵥᵃˡᵍ)))
