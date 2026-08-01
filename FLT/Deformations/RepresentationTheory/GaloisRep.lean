@@ -12,6 +12,7 @@ public import Mathlib.LinearAlgebra.Matrix.Unique
 public import Mathlib.RingTheory.Bialgebra.TensorProduct
 public import Mathlib.RingTheory.HopfAlgebra.Basic
 public import Mathlib.RepresentationTheory.Irreducible
+import Mathlib.LinearAlgebra.Charpoly.BaseChange
 
 /-!
 # Galois representations
@@ -232,6 +233,41 @@ open TensorProduct in
 lemma GaloisRep.baseChange_tmul [IsTopologicalRing B] [Algebra A B] [ContinuousSMul A B]
     [Module.Finite A M] [Module.Free A M] (ρ : GaloisRep K A M) (σ : Γ K) (r : B) (x : M) :
     ρ.baseChange B σ (r ⊗ₜ x) = r ⊗ₜ (ρ σ x) := rfl
+
+open scoped TensorProduct
+
+omit [NumberField K] [IsTopologicalRing A] in
+/-- Conjugating a Galois representation does not change the trace of any group element. -/
+lemma GaloisRep.trace_conj [Module.Free A M] [Module.Finite A M]
+    [Module.Free A N] [Module.Finite A N]
+    (ρ : GaloisRep K A M) (e : M ≃ₗ[A] N) (σ : Γ K) :
+    LinearMap.trace A N (ρ.conj e σ) = LinearMap.trace A M (ρ σ) :=
+  LinearMap.trace_conj' (ρ σ) e
+
+omit [NumberField K] [IsTopologicalRing A] in
+/-- Conjugating a Galois representation does not change characteristic polynomials. -/
+lemma GaloisRep.charpoly_conj [Module.Free A M] [Module.Finite A M]
+    [Module.Free A N] [Module.Finite A N]
+    (ρ : GaloisRep K A M) (e : M ≃ₗ[A] N) (σ : Γ K) :
+    (ρ.conj e σ).charpoly = (ρ σ).charpoly :=
+  e.charpoly_conj (ρ σ)
+
+omit [NumberField K] [IsTopologicalRing A] in
+/-- Trace commutes with scalar extension of a Galois representation. -/
+lemma GaloisRep.trace_baseChange [IsTopologicalRing B] [Algebra A B] [ContinuousSMul A B]
+    [Module.Free A M] [Module.Finite A M]
+    (ρ : GaloisRep K A M) (σ : Γ K) :
+    LinearMap.trace B (B ⊗[A] M) (ρ.baseChange B σ) =
+      algebraMap A B (LinearMap.trace A M (ρ σ)) :=
+  LinearMap.trace_baseChange (ρ σ) B
+
+omit [NumberField K] [IsTopologicalRing A] in
+/-- Characteristic polynomials commute with scalar extension of a Galois representation. -/
+lemma GaloisRep.charpoly_baseChange [IsTopologicalRing B] [Algebra A B] [ContinuousSMul A B]
+    [Module.Free A M] [Module.Finite A M]
+    (ρ : GaloisRep K A M) (σ : Γ K) :
+    (ρ.baseChange B σ).charpoly = (ρ σ).charpoly.map (algebraMap A B) :=
+  LinearMap.charpoly_baseChange (ρ σ) B
 
 set_option backward.isDefEq.respectTransparency.types false in
 omit [IsTopologicalRing A] [NumberField K] in
