@@ -266,6 +266,38 @@ lemma cyclic_factor_dvd_of_torsion_equiv {A : Type*} [AddCommGroup A]
     simpa [x] using hy
   exact (ZMod.natCast_eq_zero_iff n (m i)).mp this
 
+/-- The gcd of a positive power of one prime with another prime detects
+whether the two primes agree. -/
+lemma gcd_prime_pow_prime {p q e : ℕ} (hp : p.Prime) (hq : q.Prime)
+    (he : e ≠ 0) :
+    (p ^ e).gcd q = if p = q then q else 1 := by
+  split_ifs with hpq
+  · subst q
+    exact Nat.gcd_eq_right (dvd_pow_self p he)
+  · exact Nat.Coprime.gcd_eq_one
+      (by simpa using Nat.coprime_pow_primes e 1 hp hq hpq)
+
+/-- If the product of the `q`-torsion cardinalities of prime-power cyclic
+factors is `q ^ r`, exactly `r` factors are `q`-primary. -/
+lemma card_prime_fiber_of_gcd_product {ι : Type*} [Fintype ι]
+    (p : ι → ℕ) (hp : ∀ i, (p i).Prime) (e : ι → ℕ) (he : ∀ i, e i ≠ 0)
+    {q r : ℕ} (hq : q.Prime) (hprod : ∏ i, (p i ^ e i).gcd q = q ^ r) :
+    Fintype.card {i // p i = q} = r := by
+  classical
+  have hc : Fintype.card {i // p i = q} =
+      (Finset.univ.filter fun i ↦ p i = q).card :=
+    Fintype.card_ofFinset (p := {i | p i = q}) _ (by intro x; simp)
+  have heval : (∏ i, (p i ^ e i).gcd q) =
+      q ^ Fintype.card {i // p i = q} := by
+    simp_rw [gcd_prime_pow_prime (hp _) hq (he _)]
+    calc
+      (∏ i, if p i = q then q else 1) =
+          ∏ i ∈ Finset.univ.filter (fun i ↦ p i = q), q := by
+        rw [Finset.prod_filter]
+      _ = q ^ (Finset.univ.filter fun i ↦ p i = q).card := Finset.prod_const _
+      _ = q ^ Fintype.card {i // p i = q} := congrArg (q ^ ·) hc.symm
+  exact Nat.pow_right_injective hq.two_le (heval.symm.trans hprod)
+
 /-- Structure-theorem data for `A[n]`, together with the numerical constraints
 on its cyclic prime-power factors supplied by all the smaller torsion cardinalities. -/
 theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
