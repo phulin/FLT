@@ -64,13 +64,12 @@ def ofComplex (c : ℂ) : AutomorphicFormForGLnOverQ 0 ρ := {
     is_smooth := {
       continuous := by continuity
       loc_cst := by
+        intro _
         rw [IsLocallyConstant]
         intro s
         by_cases hc : c ∈ s
-        · simpa [hc] using (isOpen_univ : IsOpen (Set.univ : Set (GL (Fin 0)
-            (IsDedekindDomain.FiniteAdeleRing ℤ ℚ))))
-        · simpa [hc] using (isOpen_empty : IsOpen (∅ : Set (GL (Fin 0)
-            (IsDedekindDomain.FiniteAdeleRing ℤ ℚ))))
+        · simp [hc]
+        · simp [hc]
       smooth := by simp [contMDiff_const]
     }
     is_periodic := by simp
@@ -131,9 +130,19 @@ returning the constant function with value `z`. -/
 def ofComplex (z : ℂ) {n : ℕ} (ρ : Weight n) (hρ : ρ.IsTrivial) :
     AutomorphicFormForGLnOverQ n ρ where
       toFun _ := z
-      is_smooth := sorry
-      is_periodic := sorry
-      is_slowly_increasing := sorry
+      is_smooth := {
+        continuous := by continuity
+        loc_cst := by
+          intro _
+          rw [IsLocallyConstant]
+          intro s
+          by_cases hz : z ∈ s
+          · simp [hz]
+          · simp [hz]
+        smooth := sorry
+      }
+      is_periodic := by simp
+      is_slowly_increasing _ := ⟨‖z‖, 0, by simp⟩
       -- is_finite_cod := sorry -- needs a better name
       has_finite_level := sorry -- needs a better name
 
