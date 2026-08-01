@@ -70,6 +70,40 @@ lemma toFramedGaloisRep_map {R S : ProartinianCat 𝓞} (f : R ⟶ S)
   ext
   simp [toFramedGaloisRep]
 
+/-- Regard an equivalence from the residue field of `𝓞` as an equivalence whose source is
+the underlying ring of the terminal proartinian `𝓞`-algebra. -/
+noncomputable def ProartinianCat.residueFieldRingEquiv
+    {k : Type u} [Field k] (e : ResidueField 𝓞 ≃+* k) :
+    (ProartinianCat.residueField (𝓞 := 𝓞) : Type u) ≃+* k := e
+
+/-- Transport a framed residual representation to the canonical residue-field object of
+`ProartinianCat 𝓞`.  This is the residual point used to define its lifting functor. -/
+noncomputable def residualRepresentation
+    {k : Type u} [Field k] [TopologicalSpace k] [DiscreteTopology k]
+    (e : ResidueField 𝓞 ≃+* k) (ρ : FramedGaloisRep K k n) :
+    (repnFunctor n (Γ K) 𝓞).obj .residueField :=
+  (ρ.baseChange (ProartinianCat.residueFieldRingEquiv 𝓞 e).symm.toRingHom
+    continuous_of_discreteTopology).GL
+
+omit [NumberField K] in
+/-- Transporting a residual representation to the canonical residue-field object and back
+along the chosen residue-field equivalence recovers the original framed representation. -/
+lemma toFramedGaloisRep_residualRepresentation_baseChange
+    {k : Type u} [Field k] [TopologicalSpace k] [DiscreteTopology k]
+    (e : ResidueField 𝓞 ≃+* k) (ρ : FramedGaloisRep K k n) :
+    (toFramedGaloisRep (residualRepresentation 𝓞 e ρ)).baseChange
+      (ProartinianCat.residueFieldRingEquiv 𝓞 e).toRingHom
+      continuous_of_discreteTopology = ρ := by
+  apply FramedGaloisRep.GL.injective
+  ext σ i j
+  rw [FramedGaloisRep.baseChange_GL]
+  rw [show (toFramedGaloisRep (residualRepresentation 𝓞 e ρ)).GL =
+      residualRepresentation 𝓞 e ρ by
+    exact FramedGaloisRep.GL.apply_symm_apply _]
+  unfold residualRepresentation
+  rw [FramedGaloisRep.baseChange_GL]
+  exact (ProartinianCat.residueFieldRingEquiv 𝓞 e).apply_symm_apply _
+
 variable (n)
 
 set_option backward.isDefEq.respectTransparency false in
