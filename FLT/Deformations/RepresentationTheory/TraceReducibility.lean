@@ -20,7 +20,57 @@ normal forms which arise from a nonidentity element having `1` as an eigenvalue.
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 
-universe u
+universe u v
+
+namespace LinearMap
+
+/-- On a two-dimensional vector space, an endomorphism acting trivially on a nonzero
+one-dimensional quotient has trace equal to one plus its determinant. -/
+theorem trace_eq_one_add_det_of_surjective_invariant_quotient
+    {k : Type u} {V : Type v} [Field k] [AddCommGroup V] [Module k V]
+    [Module.Finite k V] [Module.Free k V]
+    (hV : Module.rank k V = 2) (f : V →ₗ[k] V)
+    (π : V →ₗ[k] k) (hπ : Function.Surjective π)
+    (hπf : ∀ x, π (f x) = π x) :
+    trace k V f = 1 + LinearMap.det f := by
+  classical
+  have hfinV : Module.finrank k V = 2 := Module.finrank_eq_of_rank_eq hV
+  let b := Module.finBasisOfFinrankEq k V hfinV
+  let M : Matrix (Fin 2) (Fin 2) k := toMatrix b b f
+  let a : k := π (b 0)
+  let c : k := π (b 1)
+  have hπsum (x : V) : π x = a * (b.repr x) 0 + c * (b.repr x) 1 := by
+    calc
+      π x = π (∑ i, (b.repr x) i • b i) := congrArg π (b.sum_repr x).symm
+      _ = a * (b.repr x) 0 + c * (b.repr x) 1 := by
+        rw [map_sum, Fin.sum_univ_two]
+        simp [a, c, mul_comm]
+  have hac : a ≠ 0 ∨ c ≠ 0 := by
+    by_contra h
+    simp only [not_or, ne_eq, not_not] at h
+    obtain ⟨x, hx⟩ := hπ 1
+    have hzero : π x = 0 := by
+      rw [hπsum x, h.1, h.2]
+      simp
+    exact one_ne_zero (hx ▸ hzero)
+  have h0 : a * M 0 0 + c * M 1 0 = a := by
+    have h := hπf (b 0)
+    rw [hπsum] at h
+    simpa [M, a, c, toMatrix_apply] using h
+  have h1 : a * M 0 1 + c * M 1 1 = c := by
+    have h := hπf (b 1)
+    rw [hπsum] at h
+    simpa [M, a, c, toMatrix_apply] using h
+  rw [trace_eq_matrix_trace k b, ← det_toMatrix b,
+    Matrix.trace_fin_two, Matrix.det_fin_two]
+  change M 0 0 + M 1 1 = 1 + (M 0 0 * M 1 1 - M 0 1 * M 1 0)
+  rcases hac with ha | hc
+  · apply mul_left_cancel₀ ha
+    linear_combination (1 - M 1 1) * h0 + M 1 0 * h1
+  · apply mul_left_cancel₀ hc
+    linear_combination M 0 1 * h0 - (M 0 0 - 1) * h1
+
+end LinearMap
 
 namespace GaloisRep
 
