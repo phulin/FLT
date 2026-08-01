@@ -114,7 +114,12 @@ def deformationFunctor (ρ : (repnFunctor n G 𝓞).obj .residueField) :
 /-- The subfunctor of flat lifts. This probably only makes sense when `𝓞` is `v`-adic. -/
 def flatFunctor (v : Ω K) : Subfunctor (repnFunctor n (Γ K) 𝓞) where
   obj R := { ρ | (toFramedGaloisRep ρ).IsFlatAt v }
-  map := sorry -- See e.g. Conrad Theorem 1.6 of CSS
+  map {R S} f ρ hρ := by
+    have : (toFramedGaloisRep ρ).IsFlatAt v := hρ
+    simp only [Set.preimage_ofPred_eq, toFramedGaloisRep_map, Set.mem_ofPred_eq] at ⊢
+    letI : IsLocalHom f.hom.toRingHom := inferInstance
+    exact FramedGaloisRep.IsFlatAt.baseChange v (toFramedGaloisRep ρ)
+      f.hom.toRingHom f.hom.cont
 
 set_option backward.isDefEq.respectTransparency.types false in
 /-- The subfunctor of unramified (at `v`) representations. -/

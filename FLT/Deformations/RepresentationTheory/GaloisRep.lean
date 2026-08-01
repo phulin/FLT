@@ -498,6 +498,19 @@ class GaloisRep.IsFlatAt [IsLocalRing A] (ρ : GaloisRep K A M) : Prop where
   cond : ∀ (I : Ideal A), IsOpen (I : Set A) →
     (ρ.baseChange (A ⧸ I)).HasFlatProlongationAt v
 
+/-- Finite flatness is preserved by extension of the coefficient ring along a continuous
+local homomorphism.  For an open ideal `J` of `B`, the map `A → B ⧸ J` factors through the
+open quotient by its kernel.  A composition series of the resulting Artinian local
+coefficient algebra then reduces the assertion to stability of finite flat group schemes
+under extensions.  This is the coefficient-ring base-change theorem used in the definition
+of the flat deformation functor (cf. Conrad, Theorem 1.6 of CSS). -/
+theorem GaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
+    [IsLocalRing A] [IsLocalRing B] [Algebra A B] [ContinuousSMul A B]
+    [IsLocalHom (algebraMap A B)]
+    (ρ : GaloisRep K A M) [ρ.IsFlatAt v] :
+    (ρ.baseChange B).IsFlatAt v := by
+  sorry
+
 /-- Flatness at a finite place is invariant under a change of basis. -/
 instance GaloisRep.IsFlatAt.conj [IsLocalRing A]
     (ρ : GaloisRep K A M) (v : Ω K) [ρ.IsFlatAt v] (e : M ≃ₗ[A] N) :
@@ -505,6 +518,21 @@ instance GaloisRep.IsFlatAt.conj [IsLocalRing A]
   cond I hI := by
     rw [GaloisRep.baseChange_conj]
     exact (GaloisRep.IsFlatAt.cond (ρ := ρ) I hI).conj v (e.baseChange A (A ⧸ I))
+
+/-- The matrix-valued form of `GaloisRep.IsFlatAt.baseChange`. -/
+instance FramedGaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
+    [IsLocalRing A] [IsLocalRing B]
+    (ρ : FramedGaloisRep K A n) (f : A →+* B) (hf : Continuous f)
+    [IsLocalHom f] [ρ.IsFlatAt v] :
+    (ρ.baseChange f hf).IsFlatAt v := by
+  rw [FramedGaloisRep.baseChange_def]
+  letI : Algebra A B := f.toAlgebra
+  letI : ContinuousSMul A B := continuousSMul_of_algebraMap A B hf
+  letI : IsLocalHom (algebraMap A B) := ‹IsLocalHom f›
+  have : (GaloisRep.baseChange B ρ).IsFlatAt v :=
+    GaloisRep.IsFlatAt.baseChange v ρ
+  unfold GaloisRep.frame
+  infer_instance
 
 end Flat
 
