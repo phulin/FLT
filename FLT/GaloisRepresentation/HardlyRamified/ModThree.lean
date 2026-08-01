@@ -23,6 +23,20 @@ local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 
 universe u
 
+/-- Arithmetic core of the mod-3 classification: Fontaine's ramification bound and the global
+classification of the resulting finite extension produce a nonzero Galois-fixed covector.
+
+The passage from this statement to a quotient by the trivial character is elementary linear
+algebra and is kept out of this input theorem. -/
+theorem mod_three_exists_nonzero_invariant_covector
+    {k : Type u} [Finite k] [Field k] [Algebra ℤ_[3] k]
+    [TopologicalSpace k] [DiscreteTopology k]
+    (V : Type*) [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (hV : Module.rank k V = 2) {ρ : GaloisRep ℚ k V}
+    (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) :
+    ∃ π : V →ₗ[k] k, π ≠ 0 ∧ ∀ g : Γ ℚ, ∀ v : V, π (ρ g v) = π v := by
+  sorry
+
 /-- A mod 3 hardly ramified representation is an extension of trivial by cyclo -/
 -- Probably `Field k` can be replaced with `(3 : k) = 0`
 theorem mod_three {k : Type u} [Finite k] [Field k] [Algebra ℤ_[3] k] --
@@ -32,7 +46,8 @@ theorem mod_three {k : Type u} [Finite k] [Field k] [Algebra ℤ_[3] k] --
     (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) :
     ∃ (π : V →ₗ[k] k) (_ : Function.Surjective π),
     ∀ g : Γ ℚ, ∀ v : V, π (ρ g v) = π v := by
-  sorry
+  obtain ⟨π, hπ, hπρ⟩ := mod_three_exists_nonzero_invariant_covector V hV hρ
+  exact ⟨π, π.surjective hπ, hπρ⟩
 
 /-- In particular, a hardly ramified mod-3 representation is reducible. -/
 theorem mod_three_not_isIrreducible {k : Type u} [Finite k] [Field k] [Algebra ℤ_[3] k]
