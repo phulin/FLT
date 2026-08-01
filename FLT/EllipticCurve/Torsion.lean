@@ -186,6 +186,47 @@ lemma natCard_torsionBy_pi_zmod {ι : Type*} [Fintype ι] (m : ι → ℕ)
   funext i
   exact natCard_torsionBy_zmod (m i) d (hm i)
 
+/-- An additive equivalence restricts to an equivalence on `d`-torsion. -/
+noncomputable def AddEquiv.torsionBy {A B : Type*} [AddCommGroup A] [AddCommGroup B]
+    (e : A ≃+ B) (d : ℕ) :
+    Submodule.torsionBy ℤ A d ≃+ Submodule.torsionBy ℤ B d where
+  toFun x := ⟨e x, by
+    rw [Submodule.mem_torsionBy_iff, Nat.cast_smul_eq_nsmul]
+    have hx : d • (x : A) = 0 := by
+      rw [← Nat.cast_smul_eq_nsmul ℤ]
+      exact x.prop
+    simpa only [map_nsmul, map_zero] using congrArg e hx⟩
+  invFun x := ⟨e.symm x, by
+    rw [Submodule.mem_torsionBy_iff, Nat.cast_smul_eq_nsmul]
+    have hx : d • (x : B) = 0 := by
+      rw [← Nat.cast_smul_eq_nsmul ℤ]
+      exact x.prop
+    simpa only [map_nsmul, map_zero] using congrArg e.symm hx⟩
+  left_inv x := Subtype.ext (e.symm_apply_apply x)
+  right_inv x := Subtype.ext (e.apply_symm_apply x)
+  map_add' _ _ := Subtype.ext (map_add e _ _)
+
+/-- If `d ∣ n`, taking `d`-torsion inside `A[n]` recovers `A[d]`. -/
+noncomputable def torsionByTorsionAddEquiv {A : Type*} [AddCommGroup A]
+    {d n : ℕ} (hdn : d ∣ n) :
+    Submodule.torsionBy ℤ (Submodule.torsionBy ℤ A n) d ≃+
+      Submodule.torsionBy ℤ A d where
+  toFun x := ⟨x.1.1, congrArg (fun z : Submodule.torsionBy ℤ A n ↦ (z : A)) x.prop⟩
+  invFun x := ⟨⟨x, by
+    rcases hdn with ⟨c, rfl⟩
+    rw [Submodule.mem_torsionBy_iff, Nat.cast_smul_eq_nsmul]
+    have hx : d • (x : A) = 0 := by
+      rw [← Nat.cast_smul_eq_nsmul ℤ]
+      exact x.prop
+    calc
+      (d * c) • (x : A) = c • (d • (x : A)) := mul_nsmul (x : A) d c
+      _ = 0 := by rw [hx, nsmul_zero]⟩, by
+        apply Subtype.ext
+        exact x.prop⟩
+  left_inv _ := rfl
+  right_inv _ := rfl
+  map_add' _ _ := rfl
+
 -- This theorem was well-known in the early part of the 20th century.
 theorem group_theory_lemma {A : Type*} [AddCommGroup A] {n : ℕ} (hn : 0 < n) (r : ℕ)
     (h : ∀ d : ℕ, d ∣ n → Nat.card (Submodule.torsionBy ℤ A d) = d ^ r) :
