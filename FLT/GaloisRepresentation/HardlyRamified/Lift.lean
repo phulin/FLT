@@ -36,7 +36,7 @@ An irreducible mod p hardly ramified representation lifts to a p-adic one.
 -/
 theorem lifts (ρ : GaloisRep ℚ k V) (hρirred : ρ.IsIrreducible)
     (hρ : IsHardlyRamified hpodd hV ρ) :
-    ∃ (R : Type u) (_ : CommRing R) (_ : IsLocalRing R)
+    ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsLocalRing R)
       (_ : TopologicalSpace R) (_ : IsTopologicalRing R)
       (_ : Algebra ℤ_[p] R) (_ : IsLocalHom (algebraMap ℤ_[p] R))
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
