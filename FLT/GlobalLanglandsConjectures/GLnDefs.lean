@@ -182,17 +182,41 @@ complexified Lie algebra. -/
 def actionTensorCAlg :
   UniversalEnvelopingAlgebra ℂ (ℂ ⊗[ℝ] LeftInvariantDerivation 𝓘(ℝ, E) G) →ₐ[ℂ]
     ℂ ⊗[ℝ] (Module.End ℝ C^∞⟮𝓘(ℝ, E), G; 𝓘(ℝ, ℝ), ℝ⟯) := by
-  have := actionTensorC G E; revert this
-  convert ⇑(UniversalEnvelopingAlgebra.lift ℂ
-    (L := ℂ ⊗[ℝ] LeftInvariantDerivation 𝓘(ℝ, E) G)
-    (A := ℂ ⊗[ℝ] (Module.End ℝ C^∞⟮𝓘(ℝ, E), G; ℝ⟯))) using 0
-  congr
-  · dsimp [LieAlgebra.ExtendScalars.instLieRing, LieRing.ofAssociativeRing]; congr
-    apply diamond_fix
-  · change HEq ({..} : LieAlgebra ..) (@LieAlgebra.mk _ _ _ (_) _ _)
-    congr!
-    -- broke after upgrade to module system
-    sorry
+  have hmap : ∀ x y,
+      (LinearMap.baseChange ℂ (action G E).toLinearMap) ⁅x, y⁆ =
+        @Bracket.bracket
+          (ℂ ⊗[ℝ] Module.End ℝ C^∞⟮𝓘(ℝ, E), G; ℝ⟯)
+          (ℂ ⊗[ℝ] Module.End ℝ C^∞⟮𝓘(ℝ, E), G; ℝ⟯)
+          (LieAlgebra.ExtendScalars.instBracketTensorProduct ℝ ℂ _ _)
+          ((LinearMap.baseChange ℂ (action G E).toLinearMap) x)
+          ((LinearMap.baseChange ℂ (action G E).toLinearMap) y) := by
+    intro x y
+    exact (LieHom.baseChange ℂ (action G E)).map_lie x y
+  have hmap' : ∀ x y,
+      (LinearMap.baseChange ℂ (action G E).toLinearMap) ⁅x, y⁆ =
+        (LinearMap.baseChange ℂ (action G E).toLinearMap) x *
+            (LinearMap.baseChange ℂ (action G E).toLinearMap) y -
+          (LinearMap.baseChange ℂ (action G E).toLinearMap) y *
+            (LinearMap.baseChange ℂ (action G E).toLinearMap) x := by
+    intro x y
+    rw [← Ring.lie_def, ← @diamond_fix ℝ ℂ
+      (Module.End ℝ C^∞⟮𝓘(ℝ, E), G; 𝓘(ℝ, ℝ), ℝ⟯)]
+    exact hmap x y
+  letI : LieRing (ℂ ⊗[ℝ] Module.End ℝ C^∞⟮𝓘(ℝ, E), G; ℝ⟯) :=
+    LieRing.ofAssociativeRing
+  refine (UniversalEnvelopingAlgebra.lift ℂ) ?_
+  exact
+    { __ := (LinearMap.baseChange ℂ (action G E).toLinearMap :
+        ℂ ⊗[ℝ] LeftInvariantDerivation 𝓘(ℝ, E) G →ₗ[ℂ]
+          ℂ ⊗[ℝ] Module.End ℝ C^∞⟮𝓘(ℝ, E), G; ℝ⟯)
+      map_lie' := by
+        intro x y
+        change (LinearMap.baseChange ℂ (action G E).toLinearMap) ⁅x, y⁆ =
+          (LinearMap.baseChange ℂ (action G E).toLinearMap) x *
+              (LinearMap.baseChange ℂ (action G E).toLinearMap) y -
+            (LinearMap.baseChange ℂ (action G E).toLinearMap) y *
+              (LinearMap.baseChange ℂ (action G E).toLinearMap) x
+        exact hmap' x y }
 
 /-- Variant of `actionTensorCAlg` whose codomain is the `ℂ`-linear endomorphisms
 of the complexified function space. -/
@@ -211,7 +235,10 @@ def actionTensorCAlg'2 :
 instance : Module ℝ C^∞⟮𝓘(ℝ, E), G; 𝓘(ℝ, ℝ), ℝ⟯ := inferInstance
 instance : Module ℂ C^∞⟮𝓘(ℝ, E), G; 𝓘(ℝ, ℂ), ℂ⟯ := by
   letI : SMul ℂ C^∞⟮𝓘(ℝ, E), G; 𝓘(ℝ, ℂ), ℂ⟯ :=
-    ⟨fun c f ↦ ⟨c • ⇑f, contMDiff_const.smul f.contMDiff⟩⟩
+    ⟨fun c f ↦ ⟨c • ⇑f,
+      by
+        change ContMDiff 𝓘(ℝ, E) 𝓘(ℝ, ℂ) ∞ fun x ↦ c * f x
+        exact ((ContinuousLinearMap.mul ℝ ℂ) c).contMDiff.comp f.contMDiff⟩⟩
   exact Function.Injective.module ℂ ContMDiffMap.coeFnAddMonoidHom
     ContMDiffMap.coe_injective fun _ _ ↦ rfl
 
