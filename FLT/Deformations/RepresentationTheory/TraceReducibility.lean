@@ -423,4 +423,63 @@ theorem not_isIrreducible_of_dense_linear_trace_eq_one_add_det
   not_isIrreducible_of_linear_trace_eq_one_add_det hV ρ
     (linear_trace_eq_one_add_det_of_dense ρ D hD hchar)
 
+/-- Conjugate elements of the absolute Galois group have the same trace in a finite free
+representation. -/
+theorem linear_trace_eq_of_isConj
+    {V : Type*} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (ρ : GaloisRep K k V) {g h : Γ K} (hgh : IsConj g h) :
+    LinearMap.trace k V (ρ g) = LinearMap.trace k V (ρ h) := by
+  obtain ⟨c, hc⟩ := isConj_iff.mp hgh
+  rw [← hc]
+  have himage : ρ (c * g * c⁻¹) = ρ c * ρ g * ρ c⁻¹ := by
+    rw [map_mul, map_mul]
+  rw [himage]
+  symm
+  calc
+    LinearMap.trace k V (ρ c * ρ g * ρ c⁻¹) =
+        LinearMap.trace k V (ρ c⁻¹ * ρ c * ρ g) :=
+      LinearMap.trace_mul_cycle k (ρ c) (ρ g) (ρ c⁻¹)
+    _ = LinearMap.trace k V (ρ g) := by
+      rw [← map_mul, inv_mul_cancel c, map_one, one_mul]
+
+/-- Conjugate elements of the absolute Galois group have the same determinant in a finite free
+representation. -/
+theorem linear_det_eq_of_isConj
+    {V : Type*} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (ρ : GaloisRep K k V) {g h : Γ K} (hgh : IsConj g h) :
+    LinearMap.det (ρ g) = LinearMap.det (ρ h) := by
+  obtain ⟨c, hc⟩ := isConj_iff.mp hgh
+  rw [← hc]
+  have himage : ρ (c * g * c⁻¹) = ρ c * ρ g * ρ c⁻¹ := by
+    rw [map_mul, map_mul]
+  rw [himage]
+  have hcancel : LinearMap.det (ρ c) * LinearMap.det (ρ c⁻¹) = 1 := by
+    have hρcancel : ρ c * ρ c⁻¹ = 1 := by
+      rw [← map_mul, mul_inv_cancel c, map_one]
+    calc
+      LinearMap.det (ρ c) * LinearMap.det (ρ c⁻¹) =
+          LinearMap.det (ρ c * ρ c⁻¹) :=
+        ((LinearMap.det : Module.End k V →* k).map_mul (ρ c) (ρ c⁻¹)).symm
+      _ = LinearMap.det (1 : Module.End k V) := by rw [hρcancel]
+      _ = 1 := (LinearMap.det : Module.End k V →* k).map_one
+  symm
+  calc
+    LinearMap.det (ρ c * ρ g * ρ c⁻¹) =
+        LinearMap.det (ρ c) * LinearMap.det (ρ g) * LinearMap.det (ρ c⁻¹) := by
+      rw [(LinearMap.det : Module.End k V →* k).map_mul,
+        (LinearMap.det : Module.End k V →* k).map_mul]
+    _ =
+        (LinearMap.det (ρ c) * LinearMap.det (ρ c⁻¹)) * LinearMap.det (ρ g) := by
+      ring
+    _ = LinearMap.det (ρ g) := by rw [hcancel, one_mul]
+
+/-- The identity `trace = 1 + det` is invariant under conjugacy in the source group. -/
+theorem linear_trace_eq_one_add_det_of_isConj
+    {V : Type*} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (ρ : GaloisRep K k V) {g h : Γ K} (hgh : IsConj g h)
+    (hh : LinearMap.trace k V (ρ h) = 1 + LinearMap.det (ρ h)) :
+    LinearMap.trace k V (ρ g) = 1 + LinearMap.det (ρ g) := by
+  rw [linear_trace_eq_of_isConj ρ hgh, linear_det_eq_of_isConj ρ hgh]
+  exact hh
+
 end GaloisRep
