@@ -57,6 +57,37 @@ noncomputable instance : Ring D := Algebra.TensorProduct.instRing
 instance flat : Module.Flat ℤ D :=
   Module.Flat.instTensorProduct (R := ℤ) (S := ℤ) (M := ℚ) (N := 𝓞)
 
+set_option backward.isDefEq.respectTransparency false in
+/-- A nonzero Hurwitz integer becomes a unit after extending scalars to `ℚ`. -/
+noncomputable def unitOfNeZero (a : 𝓞) (ha : a ≠ 0) : Dˣ where
+  val := (1 : ℚ) ⊗ₜ a
+  inv := ((Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ star a
+  val_inv := by
+    rw [Algebra.TensorProduct.tmul_mul_tmul, one_mul, ← Hurwitz.norm_eq_mul_conj]
+    rw [show (Hurwitz.norm a : 𝓞) = Hurwitz.norm a • (1 : 𝓞) by simp,
+      TensorProduct.tmul_smul]
+    change ((Hurwitz.norm a : ℤ) • (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ[ℤ] (1 : 𝓞) =
+      ((1 : ℚ) ⊗ₜ[ℤ] (1 : 𝓞) : D)
+    congr 1
+    have hn : (Hurwitz.norm a : ℚ) ≠ 0 := by
+      exact_mod_cast (Hurwitz.norm_eq_zero a).not.mpr ha
+    simpa [zsmul_eq_mul] using mul_inv_cancel₀ hn
+  inv_val := by
+    rw [Algebra.TensorProduct.tmul_mul_tmul, mul_one, Hurwitz.conj_mul_self]
+    rw [show (Hurwitz.norm a : 𝓞) = Hurwitz.norm a • (1 : 𝓞) by simp,
+      TensorProduct.tmul_smul]
+    change ((Hurwitz.norm a : ℤ) • (Hurwitz.norm a : ℚ)⁻¹) ⊗ₜ[ℤ] (1 : 𝓞) =
+      ((1 : ℚ) ⊗ₜ[ℤ] (1 : 𝓞) : D)
+    congr 1
+    have hn : (Hurwitz.norm a : ℚ) ≠ 0 := by
+      exact_mod_cast (Hurwitz.norm_eq_zero a).not.mpr ha
+    simpa [zsmul_eq_mul] using mul_inv_cancel₀ hn
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+lemma coe_unitOfNeZero (a : 𝓞) (ha : a ≠ 0) :
+    (unitOfNeZero a ha : D) = (1 : ℚ) ⊗ₜ a := rfl
+
 end HurwitzRat
 
 open scoped HurwitzRat HurwitzHat

@@ -327,6 +327,31 @@ noncomputable example : QHat := (22 / 7) ⊗ₜ ZHat.e
 
 open scoped TensorProduct
 
+/-- Modulo any positive integer, every element of `M ⊗[ℤ] ZHat` is represented by an
+element of `M`. This is the tensor-product form of the density of `ℤ` in `ZHat`. -/
+lemma TensorProduct.exists_eq_tmul_one_add_pnat_smul {M : Type*} [AddCommGroup M]
+    (N : ℕ+) (z : M ⊗[ℤ] ZHat) :
+    ∃ (m : M) (z' : M ⊗[ℤ] ZHat), z = m ⊗ₜ (1 : ZHat) + (N : ℤ) • z' := by
+  induction z using TensorProduct.induction_on with
+  | zero =>
+    exact ⟨0, 0, by simp⟩
+  | tmul m z =>
+    obtain ⟨q, r, hz, _⟩ := ZHat.nat_dense N z
+    refine ⟨r • m, m ⊗ₜ q, ?_⟩
+    rw [hz, TensorProduct.tmul_add]
+    simp only [← nsmul_eq_mul, TensorProduct.tmul_smul, TensorProduct.smul_tmul']
+    rw [add_comm]
+    congr 1
+    · rw [show (r : ZHat) = r • (1 : ZHat) by simp, TensorProduct.tmul_smul,
+        TensorProduct.smul_tmul']
+    · simp
+  | add x y hx hy =>
+    obtain ⟨mx, zx, rfl⟩ := hx
+    obtain ⟨my, zy, rfl⟩ := hy
+    refine ⟨mx + my, zx + zy, ?_⟩
+    rw [TensorProduct.add_tmul, smul_add]
+    abel
+
 /-- Every element of a tensor product `ℚ ⊗[ℤ] M` has a common positive denominator. -/
 lemma TensorProduct.rat_canonicalForm {M : Type*} [AddCommGroup M] (z : ℚ ⊗[ℤ] M) :
     ∃ (N : ℕ+) (z' : M), z = (1 / N : ℚ) ⊗ₜ z' := by

@@ -479,6 +479,13 @@ lemma normSq_toQuaternion (z : 𝓞) : normSq (toQuaternion z) = norm z := by
   rw [← self_mul_star, ← toQuaternion_star, ← toQuaternion_mul, ← norm_eq_mul_conj,
     toQuaternion_intCast, coe_intCast]
 
+open Quaternion in
+lemma conj_mul_self (z : 𝓞) : star z * z = (norm z : 𝓞) := by
+  apply toQuaternion_injective
+  rw [toQuaternion_mul, toQuaternion_star, toQuaternion_intCast, Quaternion.star_mul_self,
+    normSq_toQuaternion]
+  norm_cast
+
 set_option backward.isDefEq.respectTransparency.types false in
 private lemma aux (x y z w : ℤ) : toQuaternion (fromQuaternion ⟨x,y,z,w⟩) = ⟨x,y,z,w⟩ := by
   apply leftInvOn_toQuaternion_fromQuaternion
