@@ -277,6 +277,15 @@ lemma gcd_prime_pow_prime {p q e : ℕ} (hp : p.Prime) (hq : q.Prime)
   · exact Nat.Coprime.gcd_eq_one
       (by simpa using Nat.coprime_pow_primes e 1 hp hq hpq)
 
+/-- The gcd of two prime powers is the first power when their primes agree
+and its exponent is smaller, and is one otherwise. -/
+lemma gcd_prime_pow_prime_pow {p q e f : ℕ} (hp : p.Prime) (hq : q.Prime)
+    (hle : p = q → e ≤ f) :
+    (p ^ e).gcd (q ^ f) = if p = q then p ^ e else 1 := by
+  split_ifs with hpq
+  · exact Nat.gcd_eq_left (by simpa [hpq] using Nat.pow_dvd_pow q (hle hpq))
+  · exact Nat.Coprime.gcd_eq_one (Nat.coprime_pow_primes e f hp hq hpq)
+
 /-- If the product of the `q`-torsion cardinalities of prime-power cyclic
 factors is `q ^ r`, exactly `r` factors are `q`-primary. -/
 lemma card_prime_fiber_of_gcd_product {ι : Type*} [Fintype ι]
@@ -297,6 +306,63 @@ lemma card_prime_fiber_of_gcd_product {ι : Type*} [Fintype ι]
       _ = q ^ (Finset.univ.filter fun i ↦ p i = q).card := Finset.prod_const _
       _ = q ^ Fintype.card {i // p i = q} := congrArg (q ^ ·) hc.symm
   exact Nat.pow_right_injective hq.two_le (heval.symm.trans hprod)
+
+/-- Once each prime-power cyclic factor divides `n`, the torsion cardinalities
+force its exponent to be the full exponent of that prime in `n`. -/
+lemma prime_power_exponent_eq_factorization {ι : Type*} [Fintype ι]
+    (p : ι → ℕ) (hp : ∀ i, (p i).Prime) (e : ι → ℕ) (he : ∀ i, e i ≠ 0)
+    {n r : ℕ} (hn : 0 < n) (hdiv : ∀ i, p i ^ e i ∣ n)
+    (hgcd : ∀ d, d ∣ n → ∏ i, (p i ^ e i).gcd d = d ^ r) (i : ι) :
+    e i = n.factorization (p i) := by
+  classical
+  let q := p i
+  have hq : q.Prime := hp i
+  have hqdiv : q ∣ n := (dvd_pow_self q (he i)).trans (hdiv i)
+  have hcard : Fintype.card {j // p j = q} = r :=
+    card_prime_fiber_of_gcd_product p hp e he hq (hgcd q hqdiv)
+  let S := Finset.univ.filter fun j ↦ p j = q
+  have hcardS : S.card = r := by
+    have hc : Fintype.card {j // p j = q} = S.card :=
+      Fintype.card_ofFinset (p := {j | p j = q}) S (by intro x; simp [S])
+    exact hc.symm.trans hcard
+  have hle : ∀ j, p j = q → e j ≤ n.factorization q := by
+    intro j hj
+    apply (hq.pow_dvd_iff_le_factorization hn.ne').mp
+    simpa [hj] using hdiv j
+  have hlevel : q ^ n.factorization q ∣ n :=
+    (hq.pow_dvd_iff_le_factorization hn.ne').mpr le_rfl
+  have heval : (∏ j, (p j ^ e j).gcd (q ^ n.factorization q)) =
+      q ^ ∑ j ∈ S, e j := by
+    simp_rw [gcd_prime_pow_prime_pow (hp _) hq (hle _)]
+    calc
+      (∏ j, if p j = q then p j ^ e j else 1) = ∏ j ∈ S, p j ^ e j := by
+        exact (Finset.prod_filter (s := Finset.univ) (fun j ↦ p j = q)
+          (fun j ↦ p j ^ e j)).symm
+      _ = ∏ j ∈ S, q ^ e j := by
+        apply Finset.prod_congr rfl
+        intro j hj
+        rw [Finset.mem_filter] at hj
+        rw [hj.2]
+      _ = q ^ ∑ j ∈ S, e j := Finset.prod_pow_eq_pow_sum _ _ _
+  have hpow : q ^ (∑ j ∈ S, e j) = q ^ (n.factorization q * r) := by
+    calc
+      q ^ (∑ j ∈ S, e j) = ∏ j, (p j ^ e j).gcd (q ^ n.factorization q) :=
+        heval.symm
+      _ = (q ^ n.factorization q) ^ r := hgcd _ hlevel
+      _ = q ^ (n.factorization q * r) := (pow_mul q _ _).symm
+  have hsum : ∑ j ∈ S, e j = n.factorization q * r :=
+    Nat.pow_right_injective hq.two_le hpow
+  apply Nat.le_antisymm (hle i rfl)
+  by_contra hnot
+  have hiS : i ∈ S := by simp [S, q]
+  have hlt : ∑ j ∈ S, e j < ∑ _j ∈ S, n.factorization q :=
+    Finset.sum_lt_sum
+      (fun j hj ↦ hle j (by simpa [S] using (Finset.mem_filter.mp hj).2))
+      ⟨i, hiS, Nat.lt_of_not_ge hnot⟩
+  have hconst : ∑ _j ∈ S, n.factorization q = r * n.factorization q := by
+    simp [hcardS]
+  rw [hsum, hconst, Nat.mul_comm] at hlt
+  exact Nat.lt_irrefl _ hlt
 
 /-- Structure-theorem data for `A[n]`, together with the numerical constraints
 on its cyclic prime-power factors supplied by all the smaller torsion cardinalities. -/
