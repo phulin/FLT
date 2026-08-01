@@ -79,6 +79,71 @@ theorem group_theory_lemma_of_prime {A : Type*} [AddCommGroup A] {p r : ℕ}
     inferInstance inferInstance moduleInst freeModule inferInstance finiteModule r hfinrank
   exact ⟨b.equivFun.toAddEquiv⟩
 
+/-- Multiplication by `d` sends `(d * e)`-torsion to `e`-torsion. This is the
+map occurring in the elementary exact sequences used to classify finite torsion groups. -/
+noncomputable def torsionNsmulHom {A : Type*} [AddCommGroup A] (d e : ℕ) :
+    Submodule.torsionBy ℤ A (d * e) →+
+      Submodule.torsionBy ℤ A e where
+  toFun x := ⟨(d : ℤ) • (x : A), by
+    rw [Submodule.mem_torsionBy_iff, smul_smul]
+    simpa [mul_comm] using x.prop⟩
+  map_zero' := by simp
+  map_add' x y := by simp [smul_add]
+
+/-- If the `d`-, `e`-, and `(d * e)`-torsion groups have the cardinalities of
+rank-`r` free modules, multiplication by `d` maps the `(d * e)`-torsion onto
+the `e`-torsion. -/
+lemma torsionNsmulHom_surjective_of_card {A : Type*} [AddCommGroup A] {d e r : ℕ}
+    (hd : 0 < d) (he : 0 < e)
+    (hcard_d : Nat.card (Submodule.torsionBy ℤ A d) = d ^ r)
+    (hcard_e : Nat.card (Submodule.torsionBy ℤ A e) = e ^ r)
+    (hcard_de : Nat.card (Submodule.torsionBy ℤ A (d * e)) = (d * e) ^ r) :
+    Function.Surjective (torsionNsmulHom (A := A) d e) := by
+  let f := torsionNsmulHom (A := A) d e
+  have hde : 0 < d * e := Nat.mul_pos hd he
+  letI : Finite (Submodule.torsionBy ℤ A (d * e)) :=
+    Nat.finite_of_card_ne_zero <| by
+      rw [hcard_de]
+      exact pow_ne_zero _ hde.ne'
+  letI : Finite (Submodule.torsionBy ℤ A e) :=
+    Nat.finite_of_card_ne_zero <| by
+      rw [hcard_e]
+      exact pow_ne_zero _ he.ne'
+  have hker : Nat.card f.ker = d ^ r := by
+    let g : Submodule.torsionBy ℤ A d →+ f.ker := {
+      toFun x := ⟨⟨x, by
+        rw [Submodule.mem_torsionBy_iff]
+        rw [← Nat.cast_mul, Nat.cast_smul_eq_nsmul]
+        have hx : d • (x : A) = 0 := by
+          rw [← Nat.cast_smul_eq_nsmul ℤ]
+          exact x.prop
+        calc
+          (d * e) • (x : A) = e • (d • (x : A)) := mul_nsmul (x : A) d e
+          _ = 0 := by rw [hx, nsmul_zero]⟩, by
+          ext
+          exact x.prop⟩
+      map_zero' := rfl
+      map_add' _ _ := rfl }
+    have hg : Function.Bijective g := by
+      constructor
+      · intro x y hxy
+        exact Subtype.ext (congrArg (fun z : f.ker ↦ (z : A)) hxy)
+      · rintro ⟨⟨x, hx⟩, hfx⟩
+        refine ⟨⟨x, ?_⟩, rfl⟩
+        exact congrArg (fun z : Submodule.torsionBy ℤ A e ↦ (z : A))
+          (show f ⟨x, hx⟩ = 0 from hfx)
+    exact (Nat.card_eq_of_bijective g hg).symm.trans hcard_d
+  have hrange : Nat.card f.range = e ^ r := by
+    have hprod := f.ker.card_mul_index
+    have hcard_domain : Nat.card (Submodule.torsionBy ℤ A ((d : ℤ) * (e : ℤ))) =
+        (d * e) ^ r := by
+      simpa only [Nat.cast_mul] using hcard_de
+    rw [AddSubgroup.index_ker f, hker, hcard_domain, mul_pow] at hprod
+    exact Nat.eq_of_mul_eq_mul_left (pow_pos hd r) hprod
+  rw [← f.range_eq_top, ← AddSubgroup.card_eq_iff_eq_top]
+  rw [hrange]
+  exact hcard_e.symm
+
 -- This theorem was well-known in the early part of the 20th century.
 theorem group_theory_lemma {A : Type*} [AddCommGroup A] {n : ℕ} (hn : 0 < n) (r : ℕ)
     (h : ∀ d : ℕ, d ∣ n → Nat.card (Submodule.torsionBy ℤ A d) = d ^ r) :
