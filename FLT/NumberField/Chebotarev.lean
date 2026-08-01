@@ -200,12 +200,69 @@ noncomputable def rationalFrobeniusConjugates
     let w := hq.toHeightOneSpectrumRingOfIntegersRat
     w ∉ S ∧ (p : 𝓞 ℚ) ∉ w.asIdeal ∧ (3 : 𝓞 ℚ) ∉ w.asIdeal ∧ IsConj (Frob w) g}
 
+/-- A finite-quotient form of rational Chebotarev: every left coset of the fixing subgroup
+of a finite normal subextension contains a conjugate of an allowed arithmetic Frobenius.
+
+This is the arithmetic input in the proof of `dense_rationalFrobeniusConjugates`; the passage
+from this finite-level statement to density is purely topological. -/
+theorem exists_rationalFrobeniusConjugate_mem_leftCoset
+    (S : Finset (HeightOneSpectrum (𝓞 ℚ))) (p : ℕ)
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ))
+    (_hE : FiniteDimensional ℚ E) (_hEnormal : Normal ℚ E) (σ : Γ ℚ) :
+    ∃ g ∈ rationalFrobeniusConjugates S p,
+      ∀ x : AlgebraicClosure ℚ, x ∈ E → g x = σ x := by
+  sorry
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Regard an element of mathlib's wrapped absolute Galois group as the underlying algebra
+automorphism used to define the Krull topology. -/
+private def toKrullAutomorphism (σ : Γ ℚ) :
+    AlgebraicClosure ℚ ≃ₐ[ℚ] AlgebraicClosure ℚ := by
+  exact σ
+
+/-- In an absolute Galois group, a set meeting every left coset coming from a finite normal
+subextension is dense. -/
+theorem dense_of_intersects_finiteNormal_leftCosets
+    (D : Set (Γ ℚ))
+    (hD : ∀ (E : IntermediateField ℚ (AlgebraicClosure ℚ)),
+      FiniteDimensional ℚ E → Normal ℚ E → ∀ σ : Γ ℚ,
+        ∃ g ∈ D, ∀ x : AlgebraicClosure ℚ, x ∈ E → g x = σ x) :
+    Dense D := by
+  rw [dense_iff_inter_open]
+  rintro U hU ⟨σ, hσU⟩
+  obtain ⟨V, hV, hVU⟩ :=
+    ((galGroupBasis ℚ (AlgebraicClosure ℚ)).nhds_hasBasis σ).mem_iff.mp
+      (hU.mem_nhds hσU)
+  rcases hV with ⟨-, ⟨E, hE, rfl⟩, rfl⟩
+  let _ : FiniteDimensional ℚ E := hE
+  let E' := IntermediateField.normalClosure ℚ E (AlgebraicClosure ℚ)
+  have hE' : FiniteDimensional ℚ E' :=
+    normalClosure.is_finiteDimensional ℚ E (AlgebraicClosure ℚ)
+  let _ : Normal ℚ (AlgebraicClosure ℚ) := normal_iff.2 fun x ↦
+    ⟨((AlgebraicClosure.isAlgebraic ℚ).isAlgebraic x).isIntegral, IsAlgClosed.splits _⟩
+  have hE'normal : Normal ℚ E' :=
+    normalClosure.normal ℚ E (AlgebraicClosure ℚ)
+  obtain ⟨g, hgD, hg⟩ := hD E' hE' hE'normal σ
+  refine ⟨g, hVU ?_, hgD⟩
+  refine ⟨toKrullAutomorphism (σ⁻¹ * g), ?_, ?_⟩
+  · apply (IntermediateField.mem_fixingSubgroup_iff E _).2
+    intro x hx
+    change σ⁻¹ (g x) = x
+    rw [hg x (E.le_normalClosure hx)]
+    exact σ.symm_apply_apply x
+  change toKrullAutomorphism σ * toKrullAutomorphism (σ⁻¹ * g) =
+    toKrullAutomorphism g
+  apply AlgEquiv.ext fun x ↦ ?_
+  change σ (σ⁻¹ (g x)) = g x
+  exact σ.apply_symm_apply (g x)
+
 /-- The rational Chebotarev density theorem in the form used by the FLT reduction: deleting
 finitely many primes and taking all conjugates of the remaining arithmetic Frobenius elements
 still gives a dense subset of the absolute Galois group. -/
 theorem dense_rationalFrobeniusConjugates
     (S : Finset (HeightOneSpectrum (𝓞 ℚ))) (p : ℕ) :
     Dense (rationalFrobeniusConjugates S p) := by
-  sorry
+  exact dense_of_intersects_finiteNormal_leftCosets _ fun E hE hEnormal σ ↦
+    exists_rationalFrobeniusConjugate_mem_leftCoset S p E hE hEnormal σ
 
 end Field.AbsoluteGaloisGroup
