@@ -42,6 +42,13 @@ noncomputable instance : Ring 𝓞^ := Algebra.TensorProduct.instRing
 instance flat : Module.Flat ℤ 𝓞^ :=
   Module.Flat.instTensorProduct (R := ℤ) (S := ℤ) (M := 𝓞) (N := ZHat)
 
+/-- The inclusion of the Hurwitz integers into their profinite completion. -/
+noncomputable abbrev ofHurwitz : 𝓞 →ₐ[ℤ] 𝓞^ := Algebra.TensorProduct.includeLeft
+
+lemma ofHurwitz_injective : Function.Injective ofHurwitz := by
+  exact Algebra.TensorProduct.includeLeft_injective (R := ℤ) (S := ℤ) (A := 𝓞) (B := ZHat)
+    Int.cast_injective
+
 end HurwitzHat
 
 /-- The quaternion algebra ℚ + ℚi + ℚj + ℚk. -/
@@ -131,6 +138,115 @@ lemma injective_zHat :
   exact (Algebra.TensorProduct.assoc ℤ ℤ ℤ ℚ 𝓞 ZHat).symm.injective.comp
     (Algebra.TensorProduct.includeRight_injective (R := ℤ) (A := ℚ) (B := 𝓞^)
       Int.cast_injective)
+
+/-- The contraction to `𝓞` of the principal left ideal `𝓞^ y`. -/
+noncomputable def contractedLeftIdeal (y : 𝓞^) : Submodule 𝓞 𝓞 where
+  carrier := {a | ∃ b : 𝓞^, HurwitzHat.ofHurwitz a = b * y}
+  zero_mem' := ⟨0, by simp⟩
+  add_mem' := by
+    rintro a b ⟨c, hc⟩ ⟨d, hd⟩
+    refine ⟨c + d, ?_⟩
+    rw [map_add, hc, hd, add_mul]
+  smul_mem' := by
+    rintro a b ⟨c, hc⟩
+    refine ⟨HurwitzHat.ofHurwitz a * c, ?_⟩
+    change HurwitzHat.ofHurwitz (a * b) = _
+    rw [map_mul, hc, mul_assoc]
+
+lemma mem_contractedLeftIdeal_iff {y : 𝓞^} {a : 𝓞} :
+    a ∈ contractedLeftIdeal y ↔ ∃ b : 𝓞^, HurwitzHat.ofHurwitz a = b * y := Iff.rfl
+
+set_option backward.isDefEq.respectTransparency false in
+/-- A principal generator of the contraction of `𝓞^ y` also generates `y` after
+extension to `𝓞^`, provided that a positive integer is a left multiple of `y`. -/
+lemma exists_integral_generator {x y : 𝓞^} (N : ℕ+)
+    (hN : HurwitzHat.ofHurwitz (N : 𝓞) = x * y) :
+    ∃ a : 𝓞, a ≠ 0 ∧
+      (∃ b : 𝓞^, HurwitzHat.ofHurwitz a = b * y) ∧
+      (∃ c : 𝓞^, y = c * HurwitzHat.ofHurwitz a) := by
+  let I := contractedLeftIdeal y
+  have hNmem : (N : 𝓞) ∈ I := by
+    exact ⟨x, hN⟩
+  obtain ⟨a, haI⟩ := Hurwitz.left_ideal_princ I
+  have ha : a ≠ 0 := by
+    intro ha
+    have hNzero : (N : 𝓞) = 0 := by
+      rw [haI, ha] at hNmem
+      rw [Submodule.mem_span_singleton] at hNmem
+      obtain ⟨c, hc⟩ := hNmem
+      simpa using hc.symm
+    have hNne : (N : 𝓞) ≠ 0 := by exact_mod_cast N.ne_zero
+    exact hNne hNzero
+  have ha_mem : a ∈ I := by
+    rw [haI, Submodule.mem_span_singleton]
+    exact ⟨1, one_mul a⟩
+  obtain ⟨b, hb⟩ := ha_mem
+  have hnormpos : 0 < Hurwitz.norm a := lt_of_le_of_ne (Hurwitz.norm_nonneg a)
+    (Ne.symm ((Hurwitz.norm_eq_zero a).not.mpr ha))
+  have hnormnatpos : 0 < (Hurwitz.norm a).toNat :=
+    Int.pos_iff_toNat_pos.mp hnormpos
+  let A : ℕ+ := ⟨(Hurwitz.norm a).toNat, hnormnatpos⟩
+  have hA : (A : ℤ) = Hurwitz.norm a := by
+    exact Int.toNat_of_nonneg (Hurwitz.norm_nonneg a)
+  let T := N * A
+  obtain ⟨β, δ, hy⟩ := TensorProduct.exists_eq_tmul_one_add_pnat_smul T y
+  change 𝓞^ at δ
+  change y = HurwitzHat.ofHurwitz β + (T : ℤ) • δ at hy
+  have hN' : (N : 𝓞^) = x * y := by
+    simpa using hN
+  have hN'' : ((N : ℤ) : 𝓞^) = x * y := by
+    simpa using hN'
+  have hTy : (T : ℤ) • (1 : 𝓞^) = ((A : ℤ) • x) * y := by
+    rw [show (T : ℤ) = (N : ℤ) * (A : ℤ) by simp [T], mul_smul]
+    simp only [zsmul_eq_mul]
+    rw [mul_one]
+    calc
+      ((N : ℤ) : 𝓞^) * ((A : ℤ) : 𝓞^) =
+          ((A : ℤ) : 𝓞^) * ((N : ℤ) : 𝓞^) := Int.cast_comm _ _
+      _ = (((A : ℤ) : 𝓞^) * x) * y := by rw [hN'', mul_assoc]
+  have hβ : β ∈ I := by
+    refine ⟨1 - δ * ((A : ℤ) • x), ?_⟩
+    calc
+      HurwitzHat.ofHurwitz β = y - (T : ℤ) • δ := by rw [hy]; abel
+      _ = y - δ * ((T : ℤ) • (1 : 𝓞^)) := by
+        rw [zsmul_eq_mul, zsmul_eq_mul, mul_one, Int.cast_comm]
+      _ = (1 - δ * ((A : ℤ) • x)) * y := by rw [hTy]; noncomm_ring
+  rw [haI, Submodule.mem_span_singleton] at hβ
+  obtain ⟨γ, hγ⟩ := hβ
+  have hγ' : HurwitzHat.ofHurwitz β =
+      HurwitzHat.ofHurwitz γ * HurwitzHat.ofHurwitz a := by
+    rw [← hγ]
+    change HurwitzHat.ofHurwitz (γ * a) = _
+    rw [map_mul]
+  refine ⟨a, ha, ⟨b, hb⟩, ?_⟩
+  refine ⟨HurwitzHat.ofHurwitz γ + δ * ((N : ℤ) • HurwitzHat.ofHurwitz (star a)), ?_⟩
+  rw [hy, hγ']
+  rw [show (T : ℤ) = (N : ℤ) * (A : ℤ) by simp [T], hA, mul_smul]
+  have hnorm : (Hurwitz.norm a : ℤ) • δ =
+      (δ * HurwitzHat.ofHurwitz (star a)) * HurwitzHat.ofHurwitz a := by
+    calc
+      (Hurwitz.norm a : ℤ) • δ =
+          δ * ((Hurwitz.norm a : ℤ) • (1 : 𝓞^)) := by
+            rw [zsmul_eq_mul, zsmul_eq_mul, mul_one, Int.cast_comm]
+      _ = δ * HurwitzHat.ofHurwitz (Hurwitz.norm a : 𝓞) := by simp
+      _ = δ * HurwitzHat.ofHurwitz (star a * a) := by rw [Hurwitz.conj_mul_self]
+      _ = (δ * HurwitzHat.ofHurwitz (star a)) * HurwitzHat.ofHurwitz a := by
+        rw [map_mul, mul_assoc]
+  rw [hnorm]
+  simp only [zsmul_eq_mul]
+  rw [add_mul]
+  congr 1
+  calc
+    ((N : ℤ) : 𝓞^) *
+        ((δ * HurwitzHat.ofHurwitz (star a)) * HurwitzHat.ofHurwitz a) =
+        (((N : ℤ) : 𝓞^) * (δ * HurwitzHat.ofHurwitz (star a))) *
+          HurwitzHat.ofHurwitz a := by noncomm_ring
+    _ = ((((N : ℤ) : 𝓞^) * δ) * HurwitzHat.ofHurwitz (star a)) *
+          HurwitzHat.ofHurwitz a := by noncomm_ring
+    _ = ((δ * ((N : ℤ) : 𝓞^)) * HurwitzHat.ofHurwitz (star a)) *
+          HurwitzHat.ofHurwitz a := by rw [Int.cast_comm]
+    _ = (δ * (((N : ℤ) : 𝓞^) * HurwitzHat.ofHurwitz (star a))) *
+          HurwitzHat.ofHurwitz a := by noncomm_ring
 
 -- should I rearrange tensors? Not sure if D^ should be (ℚ ⊗ 𝓞) ⊗ ℤhat or ℚ ⊗ (𝓞 ⊗ Zhat)
 set_option backward.isDefEq.respectTransparency false in
