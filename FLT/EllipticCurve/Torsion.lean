@@ -7,6 +7,7 @@ module
 
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
 public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.GroupTheory.FiniteAbelian.Basic
 public import Mathlib.GroupTheory.SpecificGroups.Cyclic
 public import Mathlib.Topology.Instances.ZMod
 public import FLT.Deformations.RepresentationTheory.GaloisRep
@@ -226,6 +227,35 @@ noncomputable def torsionByTorsionAddEquiv {A : Type*} [AddCommGroup A]
   left_inv _ := rfl
   right_inv _ := rfl
   map_add' _ _ := rfl
+
+/-- Structure-theorem data for `A[n]`, together with the numerical constraints
+on its cyclic prime-power factors supplied by all the smaller torsion cardinalities. -/
+theorem group_theory_structure_data {A : Type*} [AddCommGroup A] {n : ℕ}
+    (hn : 0 < n) (r : ℕ)
+    (h : ∀ d : ℕ, d ∣ n → Nat.card (Submodule.torsionBy ℤ A d) = d ^ r) :
+    ∃ (ι : Type) (_ : Fintype ι) (p : ι → ℕ) (_ : ∀ i, (p i).Prime) (e : ι → ℕ)
+      (_E : Submodule.torsionBy ℤ A n ≃+ (∀ i, ZMod (p i ^ e i))),
+      ∀ d : ℕ, d ∣ n → ∏ i, (p i ^ e i).gcd d = d ^ r := by
+  letI : Finite (Submodule.torsionBy ℤ A n) :=
+    Nat.finite_of_card_ne_zero <| by
+      rw [h n dvd_rfl]
+      exact pow_ne_zero _ hn.ne'
+  obtain ⟨ι, hι, p, hp, e, ⟨E₀⟩⟩ :=
+    AddCommGroup.equiv_directSum_zmod_of_finite (Submodule.torsionBy ℤ A n)
+  let E : Submodule.torsionBy ℤ A n ≃+ (∀ i, ZMod (p i ^ e i)) :=
+    E₀.trans (DirectSum.addEquivProd fun i ↦ ZMod (p i ^ e i))
+  refine ⟨ι, hι, p, hp, e, E, ?_⟩
+  intro d hd
+  have hm : ∀ i, p i ^ e i ≠ 0 := fun i ↦ pow_ne_zero _ (hp i).ne_zero
+  calc
+    ∏ i, (p i ^ e i).gcd d =
+        Nat.card (Submodule.torsionBy ℤ (∀ i, ZMod (p i ^ e i)) d) :=
+      (natCard_torsionBy_pi_zmod (fun i ↦ p i ^ e i) hm d).symm
+    _ = Nat.card (Submodule.torsionBy ℤ (Submodule.torsionBy ℤ A n) d) :=
+      (Nat.card_congr (E.torsionBy d).toEquiv).symm
+    _ = Nat.card (Submodule.torsionBy ℤ A d) :=
+      Nat.card_congr (torsionByTorsionAddEquiv hd).toEquiv
+    _ = d ^ r := h d hd
 
 -- This theorem was well-known in the early part of the 20th century.
 theorem group_theory_lemma {A : Type*} [AddCommGroup A] {n : ℕ} (hn : 0 < n) (r : ℕ)
