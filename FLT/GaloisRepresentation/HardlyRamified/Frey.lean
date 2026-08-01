@@ -8,6 +8,7 @@ module
 public import FLT.GaloisRepresentation.HardlyRamified.Defs
 public import FLT.FreyCurve.Basic
 public import FLT.EllipticCurve.Torsion
+import FLT.GaloisRepresentation.HardlyRamified.Reduction
 import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
 import Mathlib.Data.Nat.Factorial.DoubleFactorial
 import Mathlib.NumberTheory.ArithmeticFunction.Misc
@@ -46,4 +47,6 @@ theorem FreyCurve.torsion_isHardlyRamified :
 theorem FreyCurve.torsion_not_isIrreducible :
     haveI : Fact (P.p.Prime) := ⟨P.pp⟩
     ¬ GaloisRep.IsIrreducible (P.freyCurve.galoisRep P.p P.hppos) :=
-  sorry -- TODO prove this
+  by
+    let _ : Fact (P.p.Prime) := ⟨P.pp⟩
+    exact (FreyCurve.torsion_isHardlyRamified P).not_isIrreducible
