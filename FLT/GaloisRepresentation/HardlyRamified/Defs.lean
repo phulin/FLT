@@ -118,4 +118,32 @@ structure IsHardlyRamified {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd ℓ)
     -- δ² = 1.
     (∀ g : Γ ℚ_[2], δ g * δ g = 1)
 
+/-- Being hardly ramified is invariant under an `R`-linear change of basis. -/
+theorem IsHardlyRamified.conj {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd ℓ)
+    {R : Type u} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [Algebra ℤ_[ℓ] R]
+    {V W : Type*} [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
+    [AddCommGroup W] [Module R W] [Module.Finite R W] [Module.Free R W]
+    (hV : Module.rank R V = 2) (hW : Module.rank R W = 2)
+    (ρ : GaloisRep ℚ R V) (hρ : IsHardlyRamified hℓOdd hV ρ) (e : V ≃ₗ[R] W) :
+    IsHardlyRamified hℓOdd hW (ρ.conj e) where
+  det g := by
+    rw [GaloisRep.det_conj]
+    exact hρ.det g
+  isUnramified p hp h := by
+    letI : ρ.IsUnramifiedAt hp.toHeightOneSpectrumRingOfIntegersRat :=
+      hρ.isUnramified p hp h
+    infer_instance
+  isFlat := by
+    letI : ρ.IsFlatAt
+        (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (Fact.out : ℓ.Prime)) := hρ.isFlat
+    infer_instance
+  isTameAtTwo := by
+    obtain ⟨π, hπ, δ, hπρ⟩ := hρ.isTameAtTwo
+    let π' : W →ₗ[R] R := π.comp e.symm.toLinearMap
+    refine ⟨π', hπ.comp e.symm.surjective, δ, ?_⟩
+    intro g w
+    obtain ⟨heq, hunram, hsq⟩ := hπρ g (e.symm w)
+    exact ⟨by simpa [π'] using heq, hunram, hsq⟩
+
 end GaloisRepresentation
