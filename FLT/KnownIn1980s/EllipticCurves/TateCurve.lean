@@ -488,14 +488,26 @@ theorem WeierstrassCurve.tatePoint_galois (σ : Ω ≃ₐ[k] Ω) (u : Ωˣ) :
 theorem WeierstrassCurve.tatePoint_mem_torsionBy_of_mem_rootsOfUnity {N : ℕ} {ζ : Ωˣ}
     (hζ : ζ ∈ rootsOfUnity N Ω) :
     E.tatePoint Ω ζ ∈ AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ) :=
-  sorry
+  AddSubgroup.torsionBy.nsmul_iff.mpr <| by
+    rw [WeierstrassCurve.tatePoint, ← map_nsmul]
+    rw [← (E.tateEquivSepClosure Ω).map_zero]
+    congr 1
+    change (ζ : Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω)) ^ N = 1
+    rw [← QuotientGroup.mk_pow, (mem_rootsOfUnity N ζ).mp hζ]
+    rfl
 
 /-- `N`-th roots of the Tate parameter give `N`-torsion points of `E` under Tate's
 uniformisation. -/
 theorem WeierstrassCurve.tatePoint_mem_torsionBy_of_pow_eq {N : ℕ} {r : Ωˣ}
     (hr : r ^ N = E.qUnitSepClosure Ω) :
     E.tatePoint Ω r ∈ AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ) :=
-  sorry
+  AddSubgroup.torsionBy.nsmul_iff.mpr <| by
+    rw [WeierstrassCurve.tatePoint, ← map_nsmul]
+    rw [← (E.tateEquivSepClosure Ω).map_zero]
+    congr 1
+    change (r : Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω)) ^ N = 1
+    rw [← QuotientGroup.mk_pow, hr, QuotientGroup.eq_one_iff]
+    exact Subgroup.mem_zpowers _
 
 -- `weilPairing` and `tateEquiv`/`tateEquivSepClosure` are all currently `sorry`ed data,
 -- each pinned down mathematically only up to a sign. The following compatibility, due to
