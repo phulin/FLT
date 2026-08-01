@@ -12,6 +12,7 @@ public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
 import Mathlib.RingTheory.RootsOfUnity.Complex
 import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
+import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 
 /-!
 # Lifting hardly ramified residual representations
@@ -132,10 +133,18 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
 
 /--
 The arithmetic input to the hardly-ramified lifting theorem, after fixing an unramified
-coefficient DVR with residue field `k`.  This is the minimal-lift theorem of
-Khare--Wintenberger, *Serre's modularity conjecture (I)*, Theorem 3.3: potential modularity and
-an `R = T` theorem make the minimal deformation ring finite over the coefficient ring, while
-the presentation bounds make it flat and hence provide a characteristic-zero point.
+coefficient DVR `R` with residue field `k`.  The lift is allowed to have coefficients in a
+finite free local `R`-algebra `S` with the same residue field.  This extension is essential:
+the rationality of a minimal lift cannot in general be controlled, so the lift need not be
+defined over `R` itself.
+
+This is the level-two, weight-two specialization of Khare--Wintenberger, *On Serre's conjecture
+for 2-dimensional mod p representations of Gal(Qbar/Q)*, Theorem 3.3.  Their Theorem 3.7 proves
+that the relevant minimal deformation ring is finite flat over the Witt-vector coefficient
+ring; a minimal prime outside `p` and normalization then produce the finite coefficient
+extension and the characteristic-zero point.  The reductions from the hardly-ramified
+hypotheses to their S-type, cyclotomic-restriction, and Serre-weight hypotheses belong to this
+arithmetic input as well.
 
 The coefficient-ring construction, the exceptional characteristic-three case, and the removal
 of a chosen residual basis are all handled separately below.
@@ -154,16 +163,24 @@ theorem exists_minimalLift_over_coefficientRing [CharP k p] (hp : 3 < p)
     [Representation.IsAbsolutelyIrreducible.{u} ρ.toRepresentation]
     (hρirred : ρ.IsIrreducible)
     (hρ : IsHardlyRamified hpodd (by simp) ρ) :
-    ∃ (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
-      (_ : Module.Free R W) (hW : Module.rank R W = 2)
-      (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
+    ∃ (S : Type u) (_ : CommRing S) (_ : IsDomain S) (_ : IsLocalRing S)
+      (_ : TopologicalSpace S) (_ : IsTopologicalRing S)
+      (_ : Algebra ℤ_[p] S) (_ : Algebra R S) (_ : IsScalarTower ℤ_[p] R S)
+      (_ : IsLocalHom (algebraMap R S))
+      (_ : Module.Finite R S) (_ : Module.Free R S) (_ : IsModuleTopology R S)
+      (_ : Algebra S k) (_ : IsLocalHom (algebraMap S k))
+      (_ : IsScalarTower R S k) (_ : IsScalarTower ℤ_[p] S k) (_ : ContinuousSMul S k)
+      (W : Type v) (_ : AddCommGroup W) (_ : Module S W) (_ : Module.Finite S W)
+      (_ : Module.Free S W) (hW : Module.rank S W = 2)
+      (σ : GaloisRep ℚ S W) (r : k ⊗[S] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
 
 /--
 The arithmetic core of the lifting theorem in residue characteristic greater than three,
-after choosing a basis of the residual representation.  The unramified coefficient DVR is
-constructed independently, so the remaining arithmetic input is precisely
-`exists_minimalLift_over_coefficientRing`.
+after choosing a basis of the residual representation.  First construct the unramified
+coefficient DVR `R`, then apply `exists_minimalLift_over_coefficientRing` to obtain its finite
+free local coefficient extension `S`.  Finiteness, freeness, and the module topology descend
+along the tower `ℤ_[p] → R → S`.
 -/
 theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p] (hp : 3 < p)
     (ρ : FramedGaloisRep ℚ k (Fin 2))
@@ -198,9 +215,33 @@ theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p]
   letI : IsScalarTower ℤ_[p] R k := hRkTower
   letI : ContinuousSMul R k := hRkContinuous
   letI : IsLocalHom (algebraMap R k) := hRkLocalHom
-  obtain ⟨W, hWadd, hWmodule, hWfinite, hWfree, hWrank, σ, r, hσ⟩ :=
+  obtain ⟨S, hScomm, hSdomain, hSlocal, hStop, hStopRing, hZpSAlg, hRSAlg,
+      hZpRSTower, hRSlocalHom, hRSfinite, hRSfree, hRSmoduleTopology, hSkAlg,
+      hSklocalHom, hRSkTower, hZpSkTower, hSkContinuous, W, hWadd, hWmodule,
+      hWfinite, hWfree, hWrank, σ, r, hσ⟩ :=
     exists_minimalLift_over_coefficientRing hpodd hp R residueEquiv hresidueEquiv ρ hρirred hρ
-  exact ⟨R, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+  letI : CommRing S := hScomm
+  letI : IsDomain S := hSdomain
+  letI : IsLocalRing S := hSlocal
+  letI : TopologicalSpace S := hStop
+  letI : IsTopologicalRing S := hStopRing
+  letI : Algebra ℤ_[p] S := hZpSAlg
+  letI : Algebra R S := hRSAlg
+  letI : IsScalarTower ℤ_[p] R S := hZpRSTower
+  letI : IsLocalHom (algebraMap R S) := hRSlocalHom
+  letI : Module.Finite R S := hRSfinite
+  letI : Module.Free R S := hRSfree
+  letI : IsModuleTopology R S := hRSmoduleTopology
+  letI : Algebra S k := hSkAlg
+  letI : IsLocalHom (algebraMap S k) := hSklocalHom
+  letI : IsScalarTower R S k := hRSkTower
+  letI : IsScalarTower ℤ_[p] S k := hZpSkTower
+  letI : ContinuousSMul S k := hSkContinuous
+  letI : Module.Finite ℤ_[p] S := Module.Finite.trans R S
+  letI : Module.Free ℤ_[p] S := Module.Free.trans (R := ℤ_[p]) (S := R) (M := S)
+  letI : IsModuleTopology ℤ_[p] S :=
+    (IsModuleTopology.trans ℤ_[p] R S).mpr inferInstance
+  exact ⟨S, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
     inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
     inferInstance, inferInstance, W, hWadd, hWmodule, hWfinite, hWfree, hWrank, σ, r, hσ⟩
 
