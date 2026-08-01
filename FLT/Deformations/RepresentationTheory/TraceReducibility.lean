@@ -355,4 +355,36 @@ theorem not_isIrreducible_of_trace_eq_one_add_det
     · exact (not_isIrreducible_of_upper_normal_form_of_ne τ hcharτ g a d hd hτg)
         hτirred
 
+/-- The basis-independent form of the two-dimensional trace criterion.  A free rank-two
+representation whose trace is the sum of the trivial character and its determinant is
+reducible. -/
+theorem not_isIrreducible_of_linear_trace_eq_one_add_det
+    {V : Type*} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (hV : Module.rank k V = 2) (ρ : GaloisRep K k V)
+    (hchar : ∀ g : Γ K,
+      LinearMap.trace k V (ρ g) = 1 + LinearMap.det (ρ g)) :
+    ¬ ρ.IsIrreducible := by
+  have hfin : Module.finrank k V = 2 :=
+    Module.finrank_eq_of_rank_eq hV
+  let b : Module.Basis (Fin 2) k V := Module.finBasisOfFinrankEq k V hfin
+  let e : V ≃ₗ[k] (Fin 2 → k) := b.repr ≪≫ₗ Finsupp.linearEquivFunOnFinite k k (Fin 2)
+  let τ : FramedGaloisRep K k (Fin 2) := ρ.frame b
+  have hcharτLin (g : Γ K) :
+      LinearMap.trace k (Fin 2 → k) (τ g) = 1 + LinearMap.det (τ g) := by
+    rw [show τ g = ρ.conj e g by rfl, GaloisRep.trace_conj]
+    change LinearMap.trace k V (ρ g) = 1 + LinearMap.det (e.conj (ρ g))
+    have hdet : LinearMap.det (e.conj (ρ g)) = LinearMap.det (ρ g) := by
+      simpa only [LinearEquiv.conj_apply, LinearMap.comp_assoc] using
+        LinearMap.det_conj (ρ g) e
+    rw [hdet]
+    exact hchar g
+  have hcharτ (g : Γ K) : (τ.GL g).1.trace = 1 + (τ.GL g).1.det := by
+    have hg := hcharτLin g
+    rw [LinearMap.trace_eq_matrix_trace k (Pi.basisFun k (Fin 2)),
+      ← LinearMap.det_toMatrix (Pi.basisFun k (Fin 2))] at hg
+    exact hg
+  intro hρ
+  exact (not_isIrreducible_of_trace_eq_one_add_det τ hcharτ)
+    ((GaloisRep.isIrreducible_conj_iff ρ e).mp hρ)
+
 end GaloisRep
