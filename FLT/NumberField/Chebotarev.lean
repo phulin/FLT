@@ -211,18 +211,87 @@ noncomputable def rationalFrobeniusConjugates
     let w := hq.toHeightOneSpectrumRingOfIntegersRat
     w ∉ S ∧ (p : 𝓞 ℚ) ∉ w.asIdeal ∧ (3 : 𝓞 ℚ) ∉ w.asIdeal ∧ IsConj (Frob w) g}
 
+/-- Weak Chebotarev for a finite normal subextension of `AlgebraicClosure ℚ`: outside any
+finite set of rational places, some arithmetic Frobenius has a conjugate agreeing with a
+prescribed absolute Galois element on the subextension. -/
+theorem exists_rationalFrobeniusConjugate_agreeOn_of_not_mem
+    (T : Finset (HeightOneSpectrum (𝓞 ℚ)))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ))
+    (_hE : FiniteDimensional ℚ E) (_hEnormal : Normal ℚ E) (σ : Γ ℚ) :
+    ∃ (q : ℕ) (hq : q.Prime),
+      let w := hq.toHeightOneSpectrumRingOfIntegersRat
+      w ∉ T ∧ ∃ g : Γ ℚ, IsConj (Frob w) g ∧
+        ∀ x : AlgebraicClosure ℚ, x ∈ E → g x = σ x := by
+  sorry
+
 /-- A finite-quotient form of rational Chebotarev: every left coset of the fixing subgroup
 of a finite normal subextension contains a conjugate of an allowed arithmetic Frobenius.
 
 This is the arithmetic input in the proof of `dense_rationalFrobeniusConjugates`; the passage
 from this finite-level statement to density is purely topological. -/
 theorem exists_rationalFrobeniusConjugate_mem_leftCoset
-    (S : Finset (HeightOneSpectrum (𝓞 ℚ))) (p : ℕ)
+    (S : Finset (HeightOneSpectrum (𝓞 ℚ))) (p : ℕ) [Fact p.Prime]
     (E : IntermediateField ℚ (AlgebraicClosure ℚ))
-    (_hE : FiniteDimensional ℚ E) (_hEnormal : Normal ℚ E) (σ : Γ ℚ) :
+    (hE : FiniteDimensional ℚ E) (hEnormal : Normal ℚ E) (σ : Γ ℚ) :
     ∃ g ∈ rationalFrobeniusConjugates S p,
       ∀ x : AlgebraicClosure ℚ, x ∈ E → g x = σ x := by
-  sorry
+  classical
+  have hp : p.Prime := Fact.out
+  have h2 : Nat.Prime 2 := by decide
+  have h3 : Nat.Prime 3 := by decide
+  let T := insert h2.toHeightOneSpectrumRingOfIntegersRat
+    (insert h3.toHeightOneSpectrumRingOfIntegersRat
+      (insert hp.toHeightOneSpectrumRingOfIntegersRat S))
+  obtain ⟨q, hq, hwT, g, hconj, hg⟩ :=
+    exists_rationalFrobeniusConjugate_agreeOn_of_not_mem T E hE hEnormal σ
+  let w := hq.toHeightOneSpectrumRingOfIntegersRat
+  have hwT' : w ∉ insert h2.toHeightOneSpectrumRingOfIntegersRat
+      (insert h3.toHeightOneSpectrumRingOfIntegersRat
+        (insert hp.toHeightOneSpectrumRingOfIntegersRat S)) := by
+    simpa only [T] using hwT
+  have hw2 : w ≠ h2.toHeightOneSpectrumRingOfIntegersRat := by
+    intro h
+    exact hwT' (Finset.mem_insert.mpr (Or.inl h))
+  have hw3 : w ≠ h3.toHeightOneSpectrumRingOfIntegersRat := by
+    intro h
+    exact hwT' (Finset.mem_insert.mpr (Or.inr (Finset.mem_insert.mpr (Or.inl h))))
+  have hwp : w ≠ hp.toHeightOneSpectrumRingOfIntegersRat := by
+    intro h
+    exact hwT' (Finset.mem_insert.mpr (Or.inr
+      (Finset.mem_insert.mpr (Or.inr (Finset.mem_insert.mpr (Or.inl h))))))
+  have hwS : w ∉ S := by
+    intro h
+    exact hwT' (Finset.mem_insert.mpr (Or.inr
+      (Finset.mem_insert.mpr (Or.inr (Finset.mem_insert.mpr (Or.inr h))))))
+  have hq2 : q ≠ 2 := by
+    intro h
+    apply hw2
+    subst q
+    rfl
+  have hq3 : q ≠ 3 := by
+    intro h
+    apply hw3
+    subst q
+    rfl
+  have hpw : (p : 𝓞 ℚ) ∉ w.asIdeal := by
+    intro h
+    have hqp : q ∣ p :=
+      (mem_toHeightOneSpectrumRingOfIntegersRat_asIdeal_iff_dvd hq).mp h
+    have hqp' : q = p := ((Nat.dvd_prime hp).mp hqp).resolve_left hq.ne_one
+    apply hwp
+    subst q
+    rfl
+  have h3w : (3 : 𝓞 ℚ) ∉ w.asIdeal := by
+    intro h
+    have hq3dvd : q ∣ 3 :=
+      (mem_toHeightOneSpectrumRingOfIntegersRat_asIdeal_iff_dvd hq).mp h
+    have hq3' : q = 3 := ((Nat.dvd_prime h3).mp hq3dvd).resolve_left hq.ne_one
+    exact hq3 hq3'
+  refine ⟨g, ?_, hg⟩
+  change ∃ (q : ℕ) (hq : q.Prime), 5 ≤ q ∧
+    let w := hq.toHeightOneSpectrumRingOfIntegersRat
+    w ∉ S ∧ (p : 𝓞 ℚ) ∉ w.asIdeal ∧ (3 : 𝓞 ℚ) ∉ w.asIdeal ∧ IsConj (Frob w) g
+  exact ⟨q, hq, hq.five_le_of_ne_two_of_ne_three hq2 hq3, hwS, hpw, h3w, hconj⟩
 
 set_option backward.isDefEq.respectTransparency false in
 /-- Regard an element of mathlib's wrapped absolute Galois group as the underlying algebra
@@ -271,7 +340,7 @@ theorem dense_of_intersects_finiteNormal_leftCosets
 finitely many primes and taking all conjugates of the remaining arithmetic Frobenius elements
 still gives a dense subset of the absolute Galois group. -/
 theorem dense_rationalFrobeniusConjugates
-    (S : Finset (HeightOneSpectrum (𝓞 ℚ))) (p : ℕ) :
+    (S : Finset (HeightOneSpectrum (𝓞 ℚ))) (p : ℕ) [Fact p.Prime] :
     Dense (rationalFrobeniusConjugates S p) := by
   exact dense_of_intersects_finiteNormal_leftCosets _ fun E hE hEnormal σ ↦
     exists_rationalFrobeniusConjugate_mem_leftCoset S p E hE hEnormal σ
