@@ -9,6 +9,9 @@ public import FLT.GaloisRepresentation.HardlyRamified.ModThree
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
+import Mathlib.RingTheory.RootsOfUnity.Complex
+import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
+
 /-!
 # Lifting hardly ramified residual representations
 
@@ -36,13 +39,72 @@ open TensorProduct
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 local notation3 K:max "ᵃˡᵍ" => AlgebraicClosure K
 
+/-- A realization of complex conjugation on the chosen algebraic closure of `ℚ`.  The
+embedding into `ℂ` is noncanonical, but conjugation preserves its algebraic image and hence
+restricts back to an automorphism of `AlgebraicClosure ℚ`. -/
+theorem exists_complexEmbedding_conjugation :
+    ∃ (ι : (ℚ ᵃˡᵍ) →ₐ[ℚ] ℂ) (c : Γ ℚ), c * c = 1 ∧
+      ∀ x : ℚ ᵃˡᵍ, ι (c x) = (starRingEnd ℂ) (ι x) := by
+  letI : Algebra.IsAlgebraic ℚ (ℚ ᵃˡᵍ) := AlgebraicClosure.isAlgebraic ℚ
+  let ι : (ℚ ᵃˡᵍ) →ₐ[ℚ] ℂ := IsAlgClosed.lift
+  letI := ι.toRingHom.toAlgebra
+  letI : Normal ℚ (ℚ ᵃˡᵍ) := normal_iff.2 fun x ↦
+    ⟨((AlgebraicClosure.isAlgebraic ℚ).isAlgebraic x).isIntegral, IsAlgClosed.splits _⟩
+  let φ : (ℚ ᵃˡᵍ) →ₐ[ℚ] ℂ :=
+    (Complex.conjAe.restrictScalars ℚ).toAlgHom.comp ι
+  let c₀ : (ℚ ᵃˡᵍ) ≃ₐ[ℚ] (ℚ ᵃˡᵍ) := φ.restrictNormal' (ℚ ᵃˡᵍ)
+  let c : Γ ℚ := c₀
+  have hc (x : ℚ ᵃˡᵍ) : ι (c x) = (starRingEnd ℂ) (ι x) := by
+    change algebraMap (ℚ ᵃˡᵍ) ℂ (c₀ x) = φ x
+    exact AlgHom.restrictNormal_commutes φ (ℚ ᵃˡᵍ) x
+  have hc_sq : c * c = 1 := by
+    apply AlgEquiv.ext
+    intro x
+    apply ι.injective
+    change ι (c (c x)) = ι x
+    rw [hc, hc]
+    exact star_star (ι x)
+  exact ⟨ι, c, hc_sq, hc⟩
+
+private lemma pow_pred_eq_inv_of_pow_eq_one {G : Type*} [Group G] {a : G} {n : ℕ}
+    (hn : 0 < n) (ha : a ^ n = 1) : a ^ (n - 1) = a⁻¹ := by
+  apply mul_left_cancel
+  calc
+    a * a ^ (n - 1) = a ^ n := by
+      rw [← pow_succ', Nat.sub_add_cancel hn]
+    _ = 1 := ha
+    _ = a * a⁻¹ := (mul_inv_cancel a).symm
+
 /-- A complex conjugation in the absolute Galois group of `ℚ`: it is an involution and its
 `p`-adic cyclotomic character is `-1`.  The construction extends ordinary complex conjugation
 from the algebraic numbers inside `ℂ` to the chosen algebraic closure of `ℚ`. -/
 theorem exists_odd_involution :
     ∃ c : Γ ℚ, c * c = 1 ∧
       ((cyclotomicCharacter (ℚ ᵃˡᵍ) p c.toRingEquiv : ℤ_[p]ˣ) : ℤ_[p]) = -1 := by
-  sorry
+  obtain ⟨ι, c, hc_sq, hc⟩ := exists_complexEmbedding_conjugation
+  refine ⟨c, hc_sq, ?_⟩
+  refine PadicInt.ext_of_toZModPow.mp fun n ↦ ?_
+  rw [cyclotomicCharacter.toZModPow, map_neg, map_one]
+  apply Eq.symm
+  apply modularCyclotomicCharacter.unique
+  intro t ht
+  have hpn : 0 < p ^ n := pow_pos (Fact.out : p.Prime).pos n
+  have hval : ((-1 : ZMod (p ^ n))).val = p ^ n - 1 := by
+    obtain ⟨m, hm⟩ := Nat.exists_eq_succ_of_ne_zero hpn.ne'
+    rw [hm, ZMod.val_neg_one]
+    omega
+  let ζ : ℂˣ := Units.map ι.toRingHom t
+  have hζ : ζ ∈ rootsOfUnity (p ^ n) ℂ := by
+    change ζ ^ (p ^ n) = 1
+    dsimp only [ζ]
+    rw [← map_pow, (mem_rootsOfUnity (p ^ n) t).mp ht, map_one]
+  have hconj := Complex.conj_rootsOfUnity hζ
+  have hpred := congrArg Units.val
+    (pow_pred_eq_inv_of_pow_eq_one hpn ((mem_rootsOfUnity (p ^ n) ζ).mp hζ))
+  apply ι.injective
+  change ι (c (t : ℚ ᵃˡᵍ)) = ι ((t : ℚ ᵃˡᵍ) ^ ((-1 : ZMod (p ^ n)).val))
+  rw [hc, hval, map_pow]
+  exact hconj.trans hpred.symm
 
 /-- An irreducible hardly ramified residual representation is absolutely irreducible.  The
 cyclotomic determinant makes complex conjugation an odd involution, and hence gives a
