@@ -90,7 +90,9 @@ theorem diamond_fix :
   -- proof used to end here
   norm_num
   symm
-  sorry
+  change (xa ⊗ₜ[R] xb) * (ya ⊗ₜ[R] yb) -
+    (ya ⊗ₜ[R] yb) * (xa ⊗ₜ[R] xb) = _
+  simp only [Algebra.TensorProduct.tmul_mul_tmul, mul_comm xa ya]
 
 
 end
