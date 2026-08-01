@@ -387,4 +387,40 @@ theorem not_isIrreducible_of_linear_trace_eq_one_add_det
   exact (not_isIrreducible_of_trace_eq_one_add_det τ hcharτ)
     ((GaloisRep.isIrreducible_conj_iff ρ e).mp hρ)
 
+/-- The trace of a continuous representation on a finite free module is continuous. -/
+theorem continuous_linear_trace
+    {V : Type*} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (ρ : GaloisRep K k V) :
+    Continuous fun g : Γ K ↦ LinearMap.trace k V (ρ g) := by
+  letI := moduleTopology k (Module.End k V)
+  exact (IsModuleTopology.continuous_of_linearMap (LinearMap.trace k V)).comp ρ.continuous
+
+/-- A trace/determinant identity on a dense subset of the absolute Galois group holds
+everywhere. -/
+theorem linear_trace_eq_one_add_det_of_dense
+    {V : Type*} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    [T2Space k] (ρ : GaloisRep K k V) (D : Set (Γ K)) (hD : Dense D)
+    (hchar : ∀ g ∈ D,
+      LinearMap.trace k V (ρ g) = 1 + LinearMap.det (ρ g)) :
+    ∀ g : Γ K, LinearMap.trace k V (ρ g) = 1 + LinearMap.det (ρ g) := by
+  have hdet : Continuous fun g : Γ K ↦ LinearMap.det (ρ g) := by
+    letI := moduleTopology k (Module.End k V)
+    exact IsModuleTopology.continuous_det.comp ρ.continuous
+  have hrhs : Continuous fun g : Γ K ↦ 1 + LinearMap.det (ρ g) :=
+    continuous_const.add hdet
+  have hall := Continuous.ext_on hD (continuous_linear_trace ρ) hrhs hchar
+  exact congrFun hall
+
+/-- A free rank-two representation satisfying `trace = 1 + det` on a dense subset is
+reducible. -/
+theorem not_isIrreducible_of_dense_linear_trace_eq_one_add_det
+    {V : Type*} [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    [T2Space k] (hV : Module.rank k V = 2) (ρ : GaloisRep K k V)
+    (D : Set (Γ K)) (hD : Dense D)
+    (hchar : ∀ g ∈ D,
+      LinearMap.trace k V (ρ g) = 1 + LinearMap.det (ρ g)) :
+    ¬ ρ.IsIrreducible :=
+  not_isIrreducible_of_linear_trace_eq_one_add_det hV ρ
+    (linear_trace_eq_one_add_det_of_dense ρ D hD hchar)
+
 end GaloisRep
