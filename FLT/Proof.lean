@@ -9,6 +9,7 @@ public import FLT.Basic.Lemmas
 public import FLT.FreyCurve.Basic
 public import FLT.EllipticCurve.Torsion
 public import FLT.FreyCurve.Mazur
+import FLT.GaloisRepresentation.HardlyRamified.Frey
 
 /-!
 # The proof of Fermat's Last Theorem
@@ -95,8 +96,9 @@ theorem B4_implies_B3 : B4 → B3 := by
   apply h P
   exact P.mazur
 
-theorem B4_proof : B4 :=
-  sorry
+theorem B4_proof : B4 := by
+  intro P
+  exact FreyCurve.torsion_not_isIrreducible P
 
 theorem B3_proof : B3 := B4_implies_B3 B4_proof
 
