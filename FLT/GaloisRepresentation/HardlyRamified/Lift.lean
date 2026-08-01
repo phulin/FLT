@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import FLT.GaloisRepresentation.HardlyRamified.ModThree
+public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
 /-!
 # Lifting hardly ramified residual representations
@@ -37,7 +38,7 @@ after choosing a basis of the residual representation.  Keeping this input frame
 the deformation-theoretic construction from both the exceptional characteristic-three case
 and the basis-independence argument below.
 -/
-theorem lifts_framed_of_three_lt (hp : 3 < p)
+theorem lifts_framed_of_three_lt_of_charP [CharP k p] (hp : 3 < p)
     (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrreducible)
     (hρ : IsHardlyRamified hpodd (by simp) ρ) :
     ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsLocalRing R)
@@ -50,6 +51,24 @@ theorem lifts_framed_of_three_lt (hp : 3 < p)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
+
+/-- The local coefficient-field hypothesis already forces the residue field to have
+characteristic `p`; this is the form used by the public lifting theorem. -/
+theorem lifts_framed_of_three_lt (hp : 3 < p)
+    (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrreducible)
+    (hρ : IsHardlyRamified hpodd (by simp) ρ) :
+    ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsLocalRing R)
+      (_ : TopologicalSpace R) (_ : IsTopologicalRing R)
+      (_ : Algebra ℤ_[p] R) (_ : IsLocalHom (algebraMap ℤ_[p] R))
+      (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
+      (_ : IsModuleTopology ℤ_[p] R)
+      (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
+      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (_ : Module.Free R W) (hW : Module.rank R W = 2)
+      (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
+    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
+  letI : CharP k p := PadicInt.charP_of_algebra_isLocalHom k
+  exact lifts_framed_of_three_lt_of_charP hpodd hp ρ hρirred hρ
 
 /-- The framed lifting theorem.  The characteristic-three case is vacuous by the mod-three
 classification, so all arithmetic lifting work may be carried out under `3 < p`. -/

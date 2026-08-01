@@ -36,6 +36,16 @@ lemma coe_injective : Injective ((↑) : ℤ_[p] → ℚ_[p]) := Subtype.val_inj
 
 instance : Infinite ℤ_[p] := CharZero.infinite _
 
+/-- A field receiving a local algebra map from the `p`-adic integers has
+characteristic `p`. -/
+theorem charP_of_algebra_isLocalHom (k : Type*) [Field k] [Algebra ℤ_[p] k]
+    [IsLocalHom (algebraMap ℤ_[p] k)] : CharP k p := by
+  apply (CharP.charP_iff_prime_eq_zero (Fact.out : p.Prime)).2
+  have hp_mem : algebraMap ℤ_[p] k (p : ℤ_[p]) ∈ IsLocalRing.maximalIdeal k :=
+    map_nonunit (algebraMap ℤ_[p] k) (p : ℤ_[p]) (by
+      simpa only [IsLocalRing.mem_maximalIdeal] using (PadicInt.p_nonunit (p := p)))
+  simpa only [map_natCast, IsLocalRing.maximalIdeal_eq_bot, Ideal.mem_bot] using hp_mem
+
 @[simp] lemma nnnorm_p : ‖(p : ℤ_[p])‖₊ = (p : ℝ≥0)⁻¹ := by simp [nnnorm]; rfl
 
 @[simp] protected lemma nnnorm_units (u : ℤ_[p]ˣ) : ‖(u : ℤ_[p])‖₊ = 1 := by
