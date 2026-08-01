@@ -5,7 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
-public import Mathlib.AlgebraicGeometry.EllipticCurve.DivisionPolynomial.Basic
+public import Mathlib.AlgebraicGeometry.EllipticCurve.DivisionPolynomial.Degree
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Reduction
 public import Mathlib.RingTheory.Bialgebra.Convolution
 public import Mathlib.RingTheory.Etale.Basic
@@ -238,4 +238,20 @@ over `ℤ[a₁, …, a₆][Δ⁻¹]`. -/
 theorem WeierstrassCurve.isCoprime_Φ_ΨSq {R₀ : Type*} [CommRing R₀] (W : WeierstrassCurve R₀)
     {n : ℤ} (hn : n ≠ 0) (hΔ : IsUnit W.Δ) :
     IsCoprime (W.Φ n) (W.ΨSq n) :=
-  sorry
+  by
+    have hnabs : n.natAbs ≠ 0 := Int.natAbs_ne_zero.mpr hn
+    have hnabs_sq : n.natAbs ^ 2 ≠ 0 := pow_ne_zero 2 hnabs
+    have hres : IsUnit
+        ((W.Φ n).resultant (W.ΨSq n) (n.natAbs ^ 2) (n.natAbs ^ 2 - 1)) := by
+      rcases W.resultant_Φ_ΨSq hn with h | h
+      · rw [h]
+        exact hΔ.pow _
+      · rw [h]
+        exact (hΔ.pow _).neg
+    obtain ⟨p, q, -, -, hpq⟩ :=
+      Polynomial.exists_mul_add_mul_eq_C_resultant
+        (W.Φ n) (W.ΨSq n) (W.natDegree_Φ_le n) (W.natDegree_ΨSq_le n)
+        (Or.inl hnabs_sq)
+    exact ⟨Polynomial.C (hres.unit⁻¹).1 * p, Polynomial.C (hres.unit⁻¹).1 * q, by
+      simp only [mul_assoc, ← mul_add, mul_comm p, mul_comm q, hpq, ← map_mul,
+        IsUnit.val_inv_mul, map_one]⟩
