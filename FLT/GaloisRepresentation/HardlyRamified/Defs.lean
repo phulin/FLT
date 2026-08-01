@@ -65,6 +65,7 @@ rank 1, and where `ρ` acts on `W` via an unramified character whose square is t
 
 open IsDedekindDomain
 open scoped NumberField
+open scoped TensorProduct
 
 namespace GaloisRepresentation
 
@@ -145,5 +146,66 @@ theorem IsHardlyRamified.conj {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd ℓ)
     intro g w
     obtain ⟨heq, hunram, hsq⟩ := hπρ g (e.symm w)
     exact ⟨by simpa [π'] using heq, hunram, hsq⟩
+
+/-- Extending scalars preserves the rank-two condition. -/
+theorem rank_two_baseChange
+    {R S V : Type*} [CommRing R] [CommRing S] [Algebra R S]
+    [Nontrivial R] [Nontrivial S]
+    [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
+    (hV : Module.rank R V = 2) : Module.rank S (S ⊗[R] V) = 2 := by
+  rw [Module.rank_baseChange, hV]
+  simp
+
+/-- Hardly ramified representations remain hardly ramified after a local scalar extension
+with unchanged residue field.  The tame quotient is obtained by tensoring its surjective
+linear functional and conjugating the scalar-extended one-dimensional representation by
+`S ⊗[R] R ≃ S`. -/
+theorem IsHardlyRamified.baseChange {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd ℓ)
+    {R S : Type u} [CommRing R] [CommRing S]
+    [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [TopologicalSpace S] [IsTopologicalRing S] [IsLocalRing S]
+    [Algebra ℤ_[ℓ] R] [Algebra R S] [Algebra ℤ_[ℓ] S] [IsScalarTower ℤ_[ℓ] R S]
+    [ContinuousSMul R S] [IsLocalHom (algebraMap R S)] [IsResidueAlgebra R S]
+    [IsProartinian R] [IsProartinian S]
+    {V : Type*} [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
+    (hV : Module.rank R V = 2) (hVS : Module.rank S (S ⊗[R] V) = 2)
+    (ρ : GaloisRep ℚ R V) (hρ : IsHardlyRamified hℓOdd hV ρ) :
+    IsHardlyRamified hℓOdd hVS (ρ.baseChange S) where
+  det g := by
+    rw [GaloisRep.det_baseChange, hρ.det, IsScalarTower.algebraMap_apply ℤ_[ℓ] R S]
+  isUnramified p hp h := by
+    letI : ρ.IsUnramifiedAt hp.toHeightOneSpectrumRingOfIntegersRat :=
+      hρ.isUnramified p hp h
+    infer_instance
+  isFlat := by
+    letI : ρ.IsFlatAt
+        (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (Fact.out : ℓ.Prime)) := hρ.isFlat
+    exact GaloisRep.IsFlatAt.baseChange _ ρ
+  isTameAtTwo := by
+    obtain ⟨π, hπ, δ, hπρ⟩ := hρ.isTameAtTwo
+    let e : S ⊗[R] R ≃ₗ[S] S := TensorProduct.AlgebraTensorModule.rid R S S
+    let π' : S ⊗[R] V →ₗ[S] S := e.toLinearMap.comp (π.baseChange S)
+    let δ' : GaloisRep ℚ_[2] S S := (δ.baseChange S).conj e
+    have hker : δ.ker ≤ δ'.ker := by
+      simpa only [δ', GaloisRep.ker_conj] using δ.ker_baseChange (B := S)
+    refine ⟨π', e.surjective.comp (LinearMap.baseChange_surjective S hπ), δ', ?_⟩
+    intro g x
+    refine ⟨?_, ?_, ?_⟩
+    · induction x using TensorProduct.induction_on with
+      | zero => simp [π', δ']
+      | tmul s v =>
+          have h := (hπρ g v).1
+          simp only [π', δ', LinearMap.comp_apply, GaloisRep.conj_apply_apply]
+          rw [GaloisRep.baseChange_map, GaloisRep.baseChange_tmul,
+            LinearMap.baseChange_tmul, h]
+          simp
+      | add x y hx hy => simpa only [map_add] using congrArg₂ (· + ·) hx hy
+    · exact (hπρ g 0).2.1.trans hker
+    · intro g'
+      have hgker : g' * g' ∈ δ.ker := by
+        change δ (g' * g') = 1
+        rw [map_mul, (hπρ g' 0).2.2 g']
+      rw [← map_mul]
+      exact hker hgker
 
 end GaloisRepresentation
