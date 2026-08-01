@@ -70,6 +70,20 @@ theorem WeierstrassCurve.n_torsion_dimension [IsSepClosed k] {n : ℕ} (hn : (n 
     simp [hn]
   exact ⟨φ.trans (RingEquiv.piFinTwo _).toAddEquiv⟩
 
+/-- If `n` is nonzero in a separably closed field, the `n`-torsion has rank two over
+`ZMod n`. -/
+theorem WeierstrassCurve.n_torsion_rank [IsSepClosed k] {n : ℕ} (hnp : n.Prime)
+    (hn : (n : k) ≠ 0) :
+    Module.rank (ZMod n) (E.nTorsion n) = 2 := by
+  letI : Fact n.Prime := ⟨hnp⟩
+  obtain ⟨e⟩ := E.n_torsion_dimension hn
+  let e' : E.nTorsion n ≃ₗ[ZMod n] (ZMod n) × (ZMod n) :=
+    LinearEquiv.ofBijective (e.toAddMonoidHom.toZModLinearMap n) e.bijective
+  let e'' : E.nTorsion n ≃ₗ[ZMod n] ULift.{u} ((ZMod n) × (ZMod n)) :=
+    e'.trans ULift.moduleEquiv.symm
+  rw [e''.rank_eq, rank_ulift, rank_prod', CommSemiring.rank_self]
+  norm_num
+
 -- follows easily from the above
 noncomputable instance (n : ℕ) : Module.Finite (ZMod n) (E.nTorsion n) := by
   sorry

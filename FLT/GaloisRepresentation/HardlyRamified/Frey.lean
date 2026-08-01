@@ -36,7 +36,10 @@ noncomputable instance : DecidableEq (AlgebraicClosure ℚ) := Classical.typeDec
 
 theorem FreyCurve.torsion_isHardlyRamified :
     haveI : Fact (P.p.Prime) := ⟨P.pp⟩
-    IsHardlyRamified P.hp_odd sorry
+    IsHardlyRamified P.hp_odd (by
+      apply WeierstrassCurve.n_torsion_rank
+      · exact P.pp
+      · exact_mod_cast P.pp.ne_zero)
       (P.freyCurve.galoisRep P.p (show 0 < P.p from P.hppos)) :=
   sorry
 
