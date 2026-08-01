@@ -14,6 +14,7 @@ public import Mathlib.RingTheory.Bialgebra.TensorProduct
 public import Mathlib.RingTheory.HopfAlgebra.Basic
 public import Mathlib.RepresentationTheory.Irreducible
 import Mathlib.LinearAlgebra.Charpoly.BaseChange
+import Mathlib.RingTheory.Finiteness.Cardinality
 
 /-!
 # Galois representations
@@ -524,16 +525,65 @@ class GaloisRep.IsFlatAt [IsLocalRing A] (ρ : GaloisRep K A M) : Prop where
     (ρ.baseChange (A ⧸ I)).HasFlatProlongationAt v
 
 /-- The finite-flat group-scheme input behind functoriality of the flat deformation
-condition. A flat model for an Artinian-coefficient representation remains realizable after
-extension to a module-finite Artinian coefficient algebra. This is the extension argument of Conrad,
-*The flat deformation functor*, Theorem 1.6: a composition series for the target coefficient
-ring reduces the construction to extensions of finite flat group schemes. -/
-theorem GaloisRep.HasFlatProlongationAt.baseChange_artinian [IsTopologicalRing B]
-    [IsArtinianRing A] [IsArtinianRing B] [Algebra A B] [Module.Finite A B]
-    [ContinuousSMul A B]
+condition: finite-flat Galois modules are closed under finite products and equivariant
+quotients. The product model is obtained from a finite product of group schemes; the quotient
+model is obtained by schematic closure and the quotient construction for finite flat group
+schemes. See de Smit--Lenstra, *Explicit construction of universal deformation rings*, §6.3,
+and Conrad, *The flat deformation functor*, §1. -/
+theorem GaloisRep.HasFlatProlongationAt.quotient_pi
+    {C P : Type*} [CommRing C] [TopologicalSpace C]
+    [AddCommGroup P] [Module C P]
+    (ρ : GaloisRep K A M) (hρ : ρ.HasFlatProlongationAt v)
+    (ρ' : GaloisRep K C P) (d : ℕ) (f : (Fin d → M) →+ P)
+    (hf : Function.Surjective f)
+    (heq : ∀ σ x, f (fun i ↦ ρ.toLocal v σ (x i)) = ρ'.toLocal v σ (f x)) :
+    ρ'.HasFlatProlongationAt v := by
+  sorry
+
+/-- A module-finite extension of coefficient rings preserves the existence of a finite-flat
+prolongation. Choose a finite free module surjecting onto the target coefficient ring. After
+tensoring with the representation space, right exactness exhibits the scalar extension as an
+equivariant quotient of a finite power of the original representation. -/
+theorem GaloisRep.HasFlatProlongationAt.baseChange_of_moduleFinite [IsTopologicalRing B]
+    [Algebra A B] [Module.Finite A B] [ContinuousSMul A B]
     (ρ : GaloisRep K A M) (hρ : ρ.HasFlatProlongationAt v) :
     (ρ.baseChange B).HasFlatProlongationAt v := by
-  sorry
+  classical
+  obtain ⟨d, g, hg⟩ := Module.Finite.exists_fin' A B
+  let e : ((Fin d → A) ⊗[A] M) ≃ₗ[A] (Fin d → M) :=
+    (TensorProduct.comm A (Fin d → A) M).trans
+      (TensorProduct.piScalarRight A A M (Fin d))
+  let q : (Fin d → M) →ₗ[A] B ⊗[A] M :=
+    (g.rTensor M).comp e.symm.toLinearMap
+  apply GaloisRep.HasFlatProlongationAt.quotient_pi v ρ hρ
+    (ρ.baseChange B) d q.toAddHom
+  · exact (LinearMap.rTensor_surjective M hg).comp e.symm.surjective
+  · intro σ x
+    change q (fun i ↦ ρ.toLocal v σ (x i)) = (ρ.baseChange B).toLocal v σ (q x)
+    obtain ⟨z, rfl⟩ := e.surjective x
+    have qe (z : (Fin d → A) ⊗[A] M) : q (e z) = (g.rTensor M) z := by
+      simp [q]
+    induction z using TensorProduct.induction_on with
+    | zero =>
+      have hzero : (fun _ : Fin d ↦ (0 : M)) = 0 := rfl
+      simp only [map_zero, Pi.zero_apply, hzero]
+    | tmul a m =>
+      have hdiag :
+          (fun i ↦ ρ.toLocal v σ (e (a ⊗ₜ[A] m) i)) =
+            e (a ⊗ₜ[A] (ρ.toLocal v σ m)) := by
+        ext i
+        simp [e, GaloisRep.toLocal]
+      rw [hdiag, qe, qe]
+      simp only [LinearMap.rTensor_tmul]
+      symm
+      exact GaloisRep.baseChange_tmul (ρ.toLocal v) σ (g a) m
+    | add z w hz hw =>
+      simp only [map_add, Pi.add_apply]
+      have hadd :
+          (fun i ↦ ρ.toLocal v σ (e z i) + ρ.toLocal v σ (e w i)) =
+            (fun i ↦ ρ.toLocal v σ (e z i)) +
+              (fun i ↦ ρ.toLocal v σ (e w i)) := rfl
+      rw [hadd, map_add, hz, hw]
 
 /-- Finite flatness is preserved by extension of the coefficient ring along a continuous
 local homomorphism.  For an open ideal `J` of `B`, the map `A → B ⧸ J` factors through the
@@ -569,7 +619,7 @@ theorem GaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
     moduleFinite_quotient_comap_of_isResidueAlgebra (R := A) (S := B) J hJ
   have hiter :
       ((ρ.baseChange (A ⧸ I)).baseChange (B ⧸ J)).HasFlatProlongationAt v :=
-    hflatI.baseChange_artinian v
+    hflatI.baseChange_of_moduleFinite v
   have hdirect : (ρ.baseChange (B ⧸ J)).HasFlatProlongationAt v := by
     rw [GaloisRep.baseChange_baseChange] at hiter
     have h := hiter.conj v
