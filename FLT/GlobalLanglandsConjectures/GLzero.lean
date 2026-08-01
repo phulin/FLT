@@ -65,8 +65,12 @@ def ofComplex (c : ℂ) : AutomorphicFormForGLnOverQ 0 ρ := {
       continuous := by continuity
       loc_cst := by
         rw [IsLocallyConstant]
-        sorry
-        -- aesop -- used to work
+        intro s
+        by_cases hc : c ∈ s
+        · simpa [hc] using (isOpen_univ : IsOpen (Set.univ : Set (GL (Fin 0)
+            (IsDedekindDomain.FiniteAdeleRing ℤ ℚ))))
+        · simpa [hc] using (isOpen_empty : IsOpen (∅ : Set (GL (Fin 0)
+            (IsDedekindDomain.FiniteAdeleRing ℤ ℚ))))
       smooth := by simp [contMDiff_const]
     }
     is_periodic := by simp
@@ -83,7 +87,14 @@ def ofComplex (c : ℂ) : AutomorphicFormForGLnOverQ 0 ρ := {
       }
       apply Exists.intro U
       exact {
-          is_open := by sorry -- used to be simp but there's a timeout
+          is_open := by
+            change IsOpen ({1} : Set (GL (Fin 0)
+              (IsDedekindDomain.FiniteAdeleRing ℤ ℚ)))
+            convert (isOpen_univ : IsOpen (Set.univ : Set (GL (Fin 0)
+              (IsDedekindDomain.FiniteAdeleRing ℤ ℚ)))) using 1
+            ext g
+            simp only [Set.mem_singleton_iff, Set.mem_univ, iff_true]
+            exact Subsingleton.eq_one g
           is_compact := by aesop
           finite_level := by simp
       }
