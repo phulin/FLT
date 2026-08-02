@@ -6,6 +6,7 @@ Authors: FLT Project
 module
 
 public import FLT.FreyCurve.Reduction
+public import FLT.FreyCurve.Tate
 public import FLT.KnownIn1980s.EllipticCurves.GoodReductionUnramified
 
 /-!
@@ -58,6 +59,66 @@ theorem torsion_isUnramifiedAt_of_not_dvd_abc (P : FreyPackage) {q : ℕ}
   apply P.freyCurve.galoisRep_isUnramifiedAt_of_local_torsion_fixed v P.p P.hppos
   intro σ hσ T
   have hfixed := E.torsion_fixed_by_localInertia_of_good_reduction v P.p σ hσ T
+  apply Subtype.ext
+  have hfixed' := congrArg Subtype.val hfixed
+  change WeierstrassCurve.Points.map E σ.toAlgHom T.1 = T.1 at hfixed'
+  rw [P.freyCurve.nTorsionMap_coe]
+  have hmaps : WeierstrassCurve.Points.map P.freyCurve
+      ((σ.restrictScalars ℚ).toAlgHom) T.1 =
+      WeierstrassCurve.Points.map E σ.toAlgHom T.1 := by
+    rcases T.1 with (_ | ⟨x, y, h⟩) <;> rfl
+  rw [hmaps]
+  exact hfixed'
+
+/-- At every bad odd prime distinct from the Frey exponent where the completed Frey curve has
+split multiplicative reduction, its `p`-torsion representation is unramified.  This is the
+global form of the Tate-parameter calculation in `FreyCurve.Tate`. -/
+theorem torsion_isUnramifiedAt_of_dvd_abc_of_split_multiplicative
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqp : q ≠ P.p)
+    (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasSplitMultiplicativeReduction R],
+      haveI : Fact P.p.Prime := ⟨P.pp⟩
+      (P.freyCurve.galoisRep P.p P.hppos).IsUnramifiedAt v := by
+  dsimp only
+  intro hsplit
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  -- Keep reduction, Tate uniformization, and local inertia on the canonical completion
+  -- structures chosen by the height-one-spectrum construction.
+  let _ : Field (v.adicCompletion ℚ) :=
+    IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.HasSplitMultiplicativeReduction R := by
+    simpa [E, R, K, v] using hsplit
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) :=
+    Rat.HeightOneSpectrum.neZero_residueField_of_not_dvd hq (by
+      rw [Nat.prime_dvd_prime_iff_eq hq P.pp]
+      exact hqp)
+  let _ : Algebra K (AlgebraicClosure K) := AlgebraicClosure.instAlgebra K
+  let _ : Algebra ℚ (AlgebraicClosure K) := AlgebraicClosure.instAlgebra K
+  let _ : DecidableEq (AlgebraicClosure K) := Classical.typeDecidableEq _
+  let _ : NeZero (P.p : ℚ) := ⟨by exact_mod_cast P.pp.ne_zero⟩
+  apply P.freyCurve.galoisRep_isUnramifiedAt_of_local_torsion_fixed v P.p P.hppos
+  intro σ hσ T
+  have hfixed :=
+    torsion_fixed_by_localInertia_of_split_multiplicative P hq hqodd hqbad σ hσ T
   apply Subtype.ext
   have hfixed' := congrArg Subtype.val hfixed
   change WeierstrassCurve.Points.map E σ.toAlgHom T.1 = T.1 at hfixed'
