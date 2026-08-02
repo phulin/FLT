@@ -7,6 +7,8 @@ module
 
 public import FLT.GroupScheme.QuadraticDescent
 public import FLT.GroupScheme.TateKummer
+public import Mathlib.Algebra.Module.Projective
+public import Mathlib.RingTheory.TensorProduct.Free
 
 /-!
 # Quadratic twists of Tate--Kummer coordinate algebras
@@ -63,6 +65,11 @@ lemma descentAlgEquiv_involutive :
   have h := (descentAlgEquiv R N u t n).symm_apply_apply z
   rwa [descentAlgEquiv_symm] at h
 
+@[simp]
+lemma descentAlgEquiv_apply_apply (z : CoverCoordinateAlgebra R N u t n) :
+    descentAlgEquiv R N u t n (descentAlgEquiv R N u t n z) = z :=
+  descentAlgEquiv_involutive R N u t n z
+
 /-- The fixed algebra for the conjugation--inversion descent datum. -/
 noncomputable def fixedSubalgebra :
     Subalgebra R (CoverCoordinateAlgebra R N u t n) :=
@@ -73,6 +80,84 @@ noncomputable def fixedSubalgebra :
 lemma mem_fixedSubalgebra (z : CoverCoordinateAlgebra R N u t n) :
     z ∈ fixedSubalgebra R N u t n ↔ descentAlgEquiv R N u t n z = z :=
   Iff.rfl
+
+/-- Averaging over the order-two descent action. -/
+noncomputable def fixedProjection (h2 : IsUnit (2 : R)) :
+    CoverCoordinateAlgebra R N u t n →ₗ[R] CoverCoordinateAlgebra R N u t n :=
+  (↑(h2.unit⁻¹) : R) •
+    ((descentAlgEquiv R N u t n).toLinearMap + LinearMap.id)
+
+lemma fixedProjection_apply (h2 : IsUnit (2 : R))
+    (z : CoverCoordinateAlgebra R N u t n) :
+    fixedProjection R N u t n h2 z =
+      (↑(h2.unit⁻¹) : R) • (descentAlgEquiv R N u t n z + z) :=
+  rfl
+
+lemma fixedProjection_mem (h2 : IsUnit (2 : R))
+    (z : CoverCoordinateAlgebra R N u t n) :
+    fixedProjection R N u t n h2 z ∈ fixedSubalgebra R N u t n := by
+  rw [mem_fixedSubalgebra, fixedProjection_apply]
+  simp only [map_smul, map_add, descentAlgEquiv_apply_apply]
+  rw [add_comm]
+
+lemma fixedProjection_of_mem (h2 : IsUnit (2 : R))
+    (z : CoverCoordinateAlgebra R N u t n)
+    (hz : z ∈ fixedSubalgebra R N u t n) :
+    fixedProjection R N u t n h2 z = z := by
+  have hhalf : (↑(h2.unit⁻¹) : R) * 2 = 1 := by
+    calc
+      (↑(h2.unit⁻¹) : R) * 2 =
+          (↑(h2.unit⁻¹) : R) * (h2.unit : R) :=
+        congrArg (fun x : R ↦ (↑(h2.unit⁻¹) : R) * x) h2.unit_spec.symm
+      _ = 1 := h2.unit.inv_mul
+  rw [fixedProjection_apply, (mem_fixedSubalgebra R N u t n z).mp hz]
+  calc
+    (↑(h2.unit⁻¹) : R) • (z + z) =
+        (↑(h2.unit⁻¹) : R) • ((2 : R) • z) := by rw [two_smul]
+    _ = ((↑(h2.unit⁻¹) : R) * 2) • z := by rw [smul_smul]
+    _ = z := by rw [hhalf, one_smul]
+
+/-- The averaging projector, with codomain restricted to the fixed algebra. -/
+noncomputable def fixedRetraction (h2 : IsUnit (2 : R)) :
+    CoverCoordinateAlgebra R N u t n →ₗ[R] fixedSubalgebra R N u t n :=
+  (fixedProjection R N u t n h2).codRestrict
+    (fixedSubalgebra R N u t n).toSubmodule
+    (fixedProjection_mem R N u t n h2)
+
+lemma fixedRetraction_comp_subtype (h2 : IsUnit (2 : R)) :
+    (fixedRetraction R N u t n h2).comp
+        (fixedSubalgebra R N u t n).toSubmodule.subtype =
+      LinearMap.id := by
+  ext z
+  change fixedProjection R N u t n h2 z = z
+  exact fixedProjection_of_mem R N u t n h2 z z.property
+
+/-- The fixed algebra is projective because it is a direct summand of the finite-free
+cover algebra. -/
+theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
+    Module.Projective R (fixedSubalgebra R N u t n) := by
+  let _ : Module.Projective R (CoverCoordinateAlgebra R N u t n) := inferInstance
+  exact Module.Projective.of_split
+    (fixedSubalgebra R N u t n).toSubmodule.subtype
+    (fixedRetraction R N u t n h2)
+    (fixedRetraction_comp_subtype R N u t n h2)
+
+/-- The fixed algebra is finite as a quotient of the finite cover algebra under the
+averaging retraction. -/
+theorem fixedModuleFinite (h2 : IsUnit (2 : R)) :
+    Module.Finite R (fixedSubalgebra R N u t n) := by
+  apply Module.Finite.of_surjective (fixedRetraction R N u t n h2)
+  intro z
+  refine ⟨z, ?_⟩
+  apply Subtype.ext
+  exact fixedProjection_of_mem R N u t n h2 z z.property
+
+/-- Consequently the fixed algebra is flat. -/
+theorem fixedModuleFlat (h2 : IsUnit (2 : R)) :
+    Module.Flat R (fixedSubalgebra R N u t n) := by
+  let _ : Module.Projective R (fixedSubalgebra R N u t n) :=
+    fixedModuleProjective R N u t n h2
+  infer_instance
 
 /-- The coordinate ring of the quadratic twist, realized as fixed points on the cover. -/
 noncomputable abbrev CoordinateAlgebra := fixedSubalgebra R N u t n
