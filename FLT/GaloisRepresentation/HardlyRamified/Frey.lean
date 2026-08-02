@@ -7,7 +7,7 @@ module
 
 public import FLT.GaloisRepresentation.HardlyRamified.Defs
 public import FLT.FreyCurve.Basic
-public import FLT.EllipticCurve.Torsion
+public import FLT.KnownIn1980s.EllipticCurves.WeilPairing
 import FLT.GaloisRepresentation.HardlyRamified.Reduction
 import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
 import Mathlib.Data.Nat.Factorial.DoubleFactorial
@@ -34,6 +34,18 @@ noncomputable local instance (p : ℕ) [Fact p.Prime] : Algebra ℤ_[p] (ZMod p)
 /-- We cannot hope to make a constructive decidable equality on `AlgebraicClosure ℚ` because
 it is defined in a completely nonconstructive way, so we add the classical instance. -/
 noncomputable instance : DecidableEq (AlgebraicClosure ℚ) := Classical.typeDecidableEq _
+
+/-- The determinant of the Galois action on the `p`-torsion of the Frey curve is the
+mod-`p` cyclotomic character.  This is the determinant branch of the hardly-ramified
+criterion, separated from the three reduction-theoretic branches. -/
+theorem FreyCurve.torsion_det (g : Field.absoluteGaloisGroup ℚ) :
+    haveI : Fact (P.p.Prime) := ⟨P.pp⟩
+    (P.freyCurve.galoisRep P.p (show 0 < P.p from P.hppos)).det g =
+      algebraMap ℤ_[P.p] (ZMod P.p)
+        (cyclotomicCharacter (AlgebraicClosure ℚ) P.p g.toRingEquiv) := by
+  letI : Fact (P.p.Prime) := ⟨P.pp⟩
+  rw [show algebraMap ℤ_[P.p] (ZMod P.p) = PadicInt.toZMod from rfl]
+  exact (P.freyCurve.weilPairingData P.p).galoisRep_det_eq_cyclotomic g
 
 theorem FreyCurve.torsion_isHardlyRamified :
     haveI : Fact (P.p.Prime) := ⟨P.pp⟩

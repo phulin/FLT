@@ -25,7 +25,7 @@ could talk to David first. Note that he has already made substantial progress.
 
 @[expose] public section
 
-universe u
+universe u v w x
 
 variable {k : Type u} [Field k] (E : WeierstrassCurve k) [E.IsElliptic] [DecidableEq k]
 
@@ -519,18 +519,20 @@ noncomputable instance (n : ℕ) [IsSepClosed k] [NeZero (n : k)] :
 -- This should be a straightforward but perhaps long unravelling of the definition
 /-- The map on points for an elliptic curve over `k` induced by a morphism of `k`-algebras
 is a group homomorphism. -/
-noncomputable def WeierstrassCurve.Points.map {K L : Type u} [Field K] [Field L] [Algebra k K]
+noncomputable def WeierstrassCurve.Points.map {K : Type v} {L : Type w}
+    [Field K] [Field L] [Algebra k K]
     [Algebra k L] [DecidableEq K] [DecidableEq L]
     (f : K →ₐ[k] L) : (E⁄K).Point →+ (E⁄L).Point := WeierstrassCurve.Affine.Point.map f
 
 omit [E.IsElliptic] [DecidableEq k] in
-lemma WeierstrassCurve.Points.map_id (K : Type u) [Field K] [DecidableEq K] [Algebra k K] :
+lemma WeierstrassCurve.Points.map_id (K : Type v) [Field K] [DecidableEq K] [Algebra k K] :
     WeierstrassCurve.Points.map E (AlgHom.id k K) = AddMonoidHom.id _ := by
       ext
       exact WeierstrassCurve.Affine.Point.map_id _
 
 omit [E.IsElliptic] [DecidableEq k] in
-lemma WeierstrassCurve.Points.map_comp (K L M : Type u) [Field K] [Field L] [Field M]
+lemma WeierstrassCurve.Points.map_comp
+    (K : Type v) (L : Type w) (M : Type x) [Field K] [Field L] [Field M]
     [DecidableEq K] [DecidableEq L] [DecidableEq M] [Algebra k K] [Algebra k L] [Algebra k M]
     (f : K →ₐ[k] L) (g : L →ₐ[k] M) :
     (WeierstrassCurve.Affine.Point.map g).comp (WeierstrassCurve.Affine.Point.map f) =
@@ -540,7 +542,8 @@ lemma WeierstrassCurve.Points.map_comp (K L M : Type u) [Field K] [Field L] [Fie
 
 /-- A field homomorphism sends `n`-torsion points to `n`-torsion points.  This is the
 functorial torsion map underlying the Galois representation. -/
-noncomputable def WeierstrassCurve.nTorsionMap {K L : Type u} [Field K] [Field L]
+noncomputable def WeierstrassCurve.nTorsionMap {K : Type v} {L : Type w}
+    [Field K] [Field L]
     [Algebra k K] [Algebra k L] [DecidableEq K] [DecidableEq L]
     (n : ℕ) (f : K →ₐ[k] L) :
     AddSubgroup.torsionBy (E⁄K).Point (n : ℤ) →+
@@ -555,13 +558,14 @@ noncomputable def WeierstrassCurve.nTorsionMap {K L : Type u} [Field K] [Field L
       Subtype.ext (map_add (WeierstrassCurve.Points.map E f) P.1 Q.1) }
 
 @[simp]
-theorem WeierstrassCurve.nTorsionMap_coe {K L : Type u} [Field K] [Field L]
+theorem WeierstrassCurve.nTorsionMap_coe {K : Type v} {L : Type w}
+    [Field K] [Field L]
     [Algebra k K] [Algebra k L] [DecidableEq K] [DecidableEq L]
     (n : ℕ) (f : K →ₐ[k] L) (P : AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :
     (E.nTorsionMap n f P : (E⁄L).Point) = WeierstrassCurve.Points.map E f P.1 := rfl
 
 /-- The torsion map of the identity field homomorphism is the identity. -/
-theorem WeierstrassCurve.nTorsionMap_id (K : Type u) [Field K] [Algebra k K]
+theorem WeierstrassCurve.nTorsionMap_id (K : Type v) [Field K] [Algebra k K]
     [DecidableEq K] (n : ℕ) :
     E.nTorsionMap n (AlgHom.id k K) = AddMonoidHom.id _ := by
   ext P
@@ -569,7 +573,7 @@ theorem WeierstrassCurve.nTorsionMap_id (K : Type u) [Field K] [Algebra k K]
 
 /-- Torsion maps compose in the same order as their field homomorphisms. -/
 theorem WeierstrassCurve.nTorsionMap_comp
-    (K L M : Type u) [Field K] [Field L] [Field M]
+    (K : Type v) (L : Type w) (M : Type x) [Field K] [Field L] [Field M]
     [Algebra k K] [Algebra k L] [Algebra k M]
     [DecidableEq K] [DecidableEq L] [DecidableEq M]
     (n : ℕ) (f : K →ₐ[k] L) (g : L →ₐ[k] M) :

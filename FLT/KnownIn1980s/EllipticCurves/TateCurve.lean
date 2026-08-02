@@ -756,7 +756,7 @@ theorem WeierstrassCurve.tatePoint_mem_torsionBy_of_pow_eq {N : ℕ} {r : Ωˣ}
 -- so the demand is insensitive to negating `tateEquivSepClosure`.
 theorem WeierstrassCurve.weilPairing_tatePoint (N : ℕ) [NeZero (N : Ω)] {ζ r : Ωˣ}
     (hζ : ζ ∈ rootsOfUnity N Ω) (hr : r ^ N = E.qUnitSepClosure Ω) :
-    (E⁄Ω).weilPairing Ω N
+    E.weilPairing Ω N
       ⟨E.tatePoint Ω ζ, E.tatePoint_mem_torsionBy_of_mem_rootsOfUnity Ω hζ⟩
       ⟨E.tatePoint Ω r, E.tatePoint_mem_torsionBy_of_pow_eq Ω hr⟩ =
     Additive.ofMul (⟨ζ, hζ⟩ : rootsOfUnity N Ω) :=
