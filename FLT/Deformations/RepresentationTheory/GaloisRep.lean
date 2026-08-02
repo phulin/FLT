@@ -14,6 +14,7 @@ public import Mathlib.LinearAlgebra.Charpoly.Basic
 public import Mathlib.LinearAlgebra.Matrix.Unique
 public import FLT.Mathlib.Order.JordanHolder
 public import Mathlib.RingTheory.Bialgebra.TensorProduct
+public import Mathlib.RingTheory.Bialgebra.Convolution
 public import Mathlib.RingTheory.HopfAlgebra.Basic
 public import Mathlib.RepresentationTheory.Irreducible
 import Mathlib.LinearAlgebra.Charpoly.BaseChange
@@ -716,8 +717,13 @@ we can remove this condition and state the aforementioned result as a sorry.
 def GaloisRep.HasFlatProlongationAt (ρ : GaloisRep K A M) : Prop :=
   ∃ (G : Type uK) (_ : CommRing G) (_ : HopfAlgebra 𝒪ᵥ G)
     (_ : Module.Flat 𝒪ᵥ G) (_ : Module.Finite 𝒪ᵥ G) (_ : Algebra.Etale Kᵥ (Kᵥ ⊗[𝒪ᵥ] G))
-    (f : Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ) →+[Γ Kᵥ] (ρ.toLocal v).Space),
-    Function.Bijective f
+    (f : Additive (WithConv (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ)) →+
+      (ρ.toLocal v).Space),
+    Function.Bijective f ∧
+      ∀ (σ : Γ Kᵥ) (x : Additive
+        (WithConv (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ))),
+        f (Additive.ofMul (WithConv.toConv
+          (σ.toAlgHom.comp x.toMul.ofConv))) = ρ.toLocal v σ (f x)
 
 /-- A Galois-equivariant additive equivalence transports a finite-flat prolongation.  The
 coefficient rings of the two representations may differ because the prolongation condition
@@ -728,47 +734,51 @@ lemma GaloisRep.HasFlatProlongationAt.of_addEquiv
     (ρ' : GaloisRep K C P) (e : M ≃+ P)
     (heq : ∀ g x, e (ρ.toLocal v g x) = ρ'.toLocal v g (e x)) :
     ρ'.HasFlatProlongationAt v := by
-  rcases hρ with ⟨G, hG, hHopf, hFlat, hFinite, hEtale, f, hf⟩
+  rcases hρ with ⟨G, hG, hHopf, hFlat, hFinite, hEtale, f, hf, hfeq⟩
   letI : CommRing G := hG
   letI : HopfAlgebra 𝒪ᵥ G := hHopf
   letI : Module.Flat 𝒪ᵥ G := hFlat
   letI : Module.Finite 𝒪ᵥ G := hFinite
   letI : Algebra.Etale Kᵥ (Kᵥ ⊗[𝒪ᵥ] G) := hEtale
-  let X := Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ)
+  let X := Additive (WithConv (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ))
   let f₀ : X → M := f
   have hf₀ : Function.Bijective f₀ := hf
   have hf₀_zero : f₀ 0 = 0 := f.map_zero
   have hf₀_add (x y : X) : f₀ (x + y) = f₀ x + f₀ y := f.map_add x y
   have hf₀_smul (g : Γ Kᵥ) (x : X) :
-      f₀ (g • x) = ρ.toLocal v g (f₀ x) := f.map_smul g x
-  let f' : Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ) →+[Γ Kᵥ] (ρ'.toLocal v).Space := {
+      f₀ (Additive.ofMul (WithConv.toConv
+        (g.toAlgHom.comp x.toMul.ofConv))) = ρ.toLocal v g (f₀ x) := hfeq g x
+  let f' : Additive (WithConv (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ)) →+
+      (ρ'.toLocal v).Space := {
     toFun x := e (f₀ x)
     map_zero' := by rw [hf₀_zero, e.map_zero]; rfl
-    map_add' x y := by rw [hf₀_add, e.map_add]; rfl
-    map_smul' g x := by
-      rw [hf₀_smul]
-      exact heq g (f₀ x) }
+    map_add' x y := by rw [hf₀_add, e.map_add]; rfl }
   exact ⟨G, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
-    f', e.bijective.comp hf₀⟩
+    f', e.bijective.comp hf₀, fun g x => by
+      change e (f₀ (Additive.ofMul (WithConv.toConv
+        (g.toAlgHom.comp x.toMul.ofConv)))) = ρ'.toLocal v g (e (f₀ x))
+      rw [hf₀_smul]
+      exact heq g (f₀ x)⟩
 
 /-- A change of basis preserves the existence of a finite flat prolongation. -/
 lemma GaloisRep.HasFlatProlongationAt.conj
     {ρ : GaloisRep K A M} (hρ : ρ.HasFlatProlongationAt v) (e : M ≃ₗ[A] N) :
     (ρ.conj e).HasFlatProlongationAt v := by
-  rcases hρ with ⟨G, hG, hHopf, hFlat, hFinite, hEtale, f, hf⟩
+  rcases hρ with ⟨G, hG, hHopf, hFlat, hFinite, hEtale, f, hf, hfeq⟩
   letI : CommRing G := hG
   letI : HopfAlgebra 𝒪ᵥ G := hHopf
   letI : Module.Flat 𝒪ᵥ G := hFlat
   letI : Module.Finite 𝒪ᵥ G := hFinite
   letI : Algebra.Etale Kᵥ (Kᵥ ⊗[𝒪ᵥ] G) := hEtale
-  let X := Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ)
+  let X := Additive (WithConv (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ))
   let f₀ : X → M := f
   have hf₀ : Function.Bijective f₀ := hf
   have hf₀_zero : f₀ 0 = 0 := f.map_zero
   have hf₀_add (x y : X) : f₀ (x + y) = f₀ x + f₀ y := f.map_add x y
   have hf₀_smul (g : Γ Kᵥ) (x : X) :
-      f₀ (g • x) = ρ.toLocal v g (f₀ x) := f.map_smul g x
-  let f' : Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ) →+[Γ Kᵥ]
+      f₀ (Additive.ofMul (WithConv.toConv
+        (g.toAlgHom.comp x.toMul.ofConv))) = ρ.toLocal v g (f₀ x) := hfeq g x
+  let f' : Additive (WithConv (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ)) →+
       ((ρ.conj e).toLocal v).Space := {
     toFun x := e (f₀ x)
     map_zero' := by
@@ -776,14 +786,13 @@ lemma GaloisRep.HasFlatProlongationAt.conj
       rfl
     map_add' x y := by
       rw [hf₀_add, e.map_add]
-      rfl
-    map_smul' g x := by
-      rw [hf₀_smul]
-      change e (ρ.toLocal v g (f₀ x)) =
-        e (ρ.toLocal v g (e.symm (e (f₀ x))))
-      rw [e.symm_apply_apply] }
+      rfl }
   exact ⟨G, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
-    f', e.bijective.comp hf₀⟩
+    f', e.bijective.comp hf₀, fun g x => by
+      change e (f₀ (Additive.ofMul (WithConv.toConv
+        (g.toAlgHom.comp x.toMul.ofConv)))) =
+        e (ρ.toLocal v g (e.symm (e (f₀ x))))
+      rw [hf₀_smul, e.symm_apply_apply]⟩
 
 /-- A galois rep `ρ : Γ K → Aut_A(M)` is flat at `v` if `A/I ⊗ M` has a flat prolongation at `v`
 for all open ideals `I`. -/
