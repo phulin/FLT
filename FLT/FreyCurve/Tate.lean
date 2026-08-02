@@ -247,6 +247,57 @@ theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : �
   exact exists_tateParameter_uniformizer_factorization_of_j_eq
     P hq hqodd hqbad _ (P.freyCurve.map_j _)
 
+/-- At a bad prime, a split Tate parameter with the Frey `j`-invariant is an exact
+`p`-th power times an integral unit. This is the form used by the finite-flat Kummer model:
+the power absorbs the component-group valuation, leaving only a unit Kummer class. -/
+theorem exists_tateParameter_eq_pow_mul_unit_of_j_eq
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    ∀ (E : WeierstrassCurve K) [E.IsElliptic]
+      [E.HasSplitMultiplicativeReduction R],
+      E.j = algebraMap ℚ K P.freyCurve.j →
+      ∃ (q0 a : R) (u : Rˣ),
+        q0.1 = E.q ∧ q0 = a ^ P.p * (u : R) := by
+  dsimp only
+  intro E hell hsplit hjmap
+  obtain ⟨q0, π, m, t, u, hq0, _hπ, hfac, hm⟩ :=
+    exists_tateParameter_uniformizer_factorization_of_j_eq
+      P hq hqodd hqbad E hjmap
+  refine ⟨q0, π ^ t, u, hq0, ?_⟩
+  rw [hfac, hm, Nat.mul_comm, pow_mul]
+
+/-- The completed Frey curve's split Tate parameter is an exact `p`-th power times an
+integral unit at every bad odd prime. -/
+theorem exists_tateParameter_eq_pow_mul_unit
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasSplitMultiplicativeReduction R],
+      ∃ (q0 a : R) (u : Rˣ),
+        q0.1 = E.q ∧ q0 = a ^ P.p * (u : R) := by
+  dsimp only
+  intro hsplit
+  exact exists_tateParameter_eq_pow_mul_unit_of_j_eq
+    P hq hqodd hqbad _ (P.freyCurve.map_j _)
+
 /-- Every local inertia element fixes a `p`-th root of the Tate parameter of a split
 multiplicative curve with the Frey `j`-invariant.  Inertia fixes the root of the unit factor,
 while the remaining uniformizer power already lies in the base field. -/
