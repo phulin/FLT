@@ -88,6 +88,17 @@ noncomputable instance : MulAction (Γ ℚ_[2]) Z2bar where
   one_smul z := rfl
   mul_smul g h z := rfl
 
+/-- A rank-one local quotient at `2` whose character is unramified and has order at most two.
+This is the local condition used in the definition of a hardly ramified representation, named
+separately so reduction-theoretic constructions can target it directly. -/
+def GaloisRep.HasTameQuadraticQuotientAtTwo
+    {R V : Type*} [CommRing R] [TopologicalSpace R]
+    [AddCommGroup V] [Module R V] (ρ : GaloisRep ℚ R V) : Prop :=
+  ∃ (π : V →ₗ[R] R) (_ : Function.Surjective π) (δ : GaloisRep ℚ_[2] R R),
+    ∀ g : Γ ℚ_[2], ∀ v : V, π (ρ.map (algebraMap ℚ ℚ_[2]) g v) = δ g (π v) ∧
+    (AddSubgroup.inertia ((𝔪 Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]) ≤ δ.ker) ∧
+    (∀ g : Γ ℚ_[2], δ g * δ g = 1)
+
 /-- Let `R` be a compact Hausdorff local topological ring (for example any complete Noetherian
 local ring with the maximal ideal-adic topology) having finite residue field of
 characteristic `ℓ > 2`, and let `ρ : Gal(Qbar/Q) → GL_2(R)` be a continuous 2-dimensional
@@ -112,12 +123,7 @@ structure IsHardlyRamified {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd ℓ)
   -- ρ is flat at ℓ;
   isFlat : ρ.IsFlatAt (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (Fact.out : ℓ.Prime))
   -- and ρ has a 1-dimensional quotient π : ρ → δ such that
-  isTameAtTwo : ∃ (π : V →ₗ[R] R) (_ : Function.Surjective π) (δ : GaloisRep ℚ_[2] R R),
-    ∀ g : Γ ℚ_[2], ∀ v : V, π (ρ.map (algebraMap ℚ ℚ_[2]) g v) = δ g (π v) ∧
-    -- δ is unramified and
-    (AddSubgroup.inertia ((𝔪 Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]) ≤ δ.ker) ∧
-    -- δ² = 1.
-    (∀ g : Γ ℚ_[2], δ g * δ g = 1)
+  isTameAtTwo : GaloisRep.HasTameQuadraticQuotientAtTwo ρ
 
 /-- Being hardly ramified is invariant under an `R`-linear change of basis. -/
 theorem IsHardlyRamified.conj {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd ℓ)
