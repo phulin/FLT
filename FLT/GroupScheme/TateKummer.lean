@@ -860,6 +860,160 @@ lemma evalAntipodeRight_tmul (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
   rfl
 
 @[simp]
+lemma evalAntipodeLeft_includeLeft (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (x : Component R N (negIndex N i).1 u) :
+    evalAntipodeLeft N u i
+        (Algebra.TensorProduct.includeLeft
+          (R := R) (S := R) (B := Component R N i.1 u) x) =
+      componentInvAlgHom N u i x := by
+  change evalAntipodeLeft N u i (x ⊗ₜ[R] 1) = _
+  rw [evalAntipodeLeft_tmul, mul_one]
+
+@[simp]
+lemma evalAntipodeLeft_includeRight (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (y : Component R N i.1 u) :
+    evalAntipodeLeft N u i
+        (Algebra.TensorProduct.includeRight
+          (R := R) (A := Component R N (negIndex N i).1 u) y) = y := by
+  change evalAntipodeLeft N u i (1 ⊗ₜ[R] y) = y
+  rw [evalAntipodeLeft_tmul, map_one, one_mul]
+
+@[simp]
+lemma evalAntipodeRight_includeLeft (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (x : Component R N i.1 u) :
+    evalAntipodeRight N u i
+        (Algebra.TensorProduct.includeLeft
+          (R := R) (S := R)
+          (B := Component R N (negIndex N i).1 u) x) = x := by
+  change evalAntipodeRight N u i (x ⊗ₜ[R] 1) = x
+  rw [evalAntipodeRight_tmul, map_one, mul_one]
+
+@[simp]
+lemma evalAntipodeRight_includeRight (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (y : Component R N (negIndex N i).1 u) :
+    evalAntipodeRight N u i
+        (Algebra.TensorProduct.includeRight
+          (R := R) (A := Component R N i.1 u) y) =
+      componentInvAlgHom N u i y := by
+  change evalAntipodeRight N u i (1 ⊗ₜ[R] y) = _
+  rw [evalAntipodeRight_tmul, one_mul]
+
+/-- Multiplying the inverse of component `i` by component `i` sends the identity-component
+root to `1`. -/
+lemma evalAntipodeLeft_componentMulRoot
+    (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    evalAntipodeLeft N u i
+        (componentMulRoot N u (negIndex N i) i) = 1 := by
+  rw [componentMulRoot, map_mul, map_mul,
+    evalAntipodeLeft_includeLeft, evalAntipodeLeft_includeRight,
+    componentInvAlgHom_root]
+  rw [(evalAntipodeLeft N u i).commutes]
+  have hunit :
+      componentInvRootUnit N u i * componentRootUnit N u i *
+          Units.map (algebraMap R (Component R N i.1 u)).toMonoidHom
+            ((u⁻¹) ^ addCarry N (negIndex N i) i) = 1 := by
+    rw [componentInvRootUnit, addCarry_comm N (negIndex N i) i]
+    simp
+  exact congrArg Units.val hunit
+
+/-- Multiplying component `i` by its inverse also sends the identity-component root to `1`. -/
+lemma evalAntipodeRight_componentMulRoot
+    (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    evalAntipodeRight N u i
+        (componentMulRoot N u i (negIndex N i)) = 1 := by
+  rw [componentMulRoot, map_mul, map_mul,
+    evalAntipodeRight_includeLeft, evalAntipodeRight_includeRight,
+    componentInvAlgHom_root]
+  rw [(evalAntipodeRight N u i).commutes]
+  have hunit :
+      componentRootUnit N u i * componentInvRootUnit N u i *
+          Units.map (algebraMap R (Component R N i.1 u)).toMonoidHom
+            ((u⁻¹) ^ addCarry N i (negIndex N i)) = 1 := by
+    rw [componentInvRootUnit]
+    simp
+  exact congrArg Units.val hunit
+
+/-- Componentwise left antipode cancellation, evaluated on a global coordinate function. -/
+lemma evalAntipodeLeft_componentMul
+    (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) (i : Fin N) :
+    evalAntipodeLeft N u i
+        (componentMulAlgHom N u (negIndex N i) i
+          (f (addIndex N (negIndex N i) i))) =
+      algebraMap R (Component R N i.1 u) (counitAlgHom N u f) := by
+  let h : addIndex N (negIndex N i) i = 0 := addIndex_negIndex_left N i
+  let g : Component R N (addIndex N (negIndex N i) i).1 u →ₐ[R]
+      Component R N i.1 u :=
+    (evalAntipodeLeft N u i).comp
+      (componentMulAlgHom N u (negIndex N i) i)
+  let target : Component R N (addIndex N (negIndex N i) i).1 u →ₐ[R]
+      Component R N i.1 u :=
+    (Algebra.ofId R (Component R N i.1 u)).comp
+      ((identityComponentAlgHom N u).comp
+        (componentEquivOfEq N u h).toAlgHom)
+  have hg : g = target := by
+    apply AdjoinRoot.algHom_ext
+    simp only [g, target, AlgHom.comp_apply]
+    rw [componentMulAlgHom_root, evalAntipodeLeft_componentMulRoot]
+    rw [show
+      (componentEquivOfEq N u h).toAlgHom
+          (AdjoinRoot.root
+            (componentPolynomial R N
+              (addIndex N (negIndex N i) i).1 u)) =
+        AdjoinRoot.root
+          (componentPolynomial R N (0 : Fin N).1 u) from
+      componentEquivOfEq_root (R := R) N u h]
+    rw [identityComponentAlgHom_root, map_one]
+  change g (f (addIndex N (negIndex N i) i)) = _
+  rw [hg]
+  simp only [target, AlgHom.comp_apply, counitAlgHom_apply]
+  rw [show
+    (componentEquivOfEq N u h).toAlgHom
+        (f (addIndex N (negIndex N i) i)) = f 0 from
+    componentEquivOfEq_coordinate N u f h]
+  rw [Algebra.ofId_apply]
+
+/-- Componentwise right antipode cancellation, evaluated on a global coordinate function. -/
+lemma evalAntipodeRight_componentMul
+    (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) (i : Fin N) :
+    evalAntipodeRight N u i
+        (componentMulAlgHom N u i (negIndex N i)
+          (f (addIndex N i (negIndex N i)))) =
+      algebraMap R (Component R N i.1 u) (counitAlgHom N u f) := by
+  let h : addIndex N i (negIndex N i) = 0 := addIndex_negIndex_right N i
+  let g : Component R N (addIndex N i (negIndex N i)).1 u →ₐ[R]
+      Component R N i.1 u :=
+    (evalAntipodeRight N u i).comp
+      (componentMulAlgHom N u i (negIndex N i))
+  let target : Component R N (addIndex N i (negIndex N i)).1 u →ₐ[R]
+      Component R N i.1 u :=
+    (Algebra.ofId R (Component R N i.1 u)).comp
+      ((identityComponentAlgHom N u).comp
+        (componentEquivOfEq N u h).toAlgHom)
+  have hg : g = target := by
+    apply AdjoinRoot.algHom_ext
+    simp only [g, target, AlgHom.comp_apply]
+    rw [componentMulAlgHom_root, evalAntipodeRight_componentMulRoot]
+    rw [show
+      (componentEquivOfEq N u h).toAlgHom
+          (AdjoinRoot.root
+            (componentPolynomial R N
+              (addIndex N i (negIndex N i)).1 u)) =
+        AdjoinRoot.root
+          (componentPolynomial R N (0 : Fin N).1 u) from
+      componentEquivOfEq_root (R := R) N u h]
+    rw [identityComponentAlgHom_root, map_one]
+  change g (f (addIndex N i (negIndex N i))) = _
+  rw [hg]
+  simp only [target, AlgHom.comp_apply, counitAlgHom_apply]
+  rw [show
+    (componentEquivOfEq N u h).toAlgHom
+        (f (addIndex N i (negIndex N i))) = f 0 from
+    componentEquivOfEq_coordinate N u f h]
+  rw [Algebra.ofId_apply]
+
+@[simp]
 lemma evalLeftIdentity_includeLeft (N : ℕ) [NeZero N] (u : Rˣ) (j : Fin N)
     (x : Component R N (0 : Fin N).1 u) :
     evalLeftIdentity N u j
