@@ -310,6 +310,11 @@ lemma conjugationAlgEquiv_symm (t n : R) :
     (conjugationAlgEquiv R t n).symm = conjugationAlgEquiv R t n := by
   rfl
 
+@[simp]
+lemma conjugationAlgEquiv_apply_apply (t n : R) (z : Algebra R t n) :
+    conjugationAlgEquiv R t n (conjugationAlgEquiv R t n z) = z :=
+  conjugationAlgHom_involutive R t n z
+
 /-- The explicit quadratic-algebra identification intertwines its standard star operation with
 quadratic conjugation on the adjoin-root presentation. -/
 lemma conjugationAlgEquiv_quadraticAlgebraEquiv (t n : R)
@@ -443,5 +448,76 @@ lemma conjugationAlgEquiv_antiInvariantInv (t n : R)
       -antiInvariantInv R t n hdisc := by
   simp only [antiInvariantInv, map_mul, AlgEquiv.commutes,
     conjugationAlgEquiv_antiInvariant, mul_neg]
+
+/-- The invariant half of an element of the quadratic cover. -/
+noncomputable def evenPart (t n : R) (h2 : IsUnit (2 : R))
+    (z : Algebra R t n) : Algebra R t n :=
+  (↑(h2.unit⁻¹) : R) • (conjugationAlgEquiv R t n z + z)
+
+/-- The invariant coefficient of the anti-invariant half of a quadratic-cover element. -/
+noncomputable def oddPart (t n : R) (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (discriminant R t n))
+    (z : Algebra R t n) : Algebra R t n :=
+  (↑(h2.unit⁻¹) : R) •
+    (antiInvariantInv R t n hdisc * (z - conjugationAlgEquiv R t n z))
+
+lemma conjugationAlgEquiv_evenPart (t n : R) (h2 : IsUnit (2 : R))
+    (z : Algebra R t n) :
+    conjugationAlgEquiv R t n (evenPart R t n h2 z) = evenPart R t n h2 z := by
+  simp only [evenPart, map_smul, map_add, conjugationAlgEquiv_apply_apply]
+  rw [add_comm]
+
+lemma conjugationAlgEquiv_oddPart (t n : R) (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (discriminant R t n)) (z : Algebra R t n) :
+    conjugationAlgEquiv R t n (oddPart R t n h2 hdisc z) =
+      oddPart R t n h2 hdisc z := by
+  simp only [oddPart, map_smul, map_mul, map_sub,
+    conjugationAlgEquiv_antiInvariantInv, conjugationAlgEquiv_apply_apply]
+  apply congrArg ((↑(h2.unit⁻¹) : R) • ·)
+  ring
+
+/-- The invariant half is a scalar from the base ring. -/
+lemma evenPart_eq_algebraMap (t n : R) (h2 : IsUnit (2 : R))
+    (z : Algebra R t n) :
+    evenPart R t n h2 z =
+      algebraMap R (Algebra R t n) (reCoeff R t n (evenPart R t n h2 z)) :=
+  eq_algebraMap_of_conjugationAlgEquiv_eq R t n h2 _
+    (conjugationAlgEquiv_evenPart R t n h2 z)
+
+/-- The anti-invariant coefficient is a scalar from the base ring. -/
+lemma oddPart_eq_algebraMap (t n : R) (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (discriminant R t n)) (z : Algebra R t n) :
+    oddPart R t n h2 hdisc z =
+      algebraMap R (Algebra R t n) (reCoeff R t n (oddPart R t n h2 hdisc z)) :=
+  eq_algebraMap_of_conjugationAlgEquiv_eq R t n h2 _
+    (conjugationAlgEquiv_oddPart R t n h2 hdisc z)
+
+/-- Scalar and anti-invariant halves reconstruct every quadratic-cover element. -/
+lemma evenPart_add_antiInvariant_mul_oddPart (t n : R) (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (discriminant R t n)) (z : Algebra R t n) :
+    evenPart R t n h2 z +
+      antiInvariant R t n * oddPart R t n h2 hdisc z = z := by
+  have hhalf : (↑(h2.unit⁻¹) : R) * 2 = 1 := by
+    calc
+      (↑(h2.unit⁻¹) : R) * 2 =
+          (↑(h2.unit⁻¹) : R) * (h2.unit : R) :=
+        congrArg (fun x : R ↦ (↑(h2.unit⁻¹) : R) * x) h2.unit_spec.symm
+      _ = 1 := h2.unit.inv_mul
+  rw [evenPart, oddPart, mul_smul_comm, ← mul_assoc,
+    antiInvariant_mul_inv, one_mul]
+  calc
+    (↑(h2.unit⁻¹) : R) • (conjugationAlgEquiv R t n z + z) +
+          (↑(h2.unit⁻¹) : R) • (z - conjugationAlgEquiv R t n z) =
+        (↑(h2.unit⁻¹) : R) •
+          ((conjugationAlgEquiv R t n z + z) +
+            (z - conjugationAlgEquiv R t n z)) :=
+      (smul_add (↑(h2.unit⁻¹) : R)
+        (conjugationAlgEquiv R t n z + z)
+        (z - conjugationAlgEquiv R t n z)).symm
+    _ = (↑(h2.unit⁻¹) : R) • ((2 : R) • z) := by
+      congr 1
+      rw [two_smul]
+      abel
+    _ = z := by rw [smul_smul, hhalf, one_smul]
 
 end QuadraticDescent
