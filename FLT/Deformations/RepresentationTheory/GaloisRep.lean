@@ -660,6 +660,8 @@ def GaloisRep.Space (ρ : GaloisRep K A M) : Type _ := M
 
 instance (ρ : GaloisRep K A M) : AddCommGroup ρ.Space := inferInstanceAs (AddCommGroup M)
 
+instance [Finite M] (ρ : GaloisRep K A M) : Finite ρ.Space := inferInstanceAs (Finite M)
+
 -- dirty hack
 set_option backward.isDefEq.respectTransparency false in
 noncomputable instance (ρ : GaloisRep K A M) : DistribMulAction (Γ K) ρ.Space where

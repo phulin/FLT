@@ -40,6 +40,64 @@ noncomputable def schoofThreeBaseToRat : SchoofThreeBase →+* ℚ :=
   Localization.awayLift (Int.castRingHom ℚ) (2 : ℤ)
     (isUnit_iff_ne_zero.mpr (by norm_num))
 
+/-- The finite etale `ℚ`-algebra attached to the underlying finite Galois set of `rho`.
+It consists of the Galois-equivariant functions from the representation space to
+`AlgebraicClosure ℚ`. -/
+abbrev GaloisRep.GenericEtaleAlgebra
+    {A W : Type} [CommRing A] [TopologicalSpace A]
+    [AddCommGroup W] [Module A W] (rho : GaloisRep ℚ A W) :=
+  rho.Space →[Γ ℚ] AlgebraicClosure ℚ
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The generic coordinate algebra of a finite discrete Galois representation is finite
+etale over `ℚ`. -/
+theorem GaloisRep.genericEtaleAlgebra_isEtale
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    Algebra.Etale ℚ (GaloisRep.GenericEtaleAlgebra rho) := by
+  infer_instance
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Evaluation identifies the representation's underlying finite Galois set with the
+geometric points of its generic coordinate algebra. -/
+noncomputable def GaloisRep.genericEtalePointsEquiv
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    rho.Space ≃
+      (GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) :=
+  Equiv.ofBijective
+    (MulActionHom.evalAlgHom (Γ ℚ) ℚ rho.Space (AlgebraicClosure ℚ))
+    (InfiniteGalois.evalAlgHom_bijective ℚ (AlgebraicClosure ℚ) rho.Space)
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+theorem GaloisRep.genericEtalePointsEquiv_apply
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) (x : rho.Space) :
+    GaloisRep.genericEtalePointsEquiv rho x =
+      MulActionHom.evalAlgHom (Γ ℚ) ℚ rho.Space (AlgebraicClosure ℚ) x :=
+  rfl
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The inverse evaluation bijection is Galois-equivariant. -/
+theorem GaloisRep.genericEtalePointsEquiv_symm_smul
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) (sigma : Γ ℚ)
+    (x : GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) :
+    (GaloisRep.genericEtalePointsEquiv rho).symm (sigma • x) =
+      sigma • (GaloisRep.genericEtalePointsEquiv rho).symm x := by
+  apply (GaloisRep.genericEtalePointsEquiv rho).injective
+  rw [Equiv.apply_symm_apply, GaloisRep.genericEtalePointsEquiv_apply,
+    MulActionHom.map_smul]
+  change sigma • x =
+    sigma • GaloisRep.genericEtalePointsEquiv rho
+      ((GaloisRep.genericEtalePointsEquiv rho).symm x)
+  rw [Equiv.apply_symm_apply]
+
 /-- The generic-fiber conditions satisfied by an object of Schoof's `(2, 3)` category.
 
 The last field states tameness in the finite Galois extension cut out by the representation:
