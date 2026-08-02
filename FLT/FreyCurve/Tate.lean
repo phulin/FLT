@@ -6,6 +6,7 @@ Authors: FLT Project
 module
 
 public import FLT.FreyCurve.Reduction
+public import FLT.DedekindDomain.AdicValuation
 public import FLT.KnownIn1980s.EllipticCurves.LocalInertia
 public import FLT.KnownIn1980s.EllipticCurves.TateCurve
 public import FLT.NumberField.Completion.ValuativeRel
@@ -101,6 +102,69 @@ theorem valued_tateParameter_at_bad_prime (P : FreyPackage) {q : ℕ}
   change (if P.freyCurve.j = 0 then 0 else (exp (padicValRat q P.freyCurve.j))⁻¹)⁻¹ =
     exp (padicValRat q P.freyCurve.j)
   rw [if_neg hj0, inv_inv]
+
+/-- At a bad odd prime where the Frey curve has split multiplicative reduction, its Tate
+parameter has a uniformizer-unit factorization whose uniformizer exponent is divisible by
+the Frey exponent.  The extra integral element `q0` records the Tate parameter inside the
+concrete completion ring of integers, avoiding any dependence on a chosen membership proof. -/
+theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasSplitMultiplicativeReduction R],
+      ∃ (q0 π : R) (m t : ℕ) (u : Rˣ),
+        q0.1 = E.q ∧
+        Valued.v π.1 = Multiplicative.ofAdd (-1 : ℤ) ∧
+        q0 = π ^ m * (u : R) ∧ m = P.p * t := by
+  let _ : Fact q.Prime := ⟨hq⟩
+  dsimp only
+  intro hsplit
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.HasSplitMultiplicativeReduction R := hsplit
+  have hj : 1 < ValuativeRel.valuation K E.j :=
+    E.one_lt_valuation_j_of_compatible
+      (Valued.v : Valuation K (WithZero (Multiplicative ℤ)))
+      (R := R) (by
+        exact Valuation.valuationSubring.integers
+          (Valued.v : Valuation K (WithZero (Multiplicative ℤ))))
+  have hqLt : Valued.v E.q < 1 := by
+    rw [show E.q = WeierstrassCurve.tateParameter E.j from rfl]
+    exact WeierstrassCurve.valuation_tateParameter_lt_one_of_compatible
+      (Valued.v : Valuation K (WithZero (Multiplicative ℤ))) hj
+  let q0 : R := ⟨E.q, hqLt.le⟩
+  have hq0 : q0 ≠ 0 := by
+    intro hzero
+    have hqzero : E.q = 0 := by
+      have := congrArg Subtype.val hzero
+      simpa [q0] using this
+    exact WeierstrassCurve.tateParameter_ne_zero hj hqzero
+  have hqval : Valued.v q0.1 = WithZero.exp (padicValRat q P.freyCurve.j) := by
+    change Valued.v E.q = WithZero.exp (padicValRat q P.freyCurve.j)
+    exact valued_tateParameter_at_bad_prime P hq hqodd hqbad
+  have hpval : (P.p : ℤ) ∣ padicValRat q P.freyCurve.j :=
+    j_valuation_of_bad_prime P hq hqbad hqodd
+  obtain ⟨π, m, t, u, hπ, hfac, hm⟩ :=
+    HeightOneSpectrum.adicCompletion.exists_eq_pow_uniformizer_mul_unit_of_valued_eq_exp_of_dvd
+      (K := ℚ) v hq0 hqval hpval
+  exact ⟨q0, π, m, t, u, rfl, hπ, hfac, hm⟩
 
 end
 

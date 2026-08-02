@@ -86,6 +86,15 @@ theorem WeierstrassCurve.valuation_tateParameter_lt_one {j : k} (hj : 1 < valuat
     valuation k (tateParameter j) < 1 := by
   simpa [valuation_tateParameter_eq hj] using inv_lt_one_of_one_lt₀ hj
 
+/-- The Tate parameter lies in the open unit disc for every valuation compatible with the
+local field's valuative relation. -/
+theorem WeierstrassCurve.valuation_tateParameter_lt_one_of_compatible
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀] (w : Valuation k Γ₀) [w.Compatible]
+    {j : k} (hj : 1 < valuation k j) :
+    w (tateParameter j) < 1 :=
+  (ValuativeRel.isEquiv w (valuation k)).lt_one_iff_lt_one.mpr
+    (valuation_tateParameter_lt_one hj)
+
 -- The next few lemmas transfer `mathlib`'s reduction-theoretic facts (stated for the adic
 -- valuation of the discrete valuation ring `𝒪[k]`) to the canonical valuation of `k`,
 -- through unit and maximal-ideal membership in `𝒪[k]`.
