@@ -139,6 +139,56 @@ lemma descentAlgEquiv_apply_apply (z : CoverCoordinateAlgebra R N u t n) :
     descentAlgEquiv R N u t n (descentAlgEquiv R N u t n z) = z :=
   descentAlgEquiv_involutive R N u t n z
 
+/-- The trace-zero quadratic generator, embedded in the cover coordinate algebra. -/
+noncomputable def coverAntiInvariant : CoverCoordinateAlgebra R N u t n :=
+  QuadraticDescent.antiInvariant R t n ⊗ₜ[R]
+    (1 : TateKummer.CoordinateAlgebra (R := R) N u)
+
+/-- Its explicit inverse, embedded in the cover coordinate algebra. -/
+noncomputable def coverAntiInvariantInv
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    CoverCoordinateAlgebra R N u t n :=
+  QuadraticDescent.antiInvariantInv R t n hdisc ⊗ₜ[R]
+    (1 : TateKummer.CoordinateAlgebra (R := R) N u)
+
+@[simp]
+lemma descentAlgEquiv_coverAntiInvariant :
+    descentAlgEquiv R N u t n (coverAntiInvariant R N u t n) =
+      -coverAntiInvariant R N u t n := by
+  rw [coverAntiInvariant, descentAlgEquiv_tmul, map_one]
+  change
+    QuadraticDescent.conjugationAlgEquiv R t n
+        (QuadraticDescent.antiInvariant R t n) ⊗ₜ[R] 1 = _
+  rw [QuadraticDescent.conjugationAlgEquiv_antiInvariant]
+  rw [TensorProduct.neg_tmul]
+
+@[simp]
+lemma descentAlgEquiv_coverAntiInvariantInv
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    descentAlgEquiv R N u t n
+        (coverAntiInvariantInv R N u t n hdisc) =
+      -coverAntiInvariantInv R N u t n hdisc := by
+  rw [coverAntiInvariantInv, descentAlgEquiv_tmul, map_one]
+  change
+    QuadraticDescent.conjugationAlgEquiv R t n
+        (QuadraticDescent.antiInvariantInv R t n hdisc) ⊗ₜ[R] 1 = _
+  rw [QuadraticDescent.conjugationAlgEquiv_antiInvariantInv]
+  rw [TensorProduct.neg_tmul]
+
+lemma coverAntiInvariantInv_mul
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    coverAntiInvariantInv R N u t n hdisc * coverAntiInvariant R N u t n = 1 := by
+  simp [coverAntiInvariantInv, coverAntiInvariant,
+    Algebra.TensorProduct.tmul_mul_tmul,
+    QuadraticDescent.antiInvariantInv_mul,
+    Algebra.TensorProduct.one_def]
+
+lemma coverAntiInvariant_mul_inv
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    coverAntiInvariant R N u t n * coverAntiInvariantInv R N u t n hdisc = 1 := by
+  rw [mul_comm]
+  exact coverAntiInvariantInv_mul R N u t n hdisc
+
 /-- The fixed algebra for the conjugation--inversion descent datum. -/
 noncomputable def fixedSubalgebra :
     Subalgebra R (CoverCoordinateAlgebra R N u t n) :=
@@ -185,6 +235,107 @@ lemma fixedProjection_of_mem (h2 : IsUnit (2 : R))
         (↑(h2.unit⁻¹) : R) • ((2 : R) • z) := by rw [two_smul]
     _ = ((↑(h2.unit⁻¹) : R) * 2) • z := by rw [smul_smul]
     _ = z := by rw [hhalf, one_smul]
+
+/-- The anti-invariant coefficient of an element on the quadratic cover. -/
+noncomputable def oddPart (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : CoverCoordinateAlgebra R N u t n) :
+    CoverCoordinateAlgebra R N u t n :=
+  (↑(h2.unit⁻¹) : R) •
+    (coverAntiInvariantInv R N u t n hdisc *
+      (z - descentAlgEquiv R N u t n z))
+
+lemma oddPart_mem_fixedSubalgebra (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : CoverCoordinateAlgebra R N u t n) :
+    oddPart R N u t n h2 hdisc z ∈ fixedSubalgebra R N u t n := by
+  rw [mem_fixedSubalgebra]
+  simp only [oddPart, map_smul, map_mul, map_sub,
+    descentAlgEquiv_coverAntiInvariantInv, descentAlgEquiv_apply_apply]
+  apply congrArg ((↑(h2.unit⁻¹) : R) • ·)
+  ring
+
+/-- The invariant half of an element, regarded as an element of the fixed algebra. -/
+noncomputable def evenPart (h2 : IsUnit (2 : R))
+    (z : CoverCoordinateAlgebra R N u t n) : fixedSubalgebra R N u t n :=
+  ⟨fixedProjection R N u t n h2 z, fixedProjection_mem R N u t n h2 z⟩
+
+/-- The anti-invariant coefficient, regarded as an element of the fixed algebra. -/
+noncomputable def oddPartFixed (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : CoverCoordinateAlgebra R N u t n) : fixedSubalgebra R N u t n :=
+  ⟨oddPart R N u t n h2 hdisc z,
+    oddPart_mem_fixedSubalgebra R N u t n h2 hdisc z⟩
+
+/-- Every cover element is its invariant half plus the trace-zero generator times an invariant
+coefficient. -/
+lemma evenPart_add_coverAntiInvariant_mul_oddPart (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : CoverCoordinateAlgebra R N u t n) :
+    (evenPart R N u t n h2 z : CoverCoordinateAlgebra R N u t n) +
+        coverAntiInvariant R N u t n *
+          (oddPartFixed R N u t n h2 hdisc z :
+            CoverCoordinateAlgebra R N u t n) = z := by
+  have hhalf : (↑(h2.unit⁻¹) : R) * 2 = 1 := by
+    calc
+      (↑(h2.unit⁻¹) : R) * 2 =
+          (↑(h2.unit⁻¹) : R) * (h2.unit : R) :=
+        congrArg (fun x : R ↦ (↑(h2.unit⁻¹) : R) * x) h2.unit_spec.symm
+      _ = 1 := h2.unit.inv_mul
+  change
+    fixedProjection R N u t n h2 z +
+        coverAntiInvariant R N u t n * oddPart R N u t n h2 hdisc z = z
+  rw [fixedProjection_apply, oddPart, mul_smul_comm,
+    ← mul_assoc, coverAntiInvariant_mul_inv, one_mul]
+  calc
+    (↑(h2.unit⁻¹) : R) • (descentAlgEquiv R N u t n z + z) +
+          (↑(h2.unit⁻¹) : R) • (z - descentAlgEquiv R N u t n z) =
+        (↑(h2.unit⁻¹) : R) •
+          ((descentAlgEquiv R N u t n z + z) +
+            (z - descentAlgEquiv R N u t n z)) :=
+      (smul_add (↑(h2.unit⁻¹) : R)
+        (descentAlgEquiv R N u t n z + z)
+        (z - descentAlgEquiv R N u t n z)).symm
+    _ = (↑(h2.unit⁻¹) : R) • ((2 : R) • z) := by
+      congr 1
+      rw [two_smul]
+      abel
+    _ = z := by rw [smul_smul, hhalf, one_smul]
+
+/-- The canonical map from the scalar extension of the fixed algebra back to the cover algebra. -/
+noncomputable def baseChangeToCover :
+    QuadraticDescent.Algebra R t n ⊗[R] fixedSubalgebra R N u t n →ₐ[
+      QuadraticDescent.Algebra R t n] CoverCoordinateAlgebra R N u t n :=
+  Algebra.TensorProduct.liftEquivRight R (QuadraticDescent.Algebra R t n)
+    (fixedSubalgebra R N u t n) (CoverCoordinateAlgebra R N u t n)
+    (Subalgebra.val (fixedSubalgebra R N u t n))
+
+@[simp]
+lemma baseChangeToCover_tmul (a : QuadraticDescent.Algebra R t n)
+    (z : fixedSubalgebra R N u t n) :
+    baseChangeToCover R N u t n (a ⊗ₜ[R] z) =
+      algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) a *
+        (z : CoverCoordinateAlgebra R N u t n) := by
+  rfl
+
+/-- The canonical base-change map is surjective: invariant and anti-invariant averaging gives an
+explicit preimage of every cover element. -/
+lemma baseChangeToCover_surjective (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    Function.Surjective (baseChangeToCover R N u t n) := by
+  intro z
+  refine ⟨
+    (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] evenPart R N u t n h2 z +
+      QuadraticDescent.antiInvariant R t n ⊗ₜ[R]
+        oddPartFixed R N u t n h2 hdisc z, ?_⟩
+  rw [map_add, baseChangeToCover_tmul, baseChangeToCover_tmul, map_one, one_mul]
+  change
+    (evenPart R N u t n h2 z : CoverCoordinateAlgebra R N u t n) +
+      coverAntiInvariant R N u t n *
+        (oddPartFixed R N u t n h2 hdisc z :
+          CoverCoordinateAlgebra R N u t n) = z
+  exact evenPart_add_coverAntiInvariant_mul_oddPart R N u t n h2 hdisc z
 
 /-- The averaging projector, with codomain restricted to the fixed algebra. -/
 noncomputable def fixedRetraction (h2 : IsUnit (2 : R)) :
