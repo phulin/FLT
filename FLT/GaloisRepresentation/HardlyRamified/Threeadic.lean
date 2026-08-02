@@ -142,6 +142,33 @@ theorem schoof_three_adic_fieldCutOut_unramified_outside_two_three
   exact τ.localInertiaGroup_le_fieldCutOutLocalAction_ker
     hp.toHeightOneSpectrumRingOfIntegersRat
 
+/-- At `2`, the one-dimensional tame quotient supplied by hard ramification factors through
+the action on the finite field cut out by the representation.  The statement also separates
+the equivariance, unramifiedness, and quadratic-character conditions that Schoof's local
+analysis uses. -/
+theorem schoof_three_adic_fieldCutOut_tame_quotient_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
+    ∃ (π : W →ₗ[A] A) (_ : Function.Surjective π) (δ : GaloisRep ℚ_[2] A A),
+      (τ.fieldCutOutAction (algebraMap ℚ ℚ_[2])).ker ≤ δ.ker ∧
+      (∀ g : Γ ℚ_[2], ∀ w : W,
+        π (τ.map (algebraMap ℚ ℚ_[2]) g w) = δ g (π w)) ∧
+      (AddSubgroup.inertia
+        ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]) ≤ δ.ker) ∧
+      (∀ g : Γ ℚ_[2], δ g * δ g = 1) := by
+  obtain ⟨π, hπ, δ, hπτ⟩ := hτ.isTameAtTwo
+  have hintertwines : ∀ g : Γ ℚ_[2], ∀ w : W,
+      π (τ.map (algebraMap ℚ ℚ_[2]) g w) = δ g (π w) :=
+    fun g w ↦ (hπτ g w).1
+  have hker : (τ.fieldCutOutAction (algebraMap ℚ ℚ_[2])).ker ≤ δ.ker := by
+    rw [τ.fieldCutOutAction_ker]
+    exact GaloisRep.ker_le_ker_of_surjective_intertwiner
+      (τ.map (algebraMap ℚ ℚ_[2])) δ π hπ hintertwines
+  exact ⟨π, hπ, δ, hker, hintertwines, (hπτ 1 0).2.1, (hπτ 1 0).2.2⟩
+
 /-- The arithmetic filtration input for a hardly ramified representation over a finite local
 `ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
 the only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing

@@ -74,6 +74,21 @@ abbrev GaloisRep.ker (ρ : GaloisRep K A M) : Subgroup (Γ K) :=
   letI := moduleTopology A (Module.End A M)
   ρ.ker
 
+/-- A surjective intertwiner of Galois representations makes the kernel of the source act
+trivially on the target. -/
+theorem GaloisRep.ker_le_ker_of_surjective_intertwiner
+    (ρ : GaloisRep K A M) (τ : GaloisRep K A N) (π : M →ₗ[A] N)
+    (hπ : Function.Surjective π)
+    (hcomm : ∀ g x, π (ρ g x) = τ g (π x)) : ρ.ker ≤ τ.ker := by
+  intro g hg
+  change τ g = 1
+  ext y
+  obtain ⟨x, rfl⟩ := hπ y
+  rw [← hcomm]
+  change ρ g = 1 at hg
+  rw [hg]
+  rfl
+
 /-- A Galois representation over a discrete coefficient ring has open kernel. Equivalently,
 it factors through a finite quotient of the absolute Galois group. -/
 theorem GaloisRep.isOpen_ker_of_discrete [DiscreteTopology A] (ρ : GaloisRep K A M) :
@@ -215,6 +230,25 @@ def GaloisRep.map (ρ : GaloisRep K A M) (f : K →+* L) : GaloisRep L A M :=
 @[simp]
 lemma GaloisRep.ker_map (ρ : GaloisRep K A M) (f : K →+* L) :
     (ρ.map f).ker = ρ.ker.comap (Field.absoluteGaloisGroup.map f).toMonoidHom := rfl
+
+/-- The action on the field cut out by a representation, pulled back along an arbitrary field
+extension. -/
+noncomputable def GaloisRep.fieldCutOutAction (ρ : GaloisRep K A M) (f : K →+* L) :
+    Γ L →* (ρ.fieldCutOut ≃ₐ[K] ρ.fieldCutOut) :=
+  (AlgEquiv.restrictNormalHom ρ.fieldCutOut).comp
+    (Field.absoluteGaloisGroup.map f).toMonoidHom
+
+/-- Pullback along a field extension preserves the equality between the kernel of a discrete
+representation and the fixing subgroup of its cutout field. -/
+@[simp]
+theorem GaloisRep.fieldCutOutAction_ker [PerfectField K] [DiscreteTopology A]
+    (ρ : GaloisRep K A M) (f : K →+* L) :
+    (ρ.fieldCutOutAction f).ker = (ρ.map f).ker := by
+  ext σ
+  change Field.absoluteGaloisGroup.map f σ ∈
+      (AlgEquiv.restrictNormalHom ρ.fieldCutOut).ker ↔
+    Field.absoluteGaloisGroup.map f σ ∈ ρ.ker
+  rw [IntermediateField.restrictNormalHom_ker, ρ.fieldCutOut_fixingSubgroup]
 
 variable (K A n) in
 /-- A framed galois rep is a galois rep with a distinguished basis.
@@ -560,8 +594,7 @@ representation.  It is obtained by mapping the local Galois group into the globa
 then restricting global automorphisms to the fixed field of the representation's kernel. -/
 noncomputable def GaloisRep.fieldCutOutLocalAction (ρ : GaloisRep K A M) (v : Ω K) :
     Γ (v.adicCompletion K) →* (ρ.fieldCutOut ≃ₐ[K] ρ.fieldCutOut) :=
-  (AlgEquiv.restrictNormalHom ρ.fieldCutOut).comp
-    (Field.absoluteGaloisGroup.map (algebraMap K (v.adicCompletion K))).toMonoidHom
+  ρ.fieldCutOutAction (algebraMap K (v.adicCompletion K))
 
 /-- If a discrete representation is unramified at `v`, local inertia acts trivially on the
 finite extension cut out by the representation. -/
@@ -575,6 +608,14 @@ theorem GaloisRep.localInertiaGroup_le_fieldCutOutLocalAction_ker
   change Field.absoluteGaloisGroup.map (algebraMap K (v.adicCompletion K)) σ ∈
     (AlgEquiv.restrictNormalHom ρ.fieldCutOut).ker
   rwa [IntermediateField.restrictNormalHom_ker, ρ.fieldCutOut_fixingSubgroup]
+
+/-- The local action on the field cut out by a discrete representation has exactly the same
+kernel as the localized representation. -/
+@[simp]
+theorem GaloisRep.fieldCutOutLocalAction_ker
+    [PerfectField K] [DiscreteTopology A] (ρ : GaloisRep K A M) (v : Ω K) :
+    (ρ.fieldCutOutLocalAction v).ker = (ρ.toLocal v).ker :=
+  ρ.fieldCutOutAction_ker (algebraMap K (v.adicCompletion K))
 
 instance (ρ : GaloisRep K A M) (v : Ω K) [ρ.IsUnramifiedAt v] (e : M ≃ₗ[A] N) :
     (ρ.conj e).IsUnramifiedAt v where
