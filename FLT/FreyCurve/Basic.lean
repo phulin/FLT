@@ -138,6 +138,69 @@ lemma c₄' (P : FreyPackage) :
   rw_mod_cast [pow_mul', ← hFLT]
   ring
 
+/-- At a prime dividing `abc`, exactly one of `ab` and `c` is divisible by that prime. -/
+lemma bad_prime_dvd_ab_xor_dvd_c (P : FreyPackage) {q : ℕ}
+    (hqPrime : q.Prime) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    Xor ((q : ℤ) ∣ P.a * P.b) ((q : ℤ) ∣ P.c) := by
+  have hqPrime' := Nat.prime_iff_prime_int.mp hqPrime
+  rw [xor_iff_not_iff, iff_iff_and_or_not_and_not]
+  rintro (⟨hab, hc⟩ | ⟨hab, hc⟩)
+  · rw [hqPrime'.dvd_mul] at hab
+    apply hqPrime'.not_dvd_one
+    cases hab with
+    | inl ha => rw [← P.hgcdac]; exact dvd_gcd ha hc
+    | inr hb => rw [← P.hgcdbc]; exact dvd_gcd hb hc
+  · rw [hqPrime'.dvd_mul] at hqbad
+    exact hqbad.rec hab hc
+
+/-- The integral expression for `c₄` of the Frey curve is a unit at every prime dividing
+`abc`. -/
+lemma bad_prime_not_dvd_c₄ (P : FreyPackage) {q : ℕ}
+    (hqPrime : q.Prime) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    ¬ (q : ℤ) ∣ P.c ^ (2 * P.p) - (P.a * P.b) ^ P.p := by
+  have hqPrime' := Nat.prime_iff_prime_int.mp hqPrime
+  have h2p0 : 2 * P.p ≠ 0 := mul_ne_zero two_ne_zero P.hp0
+  rcases bad_prime_dvd_ab_xor_dvd_c P hqPrime hqbad with h | h
+  · rw [dvd_sub_left (dvd_pow h.1 P.hp0), hqPrime'.dvd_pow_iff_dvd h2p0]
+    exact h.2
+  · rw [dvd_sub_right (dvd_pow h.1 h2p0), hqPrime'.dvd_pow_iff_dvd P.hp0]
+    exact h.2
+
+/-- The `q`-adic valuation of `c₄` of the Frey curve vanishes at every prime dividing
+`abc`. -/
+lemma padicValRat_c₄_eq_zero_of_bad_prime (P : FreyPackage) {q : ℕ}
+    (hqPrime : q.Prime) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    padicValRat q P.freyCurve.c₄ = 0 := by
+  rw [FreyCurve.c₄']
+  norm_cast
+  rw [padicValRat.of_int]
+  norm_cast
+  exact padicValInt.eq_zero_of_not_dvd (bad_prime_not_dvd_c₄ P hqPrime hqbad)
+
+/-- Away from `2`, the valuation of the discriminant of the Frey curve is `2p` times the
+valuation of `abc`. -/
+lemma padicValRat_Δ (P : FreyPackage) {q : ℕ} (hqPrime : q.Prime) (hqodd : 2 < q) :
+    padicValRat q P.freyCurve.Δ =
+      (2 * P.p : ℤ) * (padicValInt q (P.a * P.b * P.c) : ℤ) := by
+  let _ : Fact q.Prime := ⟨hqPrime⟩
+  rw [FreyCurve.Δ]
+  rw [padicValRat.div
+    (pow_ne_zero _ (by norm_cast; exact mul_ne_zero (mul_ne_zero P.ha0 P.hb0) P.hc0))
+    (pow_ne_zero _ (by norm_num : (2 : ℚ) ≠ 0))]
+  rw [padicValRat.pow, padicValRat.pow]
+  have habcCast : (P.a * P.b * P.c : ℚ) = ((P.a * P.b * P.c : ℤ) : ℚ) := by
+    norm_num
+  rw [habcCast, padicValRat.of_int]
+  have hval2 : padicValRat q (2 : ℚ) = 0 := by
+    rw [show (2 : ℚ) = ((2 : ℤ) : ℚ) by norm_num, padicValRat.of_int]
+    norm_cast
+    apply padicValInt.eq_zero_of_not_dvd
+    intro hd
+    have hqdvd : q ∣ 2 := by exact_mod_cast hd
+    exact (Nat.not_lt_of_ge (Nat.le_of_dvd (by decide) hqdvd)) hqodd
+  rw [hval2]
+  norm_num
+
 lemma Δ'inv (P : FreyPackage) :
     (↑(P.freyCurve.Δ'⁻¹) : ℚ) = 2 ^ 8 / (P.a*P.b*P.c)^(2*P.p) := by
   simp [Δ]
@@ -168,24 +231,7 @@ lemma j_valuation_of_bad_prime (P : FreyPackage) {q : ℕ} (hqPrime : q.Prime)
     ← padicValRat_of_nat, padicValNat_primes hqodd.ne', Nat.cast_zero, mul_zero, zero_add]
   have : ¬ (q : ℤ) ∣ (P.c^(2*P.p)-(P.a*P.b)^P.p) ^ 3 := by
     rw [hqPrime'.dvd_pow_iff_dvd three_ne_zero]
-    have hq' : Xor ((q : ℤ) ∣ P.a * P.b) ((q : ℤ) ∣ P.c) := by
-      rw [xor_iff_not_iff, iff_iff_and_or_not_and_not]
-      rintro (⟨hab, hc⟩ | ⟨hab, hc⟩)
-      · rw [hqPrime'.dvd_mul] at hab
-        apply hqPrime'.not_dvd_one
-        cases hab with
-        | inl ha => rw [← P.hgcdac]; exact dvd_gcd ha hc
-        | inr hb => rw [← P.hgcdbc]; exact dvd_gcd hb hc
-      · rw [hqPrime'.dvd_mul] at hqbad
-        exact hqbad.rec hab hc
-    have h2p0 := mul_ne_zero two_ne_zero P.hp0
-    cases hq' with
-    | inl h =>
-      rw [dvd_sub_left (dvd_pow h.1 P.hp0), hqPrime'.dvd_pow_iff_dvd h2p0]
-      exact h.2
-    | inr h =>
-      rw [dvd_sub_right (dvd_pow h.1 h2p0), hqPrime'.dvd_pow_iff_dvd P.hp0]
-      exact h.2
+    exact bad_prime_not_dvd_c₄ P hqPrime hqbad
   norm_cast
   rw [padicValRat.of_int, padicValInt.eq_zero_of_not_dvd this, Nat.cast_zero, zero_sub,
     Int.cast_pow, padicValRat.pow, dvd_neg, Nat.cast_mul]
