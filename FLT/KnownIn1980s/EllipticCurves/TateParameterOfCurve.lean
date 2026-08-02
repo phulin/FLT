@@ -61,6 +61,20 @@ theorem WeierstrassCurve.valuation_tateParameter_eq {j : k} (hj : 1 < valuation 
     TateCurve.coeff_one_jInvReverse
   rw [WeierstrassCurve.tateParameter_eq, h, map_inv₀]
 
+/-- The leading-term valuation formula for any valuation compatible with the local field's
+valuative relation.  This lets downstream code use a concrete value group (for example `ℤᵐ⁰`
+on an adic completion) while the Tate-curve API itself remains phrased using the canonical
+value group. -/
+theorem WeierstrassCurve.valuation_tateParameter_eq_of_compatible
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀] (w : Valuation k Γ₀) [w.Compatible]
+    {j : k} (hj : 1 < valuation k j) :
+    w (tateParameter j) = (w j)⁻¹ := by
+  have hcanonical : valuation k (tateParameter j) = valuation k j⁻¹ := by
+    rw [valuation_tateParameter_eq hj, map_inv₀]
+  have hw : w (tateParameter j) = w j⁻¹ :=
+    (ValuativeRel.isEquiv w (valuation k)).eq_iff.mpr hcanonical
+  simpa only [map_inv₀] using hw
+
 theorem WeierstrassCurve.tateParameter_ne_zero {j : k} (hj : 1 < valuation k j) :
     tateParameter j ≠ 0 := by
   intro h

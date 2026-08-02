@@ -69,4 +69,15 @@ instance instIsNonarchimedeanLocalField :
     toLocallyCompactSpace := inferInstance
     toIsNontrivial := inferInstance }
 
+/-- The integer subring defined through `ValuativeRel` is the original valuation subring of the
+adic completion. -/
+theorem integer_eq_adicCompletionIntegers :
+    (ValuativeRel.valuation (v.adicCompletion K)).integer =
+      (v.adicCompletionIntegers K).toSubring := by
+  ext x
+  rw [Valuation.mem_integer_iff]
+  change ValuativeRel.valuation (v.adicCompletion K) x ≤ 1 ↔ Valued.v x ≤ 1
+  exact (ValuativeRel.isEquiv (ValuativeRel.valuation (v.adicCompletion K))
+    (Valued.v : Valuation (v.adicCompletion K) (WithZero (Multiplicative ℤ)))).le_one_iff_le_one
+
 end IsDedekindDomain.HeightOneSpectrum.adicCompletion
