@@ -5,6 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import Mathlib.AlgebraicGeometry.EllipticCurve.DivisionPolynomial.Degree
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Reduction
 public import Mathlib.RingTheory.Bialgebra.Convolution
@@ -160,7 +161,7 @@ theorem WeierstrassCurve.torsion_flat_of_good_reduction :
       ∀ (σ : Ksep ≃ₐ[K] Ksep) (φ : K ⊗[R] H →ₐ[K] Ksep),
         (f (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) : (E⁄Ksep).Point) =
           Affine.Point.map σ.toAlgHom (f (Additive.ofMul (WithConv.toConv φ))) :=
-  sorry
+  knownin1980s
 
 /-- Any Galois-equivariant finite-flat model for the torsion of the completed curve
 gives a flat prolongation of the global torsion representation.  This is the common
@@ -425,7 +426,7 @@ theorem WeierstrassCurve.resultant_Φ_ΨSq {R₀ : Type*} [CommRing R₀] (W : W
         W.Δ ^ ((n.natAbs ^ 4 - n.natAbs ^ 2) / 6) ∨
       (W.Φ n).resultant (W.ΨSq n) (n.natAbs ^ 2) (n.natAbs ^ 2 - 1) =
         -W.Δ ^ ((n.natAbs ^ 4 - n.natAbs ^ 2) / 6) :=
-  sorry
+  knownin1980s
 
 /-- If the discriminant of a Weierstrass curve over a commutative ring is a unit then the
 division polynomials `Φ n` and `ΨSq n` are coprime, i.e. there is a Bézout identity

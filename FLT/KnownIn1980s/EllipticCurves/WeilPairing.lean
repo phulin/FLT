@@ -5,6 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import FLT.EllipticCurve.Torsion
 public import FLT.GaloisRepresentation.Cyclotomic
 public import Mathlib.FieldTheory.IsSepClosed
@@ -134,7 +135,7 @@ noncomputable def WeierstrassCurve.weilPairingData
     (E : WeierstrassCurve K) [E.IsElliptic]
     [IsSepClosed L] [DecidableEq K] [DecidableEq L]
     (n : ℕ) [NeZero (n : L)] : WeierstrassCurve.WeilPairingData (L := L) E n :=
-  sorry
+  Classical.choice knownin1980s
 
 /-- The Weil pairing on the `n`-torsion of `E` over a separably closed extension `L`. -/
 noncomputable def WeierstrassCurve.weilPairing

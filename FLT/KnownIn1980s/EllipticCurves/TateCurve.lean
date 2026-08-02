@@ -5,6 +5,7 @@ Authors: Kevin Buzzard, William Coram, Samuel Yin
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Reduction
 public import Mathlib.NumberTheory.LocalField.Basic
 public import FLT.KnownIn1980s.EllipticCurves.WeilPairing
@@ -694,7 +695,7 @@ theorem WeierstrassCurve.exists_tateEquivSepClosure :
       (∀ (σ : Ω ≃ₐ[k] Ω) (u : Ωˣ),
         Affine.Point.map (W' := E) σ.toAlgHom (f (Additive.ofMul ↑u)) =
           f (Additive.ofMul ↑(Units.map σ.toAlgHom.toRingHom.toMonoidHom u))) := by
-  sorry
+  knownin1980s
 
 /-- Tate's uniformisation over a separable closure `Ω` of `k`: the union of the
 uniformisations of the `E(l)` over the finite subextensions `l/k` of `Ω`. Its sign is
@@ -760,4 +761,4 @@ theorem WeierstrassCurve.weilPairing_tatePoint (N : ℕ) [NeZero (N : Ω)] {ζ r
       ⟨E.tatePoint Ω ζ, E.tatePoint_mem_torsionBy_of_mem_rootsOfUnity Ω hζ⟩
       ⟨E.tatePoint Ω r, E.tatePoint_mem_torsionBy_of_pow_eq Ω hr⟩ =
     Additive.ofMul (⟨ζ, hζ⟩ : rootsOfUnity N Ω) :=
-  sorry
+  knownin1980s
