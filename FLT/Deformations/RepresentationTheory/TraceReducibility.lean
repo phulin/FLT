@@ -157,6 +157,31 @@ theorem sub_id_comp_self_eq_zero_of_surjective_invariant_quotient_det_eq_one
   simpa [LinearMap.comp_apply, sub_eq_add_neg, add_assoc, add_comm, add_left_comm,
     map_add, map_neg] using hx
 
+/-- A square-zero unipotent endomorphism is killed by any positive characteristic exponent.
+More precisely, `(1 + N)^n = 1 + nN` when `N² = 0`. -/
+theorem pow_eq_id_of_sub_id_comp_self_eq_zero_of_natCast_eq_zero
+    {k : Type u} {V : Type v} [CommRing k] [AddCommGroup V] [Module k V]
+    (f : V →ₗ[k] V) (n : ℕ)
+    (hsq : (f - LinearMap.id).comp (f - LinearMap.id) = 0)
+    (hn : (n : k) = 0) : f ^ n = LinearMap.id := by
+  let N : Module.End k V := f - LinearMap.id
+  have hN : N * N = 0 := by
+    simpa only [N, Module.End.mul_eq_comp] using hsq
+  have hf : f = 1 + N := by
+    ext x
+    simp [N]
+  have hpow : ∀ m : ℕ, f ^ m = 1 + (m : k) • N := by
+    intro m
+    induction m with
+    | zero => simp
+    | succ m hm =>
+        rw [pow_succ, hm, hf]
+        simp only [add_mul, mul_add, one_mul, mul_one, hN, add_zero,
+          Nat.cast_succ, add_smul, one_smul, smul_mul_assoc, smul_zero]
+        abel
+  rw [hpow n, hn, zero_smul, add_zero]
+  rfl
+
 end LinearMap
 
 namespace GaloisRep

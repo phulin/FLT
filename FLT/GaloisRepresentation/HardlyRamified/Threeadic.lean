@@ -12,6 +12,8 @@ import FLT.Deformations.CharacteristicZeroPoint
 import FLT.Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
 import FLT.Mathlib.RingTheory.Valuation.ValuationSubring
 import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
+import Mathlib.Algebra.CharP.CharAndCard
+import Mathlib.Data.Nat.Factors
 import Mathlib.NumberTheory.Padics.ProperSpace
 import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 import Mathlib.Topology.Algebra.Module.Compact
@@ -135,6 +137,28 @@ private theorem cyclotomicCharacter_three_eq_one_on_inertia_at_two
       rw [ZMod.val_one'', pow_one]
       · exact hfix (n + 1) t ht
       · exact (one_lt_pow₀ (by norm_num : 1 < 3) (by omega : n + 1 ≠ 0)).ne'
+
+/-- The characteristic of a finite local algebra over `ℤ_[3]` is a power of `3`.  Any
+other prime is a unit in `ℤ_[3]`, hence remains a unit in the algebra and cannot divide its
+characteristic. -/
+theorem finite_local_padic_three_ringChar_eq_pow
+    (A : Type*) [Finite A] [CommRing A] [IsLocalRing A] [Algebra ℤ_[3] A] :
+    ∃ n : ℕ, ringChar A = 3 ^ n := by
+  have hchar : ringChar A ≠ 0 := CharP.ringChar_ne_zero_of_finite A
+  refine ⟨(ringChar A).primeFactorsList.length,
+    Nat.eq_prime_pow_of_unique_prime_dvd hchar ?_⟩
+  intro q hq hqdiv
+  by_contra hq3
+  letI : Fact q.Prime := ⟨hq⟩
+  have hcop : (3 : ℕ).Coprime q :=
+    (Nat.coprime_primes (show Nat.Prime 3 by decide) hq).mpr (fun h ↦ hq3 h.symm)
+  have hunitZ : IsUnit (q : ℤ_[3]) := IsLocalRing.notMem_maximalIdeal.mp (by
+    rw [PadicInt.maximalIdeal_eq_span_p, Ideal.mem_span_singleton,
+      ← PadicInt.norm_lt_one_iff_dvd, PadicInt.norm_natCast_eq_one_iff.mpr hcop]
+    simp)
+  have hunitA : IsUnit (q : A) := by
+    simpa only [map_natCast] using hunitZ.map (algebraMap ℤ_[3] A)
+  exact ((isUnit_iff_not_dvd_char A q).mp hunitA) hqdiv
 
 /-- The mod-maximal-ideal base case of the 3-adic character congruence.  Reduce the
 representation to the finite residue field, apply `mod_three_trace_eq_one_add_det`, and pull
@@ -355,6 +379,26 @@ theorem schoof_three_adic_inertia_unipotent_at_two
   have hdet := schoof_three_adic_inertia_det_eq_one_at_two W hW htau g hg
   exact LinearMap.sub_id_comp_self_eq_zero_of_surjective_invariant_quotient_det_eq_one
     hW (tau.map (algebraMap ℚ ℚ_[2]) g) pi hpi hpitriv hdet
+
+/-- Every inertia element at `2` has `3`-power order in the finite linear image.  This is the
+group-theoretic half of the wild-inertia argument: a wild inertia element also has `2`-power
+order in every finite quotient, so its image must be trivial. -/
+theorem schoof_three_adic_inertia_action_pow_three_eq_one_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau)
+    (g : Γ ℚ_[2])
+    (hg : g ∈ AddSubgroup.inertia
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])) :
+    ∃ n : ℕ, (tau.map (algebraMap ℚ ℚ_[2]) g) ^ (3 ^ n) = LinearMap.id := by
+  obtain ⟨n, hchar⟩ := finite_local_padic_three_ringChar_eq_pow A
+  refine ⟨n, LinearMap.pow_eq_id_of_sub_id_comp_self_eq_zero_of_natCast_eq_zero
+    (tau.map (algebraMap ℚ ℚ_[2]) g) (3 ^ n)
+      (schoof_three_adic_inertia_unipotent_at_two W hW htau g hg) ?_⟩
+  rw [← hchar]
+  exact CharP.cast_eq_zero A (ringChar A)
 
 /-- The arithmetic filtration input for a hardly ramified representation over a finite local
 `ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
