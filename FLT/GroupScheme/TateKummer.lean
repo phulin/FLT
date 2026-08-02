@@ -108,6 +108,51 @@ lemma addIndex_val_add_mul_addCarry (N : ℕ) [NeZero N] (i j : Fin N) :
     (addIndex N i j).1 + N * addCarry N i j = i.1 + j.1 :=
   Nat.mod_add_div _ _
 
+/-- Addition of component indices is associative. -/
+lemma addIndex_assoc (N : ℕ) [NeZero N] (i j k : Fin N) :
+    addIndex N (addIndex N i j) k = addIndex N i (addIndex N j k) := by
+  apply Fin.ext
+  change (((i.1 + j.1) % N + k.1) % N) =
+    ((i.1 + (j.1 + k.1) % N) % N)
+  calc
+    ((i.1 + j.1) % N + k.1) % N =
+        (i.1 + j.1 + k.1) % N := by
+      simpa [Nat.mod_eq_of_lt k.isLt] using
+        (Nat.add_mod (i.1 + j.1) k.1 N).symm
+    _ = (i.1 + (j.1 + k.1)) % N := by rw [add_assoc]
+    _ = (i.1 + (j.1 + k.1) % N) % N := by
+      simpa [Nat.mod_eq_of_lt i.isLt] using Nat.add_mod i.1 (j.1 + k.1) N
+
+/-- The carry is a normalized additive two-cocycle. -/
+lemma addCarry_cocycle (N : ℕ) [NeZero N] (i j k : Fin N) :
+    addCarry N i j + addCarry N (addIndex N i j) k =
+      addCarry N j k + addCarry N i (addIndex N j k) := by
+  have hN : 0 < N := Nat.pos_of_ne_zero (NeZero.ne N)
+  have hij := addIndex_val_add_mul_addCarry N i j
+  have hijk := addIndex_val_add_mul_addCarry N (addIndex N i j) k
+  have hjk := addIndex_val_add_mul_addCarry N j k
+  have hijk' := addIndex_val_add_mul_addCarry N i (addIndex N j k)
+  have hassoc := congrArg Fin.val (addIndex_assoc N i j k)
+  have hleft :
+      (addIndex N (addIndex N i j) k).1 +
+          N * addCarry N (addIndex N i j) k +
+          N * addCarry N i j = i.1 + j.1 + k.1 := by
+    omega
+  have hright :
+      (addIndex N i (addIndex N j k)).1 +
+          N * addCarry N i (addIndex N j k) +
+          N * addCarry N j k = i.1 + j.1 + k.1 := by
+    omega
+  have hterms :
+      N * addCarry N i j + N * addCarry N (addIndex N i j) k =
+        N * addCarry N j k + N * addCarry N i (addIndex N j k) := by
+    omega
+  have hmul :
+      N * (addCarry N i j + addCarry N (addIndex N i j) k) =
+        N * (addCarry N j k + addCarry N i (addIndex N j k)) := by
+    simpa only [Nat.mul_add] using hterms
+  exact (mul_left_cancel_iff_of_pos hN).mp hmul
+
 /-- The unit identity behind multiplication in the Tate--Kummer model. The compensating
 inverse power removes the carried copy of `N`. -/
 lemma unit_mul_unit_mul_invCarry_pow (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
