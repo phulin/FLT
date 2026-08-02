@@ -449,6 +449,72 @@ lemma valuation_a₁_eq_one_of_hasMultiplicativeReduction_of_two_residue_eq_zero
   exact hv
 
 open IsLocalRing in
+/-- If a quadratic twist of a multiplicative curve again has multiplicative reduction in residue
+characteristic `2`, then the quadratic extension has a generator with unit trace.  Starting from
+any generator `θ₀`, scale it by the `u`-coordinate of the given curve isomorphism and translate it
+so that the composite change of Weierstrass variables has `u = 1` and `s = 0`.  Its `a₁` equation
+then reads `a₁(W') = tr(θ) a₁(W)`, and both outer coefficients are units. -/
+theorem exists_generator_unit_trace_of_quadraticTwist_hasMultiplicativeReduction
+    (W : WeierstrassCurve k) [W.IsElliptic] [W.HasMultiplicativeReduction 𝒪[k]]
+    (L : Type u) [Field L] [Algebra k L] [Algebra.IsQuadraticExtension k L]
+    [Algebra.IsSeparable k L] (W' : WeierstrassCurve k) [W'.IsElliptic]
+    [W'.HasMultiplicativeReduction 𝒪[k]] (C : VariableChange k)
+    (hC : C • W' = W.quadraticTwist L) (h2 : (2 : ResidueField 𝒪[k]) = 0) :
+    ∃ θ : L, θ ∉ Set.range (algebraMap k L) ∧
+      valuation k (Algebra.trace k L θ) = 1 := by
+  let θ₀ : L := (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose
+  have hθ₀ : θ₀ ∉ Set.range (algebraMap k L) :=
+    (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose_spec
+  let t : k := Algebra.trace k L θ₀
+  let n : k := Algebra.norm k θ₀
+  change C • W' = W.quadraticTwistOf t n at hC
+  let a : k := C.u
+  have ha : a ≠ 0 := C.u.ne_zero
+  have hWa₁val : valuation k W.a₁ = 1 :=
+    valuation_a₁_eq_one_of_hasMultiplicativeReduction_of_two_residue_eq_zero W h2
+  have hW'a₁val : valuation k W'.a₁ = 1 :=
+    valuation_a₁_eq_one_of_hasMultiplicativeReduction_of_two_residue_eq_zero W' h2
+  have hWa₁ : W.a₁ ≠ 0 := by
+    intro h
+    rw [h, map_zero] at hWa₁val
+    exact zero_ne_one hWa₁val
+  let b : k := -C.s / W.a₁
+  let θ : L := algebraMap k L b + algebraMap k L a * θ₀
+  have hθ : θ ∉ Set.range (algebraMap k L) := by
+    rintro ⟨x, hx⟩
+    apply hθ₀
+    refine ⟨(x - b) / a, ?_⟩
+    have haL : algebraMap k L a ≠ 0 := (map_ne_zero (algebraMap k L)).mpr ha
+    rw [map_div₀, map_sub, hx]
+    dsimp only [θ]
+    field_simp
+    ring
+  let C₁ : VariableChange k := W.quadraticTwistOfGeneratorChange t n b ha
+  have hchange : (C₁ * C) • W' =
+      W.quadraticTwistOf (a * t + 2 * b) (b ^ 2 + a * b * t + a ^ 2 * n) := by
+    rw [mul_smul, hC]
+    exact W.quadraticTwistOfGeneratorChange_smul t n b ha
+  have hu : (C₁ * C).u = 1 := by
+    apply Units.ext
+    change a⁻¹ * (C.u : k) = 1
+    rw [show (C.u : k) = a from rfl, inv_mul_cancel₀ ha]
+  have hs : (C₁ * C).s = 0 := by
+    change (C.u : k) * (a⁻¹ * b * W.a₁) + C.s = 0
+    dsimp only [a, b]
+    field_simp
+    ring
+  have ha₁eq := congrArg WeierstrassCurve.a₁ hchange
+  simp only [variableChange_a₁, hu, inv_one, Units.val_one, one_mul, hs, mul_zero, add_zero,
+    quadraticTwistOf] at ha₁eq
+  have ht : a * t + 2 * b = W'.a₁ / W.a₁ := by
+    apply (eq_div_iff hWa₁).mpr
+    exact ha₁eq.symm
+  refine ⟨θ, hθ, ?_⟩
+  rw [Algebra.IsQuadraticExtension.trace_algebraMap_add_algebraMap_mul k L a b θ₀]
+  change valuation k (a * t + 2 * b) = 1
+  rw [ht, map_div₀, hW'a₁val, hWa₁val, one_div, inv_one]
+
+open IsLocalRing in
 /-- **Wild ramification core.** If a quadratic twist still has multiplicative reduction in
 residue characteristic `2`, the quadratic extension admits an integral generator with unit
 trace. This is the reduction-theoretic form of the assertion that ramified quadratic twists are
