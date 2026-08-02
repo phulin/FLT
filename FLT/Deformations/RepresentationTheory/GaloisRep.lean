@@ -669,6 +669,20 @@ noncomputable instance (ρ : GaloisRep K A M) : DistribMulAction (Γ K) ρ.Space
   smul_zero := by unfold HSMul.hSMul; simp [instHSMul]
   smul_add := by unfold HSMul.hSMul; simp [instHSMul]
 
+/-- A Galois representation over a discrete coefficient ring acts continuously on its
+underlying space when that space is regarded as a discrete Galois set.  Indeed, the open
+kernel of the representation is contained in the stabilizer of every vector. -/
+instance [DiscreteTopology A] (ρ : GaloisRep K A M) :
+    ContinuousSMulDiscrete (Γ K) ρ.Space := by
+  rw [continuousSMulDiscrete_iff_isOpen_stabilizer]
+  intro x
+  apply Subgroup.isOpen_mono _ ρ.isOpen_ker_of_discrete
+  intro σ hσ
+  change ρ σ x = x
+  change ρ σ = 1 at hσ
+  rw [hσ]
+  rfl
+
 open TensorProduct in
 /-- A galois rep `ρ : Γ K → Aut_A(M)` has a flat prolongation at `v` if `M` (when viewed as a
 `Γ Kᵥ`) module is isomorphic to the geometric points of a finite etale hopf algebra over `Kᵥ`, and
