@@ -15,6 +15,7 @@ import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 import Mathlib.Algebra.CharP.CharAndCard
 import Mathlib.Data.Nat.Factors
 import Mathlib.GroupTheory.OrderOfElement
+import Mathlib.GroupTheory.PGroup
 import Mathlib.NumberTheory.Padics.ProperSpace
 import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 import Mathlib.Topology.Algebra.Module.Compact
@@ -400,6 +401,137 @@ theorem schoof_three_adic_inertia_action_pow_three_eq_one_at_two
       (schoof_three_adic_inertia_unipotent_at_two W hW htau g hg) ?_⟩
   rw [← hchar]
   exact CharP.cast_eq_zero A (ringChar A)
+
+/-- The equivalent group-valued statement for the linear automorphism attached to an
+inertia element. -/
+theorem schoof_three_adic_inertia_linearEquiv_pow_three_eq_one_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau)
+    (g : Γ ℚ_[2])
+    (hg : g ∈ AddSubgroup.inertia
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])) :
+    ∃ n : ℕ,
+      (tau.map (algebraMap ℚ ℚ_[2])).linearEquiv g ^ (3 ^ n) = 1 := by
+  obtain ⟨n, hn⟩ :=
+    schoof_three_adic_inertia_action_pow_three_eq_one_at_two W hW htau g hg
+  refine ⟨n, ?_⟩
+  apply LinearEquiv.toLinearMap_injective
+  rw [show
+      (((tau.map (algebraMap ℚ ℚ_[2])).linearEquiv g) ^ (3 ^ n)).toLinearMap =
+        ((tau.map (algebraMap ℚ ℚ_[2])).linearEquiv g).toLinearMap ^ (3 ^ n) from
+    (LinearEquiv.automorphismGroup.toLinearMapMonoidHom (R := A) (M := W)).map_pow _ _]
+  change (tau.map (algebraMap ℚ ℚ_[2]) g) ^ (3 ^ n) = LinearMap.id
+  exact hn
+
+/-- The image of inertia at `2` in the finite linear automorphism group is a `3`-group.
+This is the group-valued form of
+`schoof_three_adic_inertia_action_pow_three_eq_one_at_two`. -/
+theorem schoof_three_adic_inertia_image_isPGroup_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau) :
+    IsPGroup 3
+      ((AddSubgroup.inertia
+        ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])).map
+          (tau.map (algebraMap ℚ ℚ_[2])).toLinearEquivMonoidHom) := by
+  rw [isPGroup_iff_pow_pow_eq_one]
+  rintro ⟨f, g, hg, rfl⟩
+  obtain ⟨n, hn⟩ :=
+    schoof_three_adic_inertia_linearEquiv_pow_three_eq_one_at_two W hW htau g hg
+  exact ⟨n, Subtype.ext hn⟩
+
+/-- The finite inertia image at `2` has cardinality a power of `3`. -/
+theorem schoof_three_adic_inertia_image_card_eq_three_pow_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau) :
+    ∃ n : ℕ,
+      Nat.card
+        ((AddSubgroup.inertia
+          ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])).map
+            (tau.map (algebraMap ℚ ℚ_[2])).toLinearEquivMonoidHom) = 3 ^ n := by
+  letI : Finite W := Module.finite_of_finite A
+  letI : Finite (W ≃ₗ[A] W) :=
+    Finite.of_injective (fun f : W ≃ₗ[A] W ↦ (f : W → W)) DFunLike.coe_injective
+  exact IsPGroup.iff_card.mp
+    (schoof_three_adic_inertia_image_isPGroup_at_two W hW htau)
+
+/-- In particular, the finite inertia image at residue characteristic `2` has odd order.
+This is the representation-theoretic tameness condition used in Schoof's category. -/
+theorem schoof_three_adic_inertia_image_card_odd_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau) :
+    Odd
+      (Nat.card
+        ((AddSubgroup.inertia
+          ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])).map
+            (tau.map (algebraMap ℚ ℚ_[2])).toLinearEquivMonoidHom)) := by
+  obtain ⟨n, hn⟩ :=
+    schoof_three_adic_inertia_image_card_eq_three_pow_at_two W hW htau
+  rw [hn]
+  exact (show Odd 3 by decide).pow
+
+/-- The inertia image in the Galois group of the finite field cut out by the representation
+is also a `3`-group.  Faithfulness of the finite quotient representation transfers the
+linear inertia calculation back to this arithmetic Galois group. -/
+theorem schoof_three_adic_fieldCutOut_inertia_image_isPGroup_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau) :
+    IsPGroup 3
+      ((AddSubgroup.inertia
+        ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])).map
+          (tau.fieldCutOutAction (algebraMap ℚ ℚ_[2]))) := by
+  rw [isPGroup_iff_pow_pow_eq_one]
+  rintro ⟨sigma, g, hg, rfl⟩
+  obtain ⟨n, hn⟩ :=
+    schoof_three_adic_inertia_linearEquiv_pow_three_eq_one_at_two W hW htau g hg
+  refine ⟨n, ?_⟩
+  apply Subtype.ext
+  simp only [Subgroup.coe_pow, Subgroup.coe_one]
+  apply tau.finiteQuotientRepresentation_injective
+  rw [map_pow, map_one]
+  change
+    (tau.finiteQuotientRepresentation
+      (AlgEquiv.restrictNormalHom tau.fieldCutOut
+        (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) g))) ^ (3 ^ n) = 1
+  rw [tau.finiteQuotientRepresentation_restrict]
+  have hlinearEquiv :
+      (tau.map (algebraMap ℚ ℚ_[2])).linearEquiv g =
+        tau.linearEquiv (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) g) := by
+    ext x
+    rfl
+  rwa [hlinearEquiv] at hn
+
+/-- Consequently the inertia subgroup of the finite cutout extension has odd order, so the
+cutout extension is tamely ramified at `2`. -/
+theorem schoof_three_adic_fieldCutOut_inertia_image_card_odd_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau) :
+    Odd
+      (Nat.card
+        ((AddSubgroup.inertia
+          ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])).map
+            (tau.fieldCutOutAction (algebraMap ℚ ℚ_[2])))) := by
+  obtain ⟨n, hn⟩ := IsPGroup.iff_card.mp
+    (schoof_three_adic_fieldCutOut_inertia_image_isPGroup_at_two W hW htau)
+  rw [hn]
+  exact (show Odd 3 by decide).pow
 
 /-- A subgroup of inertia whose finite linear image has `2`-power exponent acts trivially.
 This packages the final coprime-orders step separately from the local-field theorem that wild
