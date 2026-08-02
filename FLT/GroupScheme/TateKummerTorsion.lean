@@ -339,4 +339,106 @@ lemma kummerPointToTorsion_bijective
 
 end QuotientTorsion
 
+section GenericFiber
+
+variable (R : Type u) [CommRing R]
+variable (K : Type u) [CommRing K] [Algebra R K]
+variable (S : Type v) [Field S]
+  [Algebra R S] [Algebra K S] [IsScalarTower R K S]
+
+/-- A geometric point of the generic fiber, interpreted as quotient torsion. -/
+noncomputable def genericFiberPointToTorsion
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (φ : K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S) :
+    AddSubgroup.torsionBy (Additive (Sˣ ⧸ Subgroup.zpowers q)) (N : ℤ) :=
+  kummerPointToTorsion R S N u q a hq
+    (genericFiberAlgHomUnitEquiv R K S N u φ)
+
+/-- Convolution of generic-fiber points becomes addition of quotient-torsion classes. -/
+lemma genericFiberPointToTorsion_convMul
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (φ ψ : K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S) :
+    genericFiberPointToTorsion R K S N u q a hq
+        (WithConv.toConv φ * WithConv.toConv ψ).ofConv =
+      genericFiberPointToTorsion R K S N u q a hq φ +
+        genericFiberPointToTorsion R K S N u q a hq ψ := by
+  rw [genericFiberPointToTorsion,
+    genericFiberAlgHomUnitEquiv_convMul,
+    kummerPointToTorsion_mul]
+  rfl
+
+/-- The quotient-torsion interpretation as an additive homomorphism on convolution
+points. -/
+noncomputable def genericFiberToTorsionAddHom
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q) :
+    Additive (WithConv
+      (K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S)) →+
+        AddSubgroup.torsionBy
+          (Additive (Sˣ ⧸ Subgroup.zpowers q)) (N : ℤ) where
+  toFun φ := genericFiberPointToTorsion R K S N u q a hq φ.toMul.ofConv
+  map_zero' := by
+    let φ₁ : K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S :=
+      (1 : WithConv
+        (K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S)).ofConv
+    have h := genericFiberPointToTorsion_convMul R K S N u q a hq
+      φ₁ φ₁
+    have hmul : (WithConv.toConv φ₁ * WithConv.toConv φ₁).ofConv = φ₁ := by
+      change (1 * 1 : WithConv
+        (K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S)).ofConv =
+          (1 : WithConv
+            (K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S)).ofConv
+      exact congrArg WithConv.ofConv (one_mul (1 : WithConv
+        (K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S)))
+    rw [hmul] at h
+    change genericFiberPointToTorsion R K S N u q a hq φ₁ = 0
+    exact add_left_cancel (a :=
+      genericFiberPointToTorsion R K S N u q a hq φ₁) (by
+        calc
+          genericFiberPointToTorsion R K S N u q a hq φ₁ +
+              genericFiberPointToTorsion R K S N u q a hq φ₁ =
+            genericFiberPointToTorsion R K S N u q a hq φ₁ := h.symm
+          _ = genericFiberPointToTorsion R K S N u q a hq φ₁ + 0 :=
+            (add_zero _).symm)
+  map_add' φ ψ :=
+    genericFiberPointToTorsion_convMul R K S N u q a hq
+      φ.toMul.ofConv ψ.toMul.ofConv
+
+/-- The additive map from generic-fiber points to quotient torsion is bijective. -/
+lemma genericFiberToTorsionAddHom_bijective
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (hqinj : Function.Injective fun z : ℤ ↦ q ^ z) :
+    Function.Bijective (genericFiberToTorsionAddHom R K S N u q a hq) := by
+  let e := genericFiberAlgHomUnitEquiv R K S N u
+  have hK := kummerPointToTorsion_bijective R S N u q a hq hqinj
+  constructor
+  · intro x y hxy
+    have hpoint : e x.toMul.ofConv = e y.toMul.ofConv := hK.1 hxy
+    have halg : x.toMul.ofConv = y.toMul.ofConv := e.injective hpoint
+    simpa using congrArg Additive.ofMul (congrArg WithConv.toConv halg)
+  · intro t
+    obtain ⟨p, hp⟩ := hK.2 t
+    obtain ⟨φ, hφ⟩ := e.surjective p
+    refine ⟨Additive.ofMul (WithConv.toConv φ), ?_⟩
+    change kummerPointToTorsion R S N u q a hq (e φ) = t
+    rw [hφ, hp]
+
+/-- Geometric points of the Tate--Kummer generic fiber are additively equivalent to the
+`N`-torsion of `Sˣ/q^ℤ`. -/
+noncomputable def genericFiberTorsionAddEquiv
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (hqinj : Function.Injective fun z : ℤ ↦ q ^ z) :
+    Additive (WithConv
+      (K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S)) ≃+
+        AddSubgroup.torsionBy
+          (Additive (Sˣ ⧸ Subgroup.zpowers q)) (N : ℤ) :=
+  AddEquiv.ofBijective (genericFiberToTorsionAddHom R K S N u q a hq)
+    (genericFiberToTorsionAddHom_bijective R K S N u q a hq hqinj)
+
+end GenericFiber
+
 end TateKummer
