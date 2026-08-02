@@ -112,6 +112,24 @@ theorem torsion_hasFlatProlongationAt_of_split_multiplicative
   exact WeierstrassCurve.galoisRep_hasFlatProlongationAt_of_local_model
     v P.freyCurve P.p P.hppos hmodel
 
+/-- The split-multiplicative Tate--Kummer prolongation proves flatness at the Frey
+exponent. -/
+theorem torsion_isFlatAt_of_split_multiplicative
+    (P : FreyPackage) (hbad : (P.p : ℤ) ∣ P.a * P.b * P.c) :
+    letI : Fact P.p.Prime := ⟨P.pp⟩
+    let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasSplitMultiplicativeReduction R],
+      (P.freyCurve.galoisRep P.p P.hppos).IsFlatAt v := by
+  letI : Fact P.p.Prime := ⟨P.pp⟩
+  dsimp only
+  intro hsplit
+  let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+  have hmodel := torsion_hasFlatProlongationAt_of_split_multiplicative P hbad
+  exact hmodel.isFlatAt_of_field v _
+
 end
 
 end FreyCurve
