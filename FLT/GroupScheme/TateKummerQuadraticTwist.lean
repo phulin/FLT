@@ -141,6 +141,81 @@ lemma distribBaseChangeAlgEquiv_tmul (a : A) (b : B) (c : C) :
 
 end Algebra.TensorProduct
 
+namespace Algebra.TensorProduct
+
+section Convolution
+
+variable (R : Type u) [CommRing R]
+variable (K : Type u) [CommRing K] [Algebra R K]
+variable (H : Type u) [CommRing H] [Bialgebra R H]
+variable (S : Type v) [CommRing S]
+  [Algebra R S] [Algebra K S] [IsScalarTower R K S]
+
+/-- Restricting a point of a scalar-extended bialgebra to the original bialgebra
+preserves convolution. -/
+lemma liftEquivRight_symm_convMul
+    (φ ψ : K ⊗[R] H →ₐ[K] S) :
+    (liftEquivRight R K H S).symm
+        (WithConv.toConv φ * WithConv.toConv ψ).ofConv =
+      (WithConv.toConv ((liftEquivRight R K H S).symm φ) *
+        WithConv.toConv ((liftEquivRight R K H S).symm ψ)).ofConv := by
+  let e := liftEquivRight R K H S
+  let φR := e.symm φ
+  let ψR := e.symm ψ
+  have heval (z : H ⊗[R] H) :
+      Algebra.TensorProduct.lift φ ψ (fun _ _ ↦ Commute.all _ _)
+          (Algebra.TensorProduct.mapRingHom (algebraMap R K)
+            (RingHomClass.toRingHom
+              (Algebra.TensorProduct.includeRight : H →ₐ[R] K ⊗[R] H))
+            (RingHomClass.toRingHom
+              (Algebra.TensorProduct.includeRight : H →ₐ[R] K ⊗[R] H))
+            (by simp [← IsScalarTower.algebraMap_eq])
+            (by simp [← IsScalarTower.algebraMap_eq]) z) =
+        Algebra.TensorProduct.lift φR ψR (fun _ _ ↦ Commute.all _ _) z := by
+    induction z using TensorProduct.induction_on with
+    | zero => simp
+    | tmul a b => simp [φR, ψR, e]
+    | add a b ha hb => simp only [map_add, ha, hb]
+  apply AlgHom.ext
+  intro h
+  change (WithConv.toConv φ * WithConv.toConv ψ)
+      (Algebra.TensorProduct.includeRight h) =
+    (WithConv.toConv φR * WithConv.toConv ψR) h
+  rw [AlgHom.convMul_apply, AlgHom.convMul_apply]
+  have hcomul := DFunLike.congr_fun
+    (Bialgebra.comul_includeRight (R := R) (A := K) (B := H)) h
+  change Algebra.TensorProduct.lift φ ψ (fun _ _ ↦ Commute.all _ _)
+      (Bialgebra.comulAlgHom K (K ⊗[R] H)
+        (Algebra.TensorProduct.includeRight h)) =
+    Algebra.TensorProduct.lift φR ψR (fun _ _ ↦ Commute.all _ _)
+      (Bialgebra.comulAlgHom R H h)
+  rw [show Bialgebra.comulAlgHom K (K ⊗[R] H)
+      (Algebra.TensorProduct.includeRight h) =
+        Algebra.TensorProduct.mapRingHom (algebraMap R K)
+          (RingHomClass.toRingHom
+            (Algebra.TensorProduct.includeRight : H →ₐ[R] K ⊗[R] H))
+          (RingHomClass.toRingHom
+            (Algebra.TensorProduct.includeRight : H →ₐ[R] K ⊗[R] H))
+          (by simp [← IsScalarTower.algebraMap_eq])
+          (by simp [← IsScalarTower.algebraMap_eq])
+          (Bialgebra.comulAlgHom R H h) by
+    convert hcomul using 1 <;> rfl]
+  exact heval (Bialgebra.comulAlgHom R H h)
+
+/-- Extending a point to a scalar-extended bialgebra preserves convolution. -/
+lemma liftEquivRight_convMul (φ ψ : H →ₐ[R] S) :
+    liftEquivRight R K H S
+        (WithConv.toConv φ * WithConv.toConv ψ).ofConv =
+      (WithConv.toConv (liftEquivRight R K H S φ) *
+        WithConv.toConv (liftEquivRight R K H S ψ)).ofConv := by
+  apply (liftEquivRight R K H S).symm.injective
+  rw [liftEquivRight_symm_convMul R K H S]
+  simp
+
+end Convolution
+
+end Algebra.TensorProduct
+
 namespace TateKummer.QuadraticTwist
 
 variable (R : Type u) [CommRing R]
