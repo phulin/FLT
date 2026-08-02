@@ -98,6 +98,41 @@ lemma nodePoly_quadraticTwistOf_map_splits_iff {A : Type*} [CommRing A] {k : Typ
     map_mul, map_pow,
     key _ _ (show φ ((t ^ 2 - 4 * n) ^ 2) ≠ 0 by rw [map_pow]; exact pow_ne_zero 2 hD)]
 
+/-- **A nonsquare unit twist flips a split node to a nonsplit node (residue characteristic
+`≠ 2`).**  If the node polynomial of `W` splits and the discriminant `D = t² - 4n` of the
+quadratic twisting datum is nonzero and nonsquare after applying `φ`, then the node polynomial
+of `W.quadraticTwistOf t n` does not split.
+
+This is the converse-facing form of `nodePoly_quadraticTwistOf_map_splits_iff`: splitting of
+the original node says `-(c₄c₆)` is a square, while splitting after twisting would say that
+`D · -(c₄c₆)` is a square.  Since the former square is nonzero, division would make `D` a
+square, contradicting the twisting hypothesis. -/
+lemma not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_isSquare
+    {A : Type*} [CommRing A] {k : Type*} [Field k] [NeZero (2 : k)]
+    (φ : A →+* k) (W : WeierstrassCurve A) (t n : A)
+    (hc₄ : φ W.c₄ ≠ 0) (hc₆ : φ W.c₆ ≠ 0)
+    (hD : φ (t ^ 2 - 4 * n) ≠ 0)
+    (hsplit : (W.nodePoly.map φ).Splits)
+    (hDnsq : ¬ IsSquare (φ (t ^ 2 - 4 * n))) :
+    ¬ ((W.quadraticTwistOf t n).nodePoly.map φ).Splits := by
+  intro htwist
+  have hs : IsSquare (φ (-(W.c₄ * W.c₆))) :=
+    (nodePoly_map_splits_iff_isSquare φ W hc₄).mp hsplit
+  have hDs : IsSquare (φ ((t ^ 2 - 4 * n) * -(W.c₄ * W.c₆))) :=
+    (nodePoly_quadraticTwistOf_map_splits_iff φ W t n hc₄ hD).mp htwist
+  obtain ⟨s, hs⟩ := hs
+  obtain ⟨z, hz⟩ := hDs
+  have hs0 : s ≠ 0 := by
+    intro hs0
+    have : φ (-(W.c₄ * W.c₆)) = 0 := by rw [hs, hs0, zero_mul]
+    apply mul_ne_zero hc₄ hc₆
+    simpa only [map_neg, map_mul, neg_eq_zero] using this
+  apply hDnsq
+  refine ⟨z / s, ?_⟩
+  rw [div_mul_div_comm]
+  apply (eq_div_iff (mul_ne_zero hs0 hs0)).mpr
+  rw [← hs, ← hz, map_mul]
+
 /-- The `R`-model twist base-changes to the twist over `K`: for `E` integral over `R`, twisting its
 integral model by `t, n : R` and base-changing to `K` equals twisting `E` by the images
 `(algebraMap R K t, algebraMap R K n)`. Together with the coefficient laws this is the bridge from
@@ -383,6 +418,45 @@ theorem hasSplitMultiplicativeReduction_quadraticTwistOf_of_residue
   rw [show (((E.integralModel R).quadraticTwistOf t' n')⁄K).integralModel R
     = (E.integralModel R).quadraticTwistOf t' n' from integralModel_baseChange R _]
   exact nodePoly_quadraticTwistOf_map_splits_of_residue E R t' n' hA hB
+
+open IsLocalRing in
+/-- **A nonsquare unit twist of a split multiplicative curve is nonsplit (residue
+characteristic `≠ 2`).**  This packages
+`not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_isSquare` in terms of the reduction
+predicates.  The twisted integral model is assumed to retain multiplicative reduction; this is
+automatic from `hasMultiplicativeReduction_baseChange_quadraticTwistOf` when the discriminant
+has nonzero residue.
+
+The remaining local-field input needed to apply this to an abstract unramified quadratic
+extension is a normalized integral generator whose reduced discriminant is a nonsquare. -/
+theorem not_hasSplitMultiplicativeReduction_baseChange_quadraticTwistOf_of_not_isSquare
+    [E.HasSplitMultiplicativeReduction R] (t' n' : R)
+    (hD : residue R (t' ^ 2 - 4 * n') ≠ 0)
+    (hDnsq : ¬ IsSquare (residue R (t' ^ 2 - 4 * n')))
+    [hW : (((E.integralModel R).quadraticTwistOf t' n')⁄K).HasMultiplicativeReduction R] :
+    ¬ (((E.integralModel R).quadraticTwistOf t' n')⁄K).HasSplitMultiplicativeReduction R := by
+  intro hWsplit
+  have h2 : (2 : ResidueField R) ≠ 0 := by
+    intro h2
+    apply hDnsq
+    rw [show residue R (t' ^ 2 - 4 * n') = (residue R t') ^ 2 from by
+      simp only [map_sub, map_pow, map_mul, map_ofNat, show (4 : ResidueField R) = 2 * 2 by
+        norm_num, h2, zero_mul, sub_zero]]
+    exact ⟨residue R t', by simp only [pow_two]⟩
+  letI : NeZero (2 : ResidueField R) := ⟨h2⟩
+  have htwist : Polynomial.Splits
+      (((E.integralModel R).quadraticTwistOf t' n').nodePoly.map
+        (algebraMap R (ResidueField R))) := by
+    rw [← integralModel_baseChange (K := K) R
+      ((E.integralModel R).quadraticTwistOf t' n')]
+    exact hWsplit.splitMultiplicativeReduction
+  exact not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_isSquare
+    (algebraMap R (ResidueField R)) (E.integralModel R) t' n'
+    (by rw [ResidueField.algebraMap_eq]; exact residue_integralModel_c₄_ne_zero E R)
+    (by rw [ResidueField.algebraMap_eq]; exact residue_integralModel_c₆_ne_zero E R)
+    (by rw [ResidueField.algebraMap_eq]; exact hD)
+    ‹E.HasSplitMultiplicativeReduction R›.splitMultiplicativeReduction
+    (by simpa only [ResidueField.algebraMap_eq] using hDnsq) htwist
 
 variable [E.IsElliptic]
 
