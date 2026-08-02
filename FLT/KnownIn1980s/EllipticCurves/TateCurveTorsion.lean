@@ -6,6 +6,7 @@ Authors: FLT Project
 module
 
 public import FLT.KnownIn1980s.EllipticCurves.TateCurve
+public import FLT.KnownIn1980s.EllipticCurves.QuadraticTwists.SplitMultiplicativeReduction
 
 /-!
 # The component quotient on Tate-curve torsion
@@ -20,6 +21,41 @@ For an element `q` of infinite order in a commutative group `G`, an `N`-torsion 
 @[expose] public section
 
 open scoped Multiplicative
+
+/-- An additive equivalence restricts to a `ZMod N`-linear equivalence on `N`-torsion. -/
+noncomputable def AddEquiv.torsionByLinearEquiv
+    {A B : Type*} [AddCommGroup A] [AddCommGroup B] (e : A ≃+ B) (N : ℕ) :
+    letI : Module (ZMod N) (AddSubgroup.torsionBy A (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    letI : Module (ZMod N) (AddSubgroup.torsionBy B (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    AddSubgroup.torsionBy A (N : ℤ) ≃ₗ[ZMod N]
+      AddSubgroup.torsionBy B (N : ℤ) := by
+  letI : Module (ZMod N) (AddSubgroup.torsionBy A (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N) (AddSubgroup.torsionBy B (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  let eN : AddSubgroup.torsionBy A (N : ℤ) ≃+
+      AddSubgroup.torsionBy B (N : ℤ) := {
+    toFun x := ⟨e x.1, by
+      rw [AddSubgroup.torsionBy.nsmul_iff, ← map_nsmul]
+      have hx : N • x.1 = 0 := congrArg Subtype.val (AddSubgroup.torsionBy.nsmul x)
+      rw [hx, map_zero]⟩
+    invFun x := ⟨e.symm x.1, by
+      rw [AddSubgroup.torsionBy.nsmul_iff, ← map_nsmul]
+      have hx : N • x.1 = 0 := congrArg Subtype.val (AddSubgroup.torsionBy.nsmul x)
+      rw [hx, map_zero]⟩
+    left_inv x := Subtype.ext (e.symm_apply_apply x.1)
+    right_inv x := Subtype.ext (e.apply_symm_apply x.1)
+    map_add' x y := Subtype.ext (map_add e x.1 y.1) }
+  exact LinearEquiv.ofBijective (eN.toAddMonoidHom.toZModLinearMap N) eN.bijective
+
+@[simp]
+lemma AddEquiv.torsionByLinearEquiv_coe
+    {A B : Type*} [AddCommGroup A] [AddCommGroup B] (e : A ≃+ B) (N : ℕ)
+    (x : AddSubgroup.torsionBy A (N : ℤ)) :
+    (e.torsionByLinearEquiv N x).1 = e x.1 :=
+  rfl
 
 namespace QuotientGroup
 
@@ -428,5 +464,122 @@ lemma tateComponentLinearMap_nTorsionMap (N : ℕ) (σ : Ω ≃ₐ[k] Ω)
     (E.qUnitSepClosure Ω) N (E.qUnitSepClosure_zpow_injective Ω)
     (Units.map σ.toAlgHom.toRingHom.toMonoidHom)
     (E.unitsMap_qUnitSepClosure Ω σ) _
+
+/-! ### The nonsplit multiplicative case -/
+
+section QuadraticTwist
+
+variable {L : Type*} [Field L] [Algebra k L]
+  [Algebra.IsQuadraticExtension k L] [Algebra.IsSeparable k L]
+  [Algebra L Ω] [IsScalarTower k L Ω]
+variable (E₀ : WeierstrassCurve k) [E₀.IsElliptic]
+variable (C : WeierstrassCurve.VariableChange k)
+variable [((C • E₀.quadraticTwist L)).HasSplitMultiplicativeReduction 𝒪[k]]
+
+/-- The split minimal model of a quadratic twist is isomorphic over the separable closure to
+the original curve. -/
+noncomputable def quadraticTwistTatePointEquiv :
+    (((C • E₀.quadraticTwist L))⁄Ω).Point ≃+ (E₀⁄Ω).Point :=
+  (WeierstrassCurve.Affine.Point.variableChangePointEquiv
+      (E₀.quadraticTwist L) C Ω).trans
+    (E₀.quadraticTwistPointEquiv L Ω)
+
+/-- The point equivalence from the split quadratic twist, restricted to `N`-torsion. -/
+noncomputable def quadraticTwistTateTorsionLinearEquiv (N : ℕ) :
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy (((C • E₀.quadraticTwist L))⁄Ω).Point (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    AddSubgroup.torsionBy (((C • E₀.quadraticTwist L))⁄Ω).Point (N : ℤ) ≃ₗ[ZMod N]
+      AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ) :=
+  (quadraticTwistTatePointEquiv Ω E₀ C).torsionByLinearEquiv N
+
+/-- The Tate component quotient on a multiplicative curve, obtained from a split quadratic
+twist. -/
+noncomputable def quadraticTwistTateComponentLinearMap (N : ℕ) :
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ) →ₗ[ZMod N] ZMod N := by
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (((C • E₀.quadraticTwist L))⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  exact ((C • E₀.quadraticTwist L).tateComponentLinearMap Ω N).comp
+    (quadraticTwistTateTorsionLinearEquiv (L := L) Ω E₀ C N).symm.toLinearMap
+
+/-- The component quotient obtained from the split quadratic twist is surjective. -/
+lemma quadraticTwistTateComponentLinearMap_surjective (N : ℕ) [NeZero (N : Ω)] :
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    Function.Surjective
+      (quadraticTwistTateComponentLinearMap (L := L) Ω E₀ C N) := by
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (((C • E₀.quadraticTwist L))⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  exact ((C • E₀.quadraticTwist L).tateComponentLinearMap_surjective Ω N).comp
+    (quadraticTwistTateTorsionLinearEquiv (L := L) Ω E₀ C N).symm.surjective
+
+/-- Under the torsion equivalence from the split quadratic twist, Galois acts with the
+quadratic sign. -/
+lemma quadraticTwistTateTorsionLinearEquiv_symm_nTorsionMap
+    (N : ℕ) (σ : Ω ≃ₐ[k] Ω)
+    (T : AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :
+    (quadraticTwistTateTorsionLinearEquiv (L := L) Ω E₀ C N).symm
+        (E₀.nTorsionMap N σ.toAlgHom T) =
+      (quadraticCharacter k L Ω σ : ℤ) •
+        (C • E₀.quadraticTwist L).nTorsionMap N σ.toAlgHom
+          ((quadraticTwistTateTorsionLinearEquiv (L := L) Ω E₀ C N).symm T) := by
+  let e := quadraticTwistTateTorsionLinearEquiv (L := L) Ω E₀ C N
+  let P := e.symm T
+  apply e.injective
+  apply Subtype.ext
+  rw [e.apply_symm_apply]
+  rw [E₀.nTorsionMap_coe]
+  change WeierstrassCurve.Affine.Point.map (W' := E₀) σ.toAlgHom T.1 =
+    (quadraticTwistTateTorsionLinearEquiv (L := L) Ω E₀ C N
+      ((quadraticCharacter k L Ω σ : ℤ) •
+        (C • E₀.quadraticTwist L).nTorsionMap N σ.toAlgHom P)).1
+  rw [quadraticTwistTateTorsionLinearEquiv,
+    AddEquiv.torsionByLinearEquiv_coe]
+  change WeierstrassCurve.Affine.Point.map (W' := E₀) σ.toAlgHom T.1 =
+    quadraticTwistTatePointEquiv (L := L) Ω E₀ C
+      ((quadraticCharacter k L Ω σ : ℤ) •
+        ((C • E₀.quadraticTwist L).nTorsionMap N σ.toAlgHom P).1)
+  rw [map_zsmul, (C • E₀.quadraticTwist L).nTorsionMap_coe]
+  have hP : (quadraticTwistTatePointEquiv (L := L) Ω E₀ C) P.1 = T.1 := by
+    exact congrArg Subtype.val (e.apply_symm_apply T)
+  have hmap : quadraticTwistTatePointEquiv (L := L) Ω E₀ C
+      (WeierstrassCurve.Affine.Point.map (W' := C • E₀.quadraticTwist L)
+        σ.toAlgHom P.1) =
+      (quadraticCharacter k L Ω σ : ℤ) •
+        WeierstrassCurve.Affine.Point.map (W' := E₀) σ.toAlgHom T.1 := by
+    change E₀.quadraticTwistPointEquiv L Ω
+        (WeierstrassCurve.Affine.Point.variableChangePointEquiv
+          (E₀.quadraticTwist L) C Ω
+          (WeierstrassCurve.Affine.Point.map σ.toAlgHom P.1)) = _
+    rw [WeierstrassCurve.Affine.Point.variableChangePointEquiv_map]
+    rw [E₀.quadraticTwistPointEquiv_galois L Ω σ]
+    rw [← hP]
+    rfl
+  change WeierstrassCurve.Affine.Point.map (W' := E₀) σ.toAlgHom T.1 =
+    (quadraticCharacter k L Ω σ : ℤ) •
+      quadraticTwistTatePointEquiv (L := L) Ω E₀ C
+        (WeierstrassCurve.Affine.Point.map (W' := C • E₀.quadraticTwist L)
+          σ.toAlgHom P.1)
+  rw [hmap]
+  rcases Int.units_eq_one_or (quadraticCharacter k L Ω σ) with hχ | hχ
+  · simp [hχ]
+  · simp [hχ]
+
+end QuadraticTwist
 
 end WeierstrassCurve
