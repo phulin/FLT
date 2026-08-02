@@ -1975,6 +1975,7 @@ end Coassociativity
 
 /-- The fixed quadratic-twist coordinate algebra, equipped with the comultiplication
 and counit descended from the quadratic cover. -/
+@[instance_reducible]
 noncomputable def coordinateBialgebra (h2 : IsUnit (2 : R))
     (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
     Bialgebra R (fixedSubalgebra R N u t n) :=
@@ -1983,6 +1984,289 @@ noncomputable def coordinateBialgebra (h2 : IsUnit (2 : R))
     (coassoc_comulAlgHom R N u t n h2 hdisc)
     (rightCounit_comp_comulAlgHom R N u t n h2 hdisc)
     (leftCounit_comp_comulAlgHom R N u t n h2 hdisc)
+
+/-! ## Antipode identities -/
+
+/-- Apply the descended antipode to the left tensor factor and multiply. -/
+noncomputable def antipodeLeftContraction :
+    fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n →ₐ[R]
+      fixedSubalgebra R N u t n :=
+  Algebra.TensorProduct.lift (antipodeAlgHom R N u t n)
+    (AlgHom.id R (fixedSubalgebra R N u t n)) fun _ _ ↦ Commute.all _ _
+
+/-- Apply the cover antipode to the left tensor factor and multiply. -/
+noncomputable def coverAntipodeLeftContraction :
+    CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n :=
+  Algebra.TensorProduct.lift (coverAntipodeAlgHom R N u t n)
+    (AlgHom.id (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n)) fun _ _ ↦ Commute.all _ _
+
+@[simp]
+lemma antipodeLeftContraction_tmul
+    (x y : fixedSubalgebra R N u t n) :
+    antipodeLeftContraction R N u t n (x ⊗ₜ[R] y) =
+      antipodeAlgHom R N u t n x * y := by
+  rfl
+
+@[simp]
+lemma coverAntipodeLeftContraction_tmul
+    (x y : CoverCoordinateAlgebra R N u t n) :
+    coverAntipodeLeftContraction R N u t n
+        (x ⊗ₜ[QuadraticDescent.Algebra R t n] y) =
+      coverAntipodeAlgHom R N u t n x * y := by
+  rfl
+
+/-- Scalar extension intertwines the left antipode contractions. -/
+lemma baseChangeEquiv_antipodeLeftContraction
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          antipodeLeftContraction R N u t n q) =
+      coverAntipodeLeftContraction R N u t n
+        (baseChangeTensorCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q)) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [antipodeLeftContraction_tmul, baseChangeTensorCoverEquiv_tmul,
+        coverAntipodeLeftContraction_tmul]
+      simp only [baseChangeEquiv_apply]
+      rw [baseChangeToCover_tmul, baseChangeToCover_tmul,
+        baseChangeToCover_tmul, map_one, one_mul, map_mul,
+        coverAntipodeAlgHom_coe]
+      simp only [map_one, one_mul]
+      exact rfl
+  | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+
+/-- The explicit cover inversion is the antipode of its tensor-product Hopf algebra. -/
+lemma coverAntipodeAlgHom_eq_hopfAntipodeAlgHom :
+    coverAntipodeAlgHom R N u t n =
+      HopfAlgebra.antipodeAlgHom (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n) := by
+  apply AlgHom.ext
+  intro z
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a h =>
+      change a ⊗ₜ[R] TateKummer.antipodeAlgHom N u h =
+        a ⊗ₜ[R] TateKummer.antipodeAlgHom N u h
+      rfl
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+/-- The algebraic left contraction is the linear contraction in the cover Hopf
+axiom. -/
+lemma coverAntipodeLeftContraction_eq_hopfApply
+    (q : CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n) :
+    coverAntipodeLeftContraction R N u t n q =
+      LinearMap.mul' (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n)
+        ((HopfAlgebra.antipode (QuadraticDescent.Algebra R t n)).rTensor
+          (CoverCoordinateAlgebra R N u t n) q) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [coverAntipodeLeftContraction_tmul]
+      rw [coverAntipodeAlgHom_eq_hopfAntipodeAlgHom]
+      rfl
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+/-- Left antipode cancellation on the cover. -/
+lemma coverAntipodeLeftContraction_comul
+    (z : CoverCoordinateAlgebra R N u t n) :
+    coverAntipodeLeftContraction R N u t n
+        (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) z) =
+      algebraMap (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n)
+        (coverCounitAlgHom R N u t n z) := by
+  rw [coverAntipodeLeftContraction_eq_hopfApply]
+  exact HopfAlgebra.mul_antipode_rTensor_comul_apply z
+
+/-- Left antipode cancellation descends from the quadratic cover. -/
+lemma antipodeLeftContraction_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    antipodeLeftContraction R N u t n
+        (comulAlgHom R N u t n h2 hdisc z) =
+      algebraMap R (fixedSubalgebra R N u t n)
+        (counitAlgHom R N u t n h2 z) := by
+  have h := baseChangeEquiv_antipodeLeftContraction R N u t n h2 hdisc
+    (comulAlgHom R N u t n h2 hdisc z)
+  rw [baseChangeTensorCoverEquiv_one_tmul_comulAlgHom,
+    coverAntipodeLeftContraction_comul,
+    coverCounitAlgHom_eq_algebraMap_counitAlgHom R N u t n h2 z] at h
+  rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul] at h
+  apply Subtype.ext
+  calc
+    (↑(antipodeLeftContraction R N u t n
+        (comulAlgHom R N u t n h2 hdisc z)) :
+      CoverCoordinateAlgebra R N u t n) =
+        algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n)
+          (algebraMap R (QuadraticDescent.Algebra R t n)
+            (counitAlgHom R N u t n h2 z)) := h
+    _ = ↑(algebraMap R (fixedSubalgebra R N u t n)
+          (counitAlgHom R N u t n h2 z)) := by
+      rw [← IsScalarTower.algebraMap_apply R (QuadraticDescent.Algebra R t n)]
+      rfl
+
+/-- Left antipode cancellation in the form required by `HopfAlgebra.ofAlgHom`. -/
+lemma mul_antipode_rTensor_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (antipodeLeftContraction R N u t n).comp
+        (comulAlgHom R N u t n h2 hdisc) =
+      (Algebra.ofId R (fixedSubalgebra R N u t n)).comp
+        (counitAlgHom R N u t n h2) := by
+  apply AlgHom.ext
+  intro z
+  exact antipodeLeftContraction_comulAlgHom R N u t n h2 hdisc z
+
+/-- Apply the descended antipode to the right tensor factor and multiply. -/
+noncomputable def antipodeRightContraction :
+    fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n →ₐ[R]
+      fixedSubalgebra R N u t n :=
+  Algebra.TensorProduct.lift (AlgHom.id R (fixedSubalgebra R N u t n))
+    (antipodeAlgHom R N u t n) fun _ _ ↦ Commute.all _ _
+
+/-- Apply the cover antipode to the right tensor factor and multiply. -/
+noncomputable def coverAntipodeRightContraction :
+    CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n :=
+  Algebra.TensorProduct.lift
+    (AlgHom.id (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n))
+    (coverAntipodeAlgHom R N u t n) fun _ _ ↦ Commute.all _ _
+
+@[simp]
+lemma antipodeRightContraction_tmul
+    (x y : fixedSubalgebra R N u t n) :
+    antipodeRightContraction R N u t n (x ⊗ₜ[R] y) =
+      x * antipodeAlgHom R N u t n y := by
+  rfl
+
+@[simp]
+lemma coverAntipodeRightContraction_tmul
+    (x y : CoverCoordinateAlgebra R N u t n) :
+    coverAntipodeRightContraction R N u t n
+        (x ⊗ₜ[QuadraticDescent.Algebra R t n] y) =
+      x * coverAntipodeAlgHom R N u t n y := by
+  rfl
+
+/-- Scalar extension intertwines the right antipode contractions. -/
+lemma baseChangeEquiv_antipodeRightContraction
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          antipodeRightContraction R N u t n q) =
+      coverAntipodeRightContraction R N u t n
+        (baseChangeTensorCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q)) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [antipodeRightContraction_tmul, baseChangeTensorCoverEquiv_tmul,
+        coverAntipodeRightContraction_tmul]
+      simp only [baseChangeEquiv_apply]
+      rw [baseChangeToCover_tmul, baseChangeToCover_tmul,
+        baseChangeToCover_tmul, map_one, one_mul, map_mul,
+        coverAntipodeAlgHom_coe]
+      simp only [map_one, one_mul]
+      exact rfl
+  | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+
+/-- The algebraic right contraction is the linear contraction in the cover Hopf
+axiom. -/
+lemma coverAntipodeRightContraction_eq_hopfApply
+    (q : CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n) :
+    coverAntipodeRightContraction R N u t n q =
+      LinearMap.mul' (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n)
+        ((HopfAlgebra.antipode (QuadraticDescent.Algebra R t n)).lTensor
+          (CoverCoordinateAlgebra R N u t n) q) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [coverAntipodeRightContraction_tmul]
+      rw [coverAntipodeAlgHom_eq_hopfAntipodeAlgHom]
+      rfl
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+/-- Right antipode cancellation on the cover. -/
+lemma coverAntipodeRightContraction_comul
+    (z : CoverCoordinateAlgebra R N u t n) :
+    coverAntipodeRightContraction R N u t n
+        (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) z) =
+      algebraMap (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n)
+        (coverCounitAlgHom R N u t n z) := by
+  rw [coverAntipodeRightContraction_eq_hopfApply]
+  exact HopfAlgebra.mul_antipode_lTensor_comul_apply z
+
+/-- Right antipode cancellation descends from the quadratic cover. -/
+lemma antipodeRightContraction_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    antipodeRightContraction R N u t n
+        (comulAlgHom R N u t n h2 hdisc z) =
+      algebraMap R (fixedSubalgebra R N u t n)
+        (counitAlgHom R N u t n h2 z) := by
+  have h := baseChangeEquiv_antipodeRightContraction R N u t n h2 hdisc
+    (comulAlgHom R N u t n h2 hdisc z)
+  rw [baseChangeTensorCoverEquiv_one_tmul_comulAlgHom,
+    coverAntipodeRightContraction_comul,
+    coverCounitAlgHom_eq_algebraMap_counitAlgHom R N u t n h2 z] at h
+  rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul] at h
+  apply Subtype.ext
+  calc
+    (↑(antipodeRightContraction R N u t n
+        (comulAlgHom R N u t n h2 hdisc z)) :
+      CoverCoordinateAlgebra R N u t n) =
+        algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n)
+          (algebraMap R (QuadraticDescent.Algebra R t n)
+            (counitAlgHom R N u t n h2 z)) := h
+    _ = ↑(algebraMap R (fixedSubalgebra R N u t n)
+          (counitAlgHom R N u t n h2 z)) := by
+      rw [← IsScalarTower.algebraMap_apply R (QuadraticDescent.Algebra R t n)]
+      rfl
+
+/-- Right antipode cancellation in the form required by `HopfAlgebra.ofAlgHom`. -/
+lemma mul_antipode_lTensor_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (antipodeRightContraction R N u t n).comp
+        (comulAlgHom R N u t n h2 hdisc) =
+      (Algebra.ofId R (fixedSubalgebra R N u t n)).comp
+        (counitAlgHom R N u t n h2) := by
+  apply AlgHom.ext
+  intro z
+  exact antipodeRightContraction_comulAlgHom R N u t n h2 hdisc z
+
+/-- The descended fixed algebra is a Hopf algebra, hence represents the quadratic
+twist of the Tate--Kummer affine group scheme. -/
+@[instance_reducible]
+noncomputable def coordinateHopfAlgebra
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    HopfAlgebra R (fixedSubalgebra R N u t n) := by
+  letI : Bialgebra R (fixedSubalgebra R N u t n) :=
+    coordinateBialgebra R N u t n h2 hdisc
+  exact HopfAlgebra.ofAlgHom (antipodeAlgHom R N u t n)
+    (mul_antipode_rTensor_comulAlgHom R N u t n h2 hdisc)
+    (mul_antipode_lTensor_comulAlgHom R N u t n h2 hdisc)
 
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
