@@ -229,6 +229,13 @@ noncomputable def imCoeff (t n : R) : Algebra R t n →ₗ[R] R :=
   (QuadraticAlgebra.imₗ (-n) t).comp
     (quadraticAlgebraEquiv R t n).symm.toLinearMap
 
+/-- The scalar coefficient is a left inverse to the structural map into the quadratic
+algebra. -/
+@[simp]
+lemma reCoeff_algebraMap (t n r : R) :
+    reCoeff R t n (algebraMap R (Algebra R t n) r) = r := by
+  simp [reCoeff, quadraticAlgebraEquiv]
+
 /-- Every element has its explicit scalar-plus-root decomposition. -/
 lemma eq_algebraMap_reCoeff_add_smul_root (t n : R) (z : Algebra R t n) :
     z = algebraMap R (Algebra R t n) (reCoeff R t n z) +

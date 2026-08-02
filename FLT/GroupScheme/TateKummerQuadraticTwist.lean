@@ -290,6 +290,115 @@ lemma antipodeAlgHom_involutive :
     coverAntipodeAlgHom R N u t n (coverAntipodeAlgHom R N u t n z) = z
   exact coverAntipodeAlgHom_involutive R N u t n z
 
+/-! ## Descent of the counit -/
+
+/-- The counit of the tensor-product Hopf algebra over the quadratic cover. -/
+noncomputable def coverCounitAlgHom :
+    CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      QuadraticDescent.Algebra R t n :=
+  Bialgebra.counitAlgHom (QuadraticDescent.Algebra R t n)
+    (CoverCoordinateAlgebra R N u t n)
+
+@[simp]
+lemma coverCounitAlgHom_tmul
+    (a : QuadraticDescent.Algebra R t n)
+    (h : TateKummer.CoordinateAlgebra (R := R) N u) :
+    coverCounitAlgHom R N u t n (a ⊗ₜ[R] h) =
+      a * algebraMap R (QuadraticDescent.Algebra R t n)
+        (Bialgebra.counitAlgHom R
+          (TateKummer.CoordinateAlgebra (R := R) N u) h) := by
+  simp [coverCounitAlgHom, Bialgebra.TensorProduct.counitAlgHom_def,
+    Algebra.smul_def]
+  rw [mul_comm]
+
+/-- The cover counit is equivariant for the semilinear descent datum. -/
+lemma conjugationAlgEquiv_coverCounitAlgHom
+    (z : CoverCoordinateAlgebra R N u t n) :
+    QuadraticDescent.conjugationAlgEquiv R t n
+        (coverCounitAlgHom R N u t n z) =
+      coverCounitAlgHom R N u t n (descentAlgEquiv R N u t n z) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a h =>
+      have hcounit :
+          Bialgebra.counitAlgHom R (TateKummer.CoordinateAlgebra (R := R) N u)
+              (TateKummer.antipodeAlgHom N u h) =
+            Bialgebra.counitAlgHom R
+              (TateKummer.CoordinateAlgebra (R := R) N u) h :=
+        HopfAlgebra.counit_antipode h
+      rw [coverCounitAlgHom_tmul, map_mul,
+        (QuadraticDescent.conjugationAlgEquiv R t n).commutes,
+        descentAlgEquiv_tmul, coverCounitAlgHom_tmul,
+        TateKummer.antipodeAlgEquiv_apply, hcounit]
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+/-- The cover counit of a descended element is fixed by quadratic conjugation. -/
+lemma conjugationAlgEquiv_coverCounitAlgHom_fixed
+    (z : fixedSubalgebra R N u t n) :
+    QuadraticDescent.conjugationAlgEquiv R t n
+        (coverCounitAlgHom R N u t n z) =
+      coverCounitAlgHom R N u t n z := by
+  rw [conjugationAlgEquiv_coverCounitAlgHom]
+  exact congrArg (coverCounitAlgHom R N u t n)
+    ((mem_fixedSubalgebra R N u t n z).mp z.property)
+
+/-- A descended counit value is the scalar given by its explicit quadratic coefficient. -/
+lemma coverCounitAlgHom_eq_algebraMap_reCoeff (h2 : IsUnit (2 : R))
+    (z : fixedSubalgebra R N u t n) :
+    coverCounitAlgHom R N u t n z =
+      algebraMap R (QuadraticDescent.Algebra R t n)
+        (QuadraticDescent.reCoeff R t n (coverCounitAlgHom R N u t n z)) :=
+  QuadraticDescent.eq_algebraMap_of_conjugationAlgEquiv_eq R t n h2 _
+    (conjugationAlgEquiv_coverCounitAlgHom_fixed R N u t n z)
+
+/-- The counit on the quadratic-twist coordinate algebra, obtained by descending the
+cover counit to the base ring. -/
+noncomputable def counitAlgHom (h2 : IsUnit (2 : R)) :
+    fixedSubalgebra R N u t n →ₐ[R] R where
+  toFun z := QuadraticDescent.reCoeff R t n (coverCounitAlgHom R N u t n z)
+  map_zero' := by simp
+  map_one' := by
+    change
+      QuadraticDescent.reCoeff R t n
+        (coverCounitAlgHom R N u t n
+          (1 : CoverCoordinateAlgebra R N u t n)) = 1
+    rw [map_one]
+    simpa only [map_one] using QuadraticDescent.reCoeff_algebraMap R t n (1 : R)
+  map_add' x y := by simp
+  map_mul' x y := by
+    change
+      QuadraticDescent.reCoeff R t n
+          (coverCounitAlgHom R N u t n
+            ((x : CoverCoordinateAlgebra R N u t n) * y)) =
+        QuadraticDescent.reCoeff R t n (coverCounitAlgHom R N u t n x) *
+          QuadraticDescent.reCoeff R t n (coverCounitAlgHom R N u t n y)
+    rw [map_mul, coverCounitAlgHom_eq_algebraMap_reCoeff R N u t n h2 x,
+      coverCounitAlgHom_eq_algebraMap_reCoeff R N u t n h2 y,
+      ← map_mul]
+    simp only [QuadraticDescent.reCoeff_algebraMap]
+  commutes' r := by
+    change
+      QuadraticDescent.reCoeff R t n
+          (coverCounitAlgHom R N u t n
+            (algebraMap R (fixedSubalgebra R N u t n) r)) = r
+    rw [show coverCounitAlgHom R N u t n
+          (algebraMap R (fixedSubalgebra R N u t n) r) =
+        algebraMap R (QuadraticDescent.Algebra R t n) r by
+      change coverCounitAlgHom R N u t n
+          (algebraMap R (CoverCoordinateAlgebra R N u t n) r) = _
+      change coverCounitAlgHom R N u t n
+          (algebraMap R (QuadraticDescent.Algebra R t n) r ⊗ₜ[R]
+            (1 : TateKummer.CoordinateAlgebra (R := R) N u)) = _
+      rw [coverCounitAlgHom_tmul, map_one, map_one, mul_one]]
+    exact QuadraticDescent.reCoeff_algebraMap R t n r
+
+@[simp]
+lemma counitAlgHom_apply (h2 : IsUnit (2 : R))
+    (z : fixedSubalgebra R N u t n) :
+    counitAlgHom R N u t n h2 z =
+      QuadraticDescent.reCoeff R t n (coverCounitAlgHom R N u t n z) :=
+  rfl
+
 /-- Averaging over the order-two descent action. -/
 noncomputable def fixedProjection (h2 : IsUnit (2 : R)) :
     CoverCoordinateAlgebra R N u t n →ₗ[R] CoverCoordinateAlgebra R N u t n :=
