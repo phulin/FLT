@@ -5,6 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Reduction
 public import Mathlib.RingTheory.Valuation.RamificationGroup
@@ -60,4 +61,4 @@ theorem WeierstrassCurve.torsion_unramified_of_good_reduction
     -- Then every element of the inertia subgroup at 𝒪 fixes every n-torsion point of E(ksep)
     ∀ σ ∈ 𝒪.inertiaSubgroup k, ∀ P ∈ AddSubgroup.torsionBy (E⁄ksep).Point (n : ℤ),
       Affine.Point.map (σ : ksep ≃ₐ[k] ksep).toAlgHom P = P :=
-  sorry
+  knownin1980s
