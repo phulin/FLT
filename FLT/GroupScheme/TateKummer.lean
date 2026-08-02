@@ -10,6 +10,7 @@ public import Mathlib.RingTheory.Bialgebra.Basic
 public import Mathlib.RingTheory.Flat.Basic
 public import Mathlib.RingTheory.Finiteness.Basic
 public import Mathlib.RingTheory.HopfAlgebra.Basic
+public import Mathlib.RingTheory.HopfAlgebra.Convolution
 public import Mathlib.RingTheory.Etale.Pi
 public import Mathlib.RingTheory.Etale.StandardEtale
 public import Mathlib.LinearAlgebra.StdBasis
@@ -1290,6 +1291,41 @@ noncomputable instance coordinateHopfAlgebra (N : ℕ) [NeZero N] (u : Rˣ) :
     HopfAlgebra R (CoordinateAlgebra (R := R) N u) :=
   HopfAlgebra.ofAlgHom (antipodeAlgHom N u)
     (mul_antipode_rTensor_comul N u) (mul_antipode_lTensor_comul N u)
+
+/-- Inversion on the Tate--Kummer group scheme is an involution. -/
+lemma antipodeAlgHom_involutive (N : ℕ) [NeZero N] (u : Rˣ) :
+    Function.Involutive (antipodeAlgHom N u) := by
+  intro f
+  let H := CoordinateAlgebra (R := R) N u
+  have h := congrArg
+    (fun z : WithConv (H →ₐ[R] H) ↦ z.ofConv f)
+    (inv_inv (WithConv.toConv (AlgHom.id R H)))
+  exact h
+
+/-- Inversion as an algebra automorphism of the Tate--Kummer coordinate algebra. -/
+noncomputable def antipodeAlgEquiv (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u ≃ₐ[R]
+      CoordinateAlgebra (R := R) N u :=
+  AlgEquiv.ofAlgHom (antipodeAlgHom N u) (antipodeAlgHom N u)
+    (by
+      apply DFunLike.ext
+      intro f
+      exact antipodeAlgHom_involutive N u f)
+    (by
+      apply DFunLike.ext
+      intro f
+      exact antipodeAlgHom_involutive N u f)
+
+@[simp]
+lemma antipodeAlgEquiv_apply (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) :
+    antipodeAlgEquiv N u f = antipodeAlgHom N u f :=
+  rfl
+
+@[simp]
+lemma antipodeAlgEquiv_symm (N : ℕ) [NeZero N] (u : Rˣ) :
+    (antipodeAlgEquiv N u).symm = antipodeAlgEquiv N u := by
+  rfl
 
 /-! ## Base change -/
 
