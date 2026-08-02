@@ -68,6 +68,12 @@ theorem torsion_hasFlatProlongationAt_of_split_multiplicative
     let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
     let K := v.adicCompletion ℚ
     let R := v.adicCompletionIntegers ℚ
+    let _ : Field K :=
+      IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing K :=
+      (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ K :=
+      IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
     let E := P.freyCurve.baseChange K
     ∀ [E.HasSplitMultiplicativeReduction R],
       (P.freyCurve.galoisRep P.p P.hppos).HasFlatProlongationAt v := by
@@ -77,14 +83,14 @@ theorem torsion_hasFlatProlongationAt_of_split_multiplicative
   let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
   let K := v.adicCompletion ℚ
   let R := v.adicCompletionIntegers ℚ
-  let Ω := AlgebraicClosure K
-  let E := P.freyCurve.baseChange K
   let _ : Field K :=
     IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
   let _ : CommRing K :=
     (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
   let _ : Algebra ℚ K :=
     IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let Ω := AlgebraicClosure K
+  let E := P.freyCurve.baseChange K
   let _ : E.IsElliptic := inferInstance
   let _ : E.HasSplitMultiplicativeReduction R := hsplit
   let _ : E.HasSplitMultiplicativeReduction
@@ -103,7 +109,7 @@ theorem torsion_hasFlatProlongationAt_of_split_multiplicative
     omega
   obtain ⟨q₀, a, u, hq₀, hfac⟩ :=
     exists_tateParameter_eq_pow_mul_unit_of_j_eq
-      P P.pp hpodd hbad E (P.freyCurve.map_j K)
+      P P.pp hpodd hbad E (P.freyCurve.map_j (algebraMap ℚ K))
   have hq₀' : algebraMap R K q₀ = E.q := by
     simpa [R, K] using hq₀
   have hmodel :=
@@ -120,6 +126,12 @@ theorem torsion_isFlatAt_of_split_multiplicative
     let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
     let K := v.adicCompletion ℚ
     let R := v.adicCompletionIntegers ℚ
+    let _ : Field K :=
+      IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing K :=
+      (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ K :=
+      IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
     let E := P.freyCurve.baseChange K
     ∀ [E.HasSplitMultiplicativeReduction R],
       (P.freyCurve.galoisRep P.p P.hppos).IsFlatAt v := by
