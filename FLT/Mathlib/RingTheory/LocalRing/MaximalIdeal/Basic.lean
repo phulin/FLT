@@ -50,3 +50,32 @@ theorem IsLocalRing.eq_one_of_pow_eq_one_of_sub_one_mem_maximalIdeal
     apply hsunit.mul_right_cancel
     simpa using hmul
   exact sub_eq_zero.mp hx0
+
+/-- Two unit-valued `n`-th roots which have the same reduction are equal when `n` is a unit.
+
+This is the form of Hensel uniqueness needed for tame Kummer extensions: divide the two roots,
+then use injectivity of prime-to-residue-characteristic roots of unity under reduction. -/
+theorem IsLocalRing.eq_of_pow_eq_pow_of_isUnit_of_sub_mem_maximalIdeal
+    {R : Type*} [CommRing R] [IsLocalRing R] {x y : R} {n : ℕ}
+    (hn : IsUnit (n : R)) (hy : IsUnit y) (hpow : x ^ n = y ^ n)
+    (hxy : x - y ∈ IsLocalRing.maximalIdeal R) : x = y := by
+  let u : Rˣ := hy.unit
+  have hu : (u : R) = y := hy.unit_spec
+  let z : R := x * (↑(u⁻¹) : R)
+  have hzpow : z ^ n = 1 := by
+    rw [show z = x * (↑(u⁻¹) : R) from rfl, mul_pow, hpow, ← hu,
+      ← Units.val_pow_eq_pow_val, ← Units.val_pow_eq_pow_val]
+    rw [← Units.val_mul]
+    simp
+  have hzmem : z - 1 ∈ IsLocalRing.maximalIdeal R := by
+    have hz : z - 1 = (x - y) * (↑(u⁻¹) : R) := by
+      simp [z, sub_mul, ← hu]
+    rw [hz]
+    exact (IsLocalRing.maximalIdeal R).mul_mem_right _ hxy
+  have hzone : z = 1 :=
+    IsLocalRing.eq_one_of_pow_eq_one_of_sub_one_mem_maximalIdeal hn hzpow hzmem
+  calc
+    x = (x * (↑(u⁻¹) : R)) * (u : R) := by simp
+    _ = z * (u : R) := rfl
+    _ = 1 * (u : R) := by rw [hzone]
+    _ = y := by simpa using hu
