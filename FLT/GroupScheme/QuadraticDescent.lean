@@ -21,8 +21,9 @@ group scheme along an unramified quadratic twist.
 @[expose] public section
 
 open Polynomial IsLocalRing
+open scoped TensorProduct
 
-universe u
+universe u v
 
 namespace QuadraticDescent
 
@@ -526,5 +527,137 @@ lemma evenPart_add_antiInvariant_mul_oddPart (t n : R) (h2 : IsUnit (2 : R))
       rw [two_smul]
       abel
     _ = z := by rw [smul_smul, hhalf, one_smul]
+
+/-! ## Coefficients after tensoring with a module -/
+
+section TensorCoefficients
+
+variable (G : Type v) [AddCommGroup G] [Module R G]
+
+/-- Extract the scalar-basis coefficient after tensoring the quadratic algebra with a
+module. -/
+noncomputable def tensorReCoeff (t n : R) : Algebra R t n ⊗[R] G →ₗ[R] G :=
+  (TensorProduct.lid R G).toLinearMap.comp ((reCoeff R t n).rTensor G)
+
+/-- Extract the root-basis coefficient after tensoring the quadratic algebra with a
+module. -/
+noncomputable def tensorImCoeff (t n : R) : Algebra R t n ⊗[R] G →ₗ[R] G :=
+  (TensorProduct.lid R G).toLinearMap.comp ((imCoeff R t n).rTensor G)
+
+@[simp]
+lemma tensorReCoeff_tmul (t n : R) (a : Algebra R t n) (g : G) :
+    tensorReCoeff R G t n (a ⊗ₜ[R] g) = reCoeff R t n a • g := by
+  simp [tensorReCoeff]
+
+@[simp]
+lemma tensorImCoeff_tmul (t n : R) (a : Algebra R t n) (g : G) :
+    tensorImCoeff R G t n (a ⊗ₜ[R] g) = imCoeff R t n a • g := by
+  simp [tensorImCoeff]
+
+/-- The basis decomposition `A = R · 1 ⊕ R · root` persists after tensoring with any
+module. -/
+lemma eq_one_tmul_tensorReCoeff_add_root_tmul_tensorImCoeff
+    (t n : R) (z : Algebra R t n ⊗[R] G) :
+    z = (1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n z +
+      AdjoinRoot.root (polynomial R t n) ⊗ₜ[R] tensorImCoeff R G t n z := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a g =>
+      calc
+        a ⊗ₜ[R] g =
+            (algebraMap R (Algebra R t n) (reCoeff R t n a) +
+              imCoeff R t n a • AdjoinRoot.root (polynomial R t n)) ⊗ₜ[R] g :=
+          congrArg (fun b : Algebra R t n => b ⊗ₜ[R] g)
+            (eq_algebraMap_reCoeff_add_smul_root R t n a)
+        _ = algebraMap R (Algebra R t n) (reCoeff R t n a) ⊗ₜ[R] g +
+            (imCoeff R t n a • AdjoinRoot.root (polynomial R t n)) ⊗ₜ[R] g := by
+          rw [TensorProduct.add_tmul]
+        _ = (reCoeff R t n a • (1 : Algebra R t n)) ⊗ₜ[R] g +
+            (imCoeff R t n a • AdjoinRoot.root (polynomial R t n)) ⊗ₜ[R] g := by
+          rw [show reCoeff R t n a • (1 : Algebra R t n) =
+              algebraMap R (Algebra R t n) (reCoeff R t n a) by
+            rw [Algebra.smul_def, mul_one]]
+        _ = (1 : Algebra R t n) ⊗ₜ[R] (reCoeff R t n a • g) +
+            AdjoinRoot.root (polynomial R t n) ⊗ₜ[R] (imCoeff R t n a • g) := by
+          rw [TensorProduct.smul_tmul, TensorProduct.smul_tmul]
+        _ = (1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n (a ⊗ₜ[R] g) +
+            AdjoinRoot.root (polynomial R t n) ⊗ₜ[R]
+              tensorImCoeff R G t n (a ⊗ₜ[R] g) := by
+          rw [tensorReCoeff_tmul, tensorImCoeff_tmul]
+  | add x y hx hy =>
+      calc
+        x + y =
+            ((1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n x +
+              AdjoinRoot.root (polynomial R t n) ⊗ₜ[R] tensorImCoeff R G t n x) +
+            ((1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n y +
+              AdjoinRoot.root (polynomial R t n) ⊗ₜ[R] tensorImCoeff R G t n y) :=
+          congrArg₂ (· + ·) hx hy
+        _ = (1 : Algebra R t n) ⊗ₜ[R]
+              (tensorReCoeff R G t n x + tensorReCoeff R G t n y) +
+            AdjoinRoot.root (polynomial R t n) ⊗ₜ[R]
+              (tensorImCoeff R G t n x + tensorImCoeff R G t n y) := by
+          rw [TensorProduct.tmul_add, TensorProduct.tmul_add]
+          abel
+        _ = (1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n (x + y) +
+            AdjoinRoot.root (polynomial R t n) ⊗ₜ[R]
+              tensorImCoeff R G t n (x + y) := by rw [map_add, map_add]
+
+/-- Conjugation on the quadratic factor, tensor the identity on an arbitrary module. -/
+noncomputable def conjugationTensorLinear (t n : R) :
+    Algebra R t n ⊗[R] G →ₗ[R] Algebra R t n ⊗[R] G :=
+  (conjugationAlgEquiv R t n).toLinearMap.rTensor G
+
+@[simp]
+lemma conjugationTensorLinear_tmul (t n : R) (a : Algebra R t n) (g : G) :
+    conjugationTensorLinear R G t n (a ⊗ₜ[R] g) =
+      conjugationAlgEquiv R t n a ⊗ₜ[R] g := by
+  rfl
+
+/-- Conjugating the quadratic factor negates the root coefficient. -/
+lemma tensorImCoeff_conjugationTensorLinear (t n : R)
+    (z : Algebra R t n ⊗[R] G) :
+    tensorImCoeff R G t n (conjugationTensorLinear R G t n z) =
+      -tensorImCoeff R G t n z := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a g =>
+      simp only [conjugationTensorLinear_tmul, tensorImCoeff_tmul,
+        imCoeff_conjugationAlgEquiv, neg_smul]
+  | add x y hx hy => simp only [map_add, hx, hy, neg_add_rev, add_comm]
+
+/-- When `2` is invertible, conjugation-fixed elements after arbitrary scalar extension are
+exactly the tensors with scalar quadratic coefficient. -/
+lemma eq_one_tmul_tensorReCoeff_of_conjugationTensorLinear_eq
+    (t n : R) (h2 : IsUnit (2 : R))
+    (z : Algebra R t n ⊗[R] G)
+    (hz : conjugationTensorLinear R G t n z = z) :
+    z = (1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n z := by
+  have himneg : -tensorImCoeff R G t n z = tensorImCoeff R G t n z := by
+    rw [← tensorImCoeff_conjugationTensorLinear R G t n z, hz]
+  have himtwo : (2 : R) • tensorImCoeff R G t n z = 0 := by
+    rw [two_smul]
+    exact neg_eq_iff_add_eq_zero.mp himneg
+  have hhalf : (↑(h2.unit⁻¹) : R) * 2 = 1 := by
+    calc
+      (↑(h2.unit⁻¹) : R) * 2 =
+          (↑(h2.unit⁻¹) : R) * (h2.unit : R) :=
+        congrArg (fun x : R => (↑(h2.unit⁻¹) : R) * x) h2.unit_spec.symm
+      _ = 1 := h2.unit.inv_mul
+  have him : tensorImCoeff R G t n z = 0 := by
+    calc
+      tensorImCoeff R G t n z =
+          (((↑(h2.unit⁻¹) : R) * 2) : R) • tensorImCoeff R G t n z := by
+        rw [hhalf, one_smul]
+      _ = (↑(h2.unit⁻¹) : R) • ((2 : R) • tensorImCoeff R G t n z) := by
+        rw [smul_smul]
+      _ = 0 := by rw [himtwo, smul_zero]
+  calc
+    z = (1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n z +
+        AdjoinRoot.root (polynomial R t n) ⊗ₜ[R] tensorImCoeff R G t n z :=
+      eq_one_tmul_tensorReCoeff_add_root_tmul_tensorImCoeff R G t n z
+    _ = (1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n z := by
+      rw [him, TensorProduct.tmul_zero, add_zero]
+
+end TensorCoefficients
 
 end QuadraticDescent
