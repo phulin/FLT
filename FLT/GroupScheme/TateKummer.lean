@@ -334,8 +334,9 @@ lemma componentInvRootUnit_pow
     rw [← pow_mul, hexp, pow_add]
     simp
   rw [componentInvRootUnit, mul_pow, inv_pow, componentRootUnit_pow]
-  simpa only [map_inv₀, map_pow, map_mul] using
-    congrArg (Units.map (algebraMap R (Component R N i.1 u))) hunit
+  simpa using
+    congrArg (fun z : Rˣ =>
+      Units.map (algebraMap R (Component R N i.1 u)).toMonoidHom z) hunit
 
 /-- The image of the root under inversion from component `-i` to component `i`. -/
 noncomputable def componentInvRoot
@@ -359,7 +360,11 @@ noncomputable def componentInvAlgHom
     (Algebra.ofId R _) (componentInvRoot N u i) (by
       rw [show componentPolynomial R N (negIndex N i).1 u =
         X ^ N - C ((u : R) ^ (negIndex N i).1) from rfl]
-      simp [componentInvRoot_pow])
+      simp only [eval₂_sub, eval₂_X_pow, eval₂_C, sub_eq_zero]
+      change componentInvRoot N u i ^ N =
+        algebraMap R (Component R N i.1 u)
+          ((u : R) ^ (negIndex N i).1)
+      exact componentInvRoot_pow N u i)
 
 @[simp]
 lemma componentInvAlgHom_root
@@ -530,6 +535,23 @@ lemma tensorCoordinateEquiv_comulAlgHom_apply
   change tensorCoordinateEquiv N u
       ((tensorCoordinateEquiv N u).symm (comulCoordinates N u f)) j i = _
   rw [AlgEquiv.apply_symm_apply]
+  rfl
+
+/-! ## The global antipode map -/
+
+/-- Pullback along inversion on the full coordinate algebra. -/
+noncomputable def antipodeAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u →ₐ[R]
+      CoordinateAlgebra (R := R) N u :=
+  AlgHom.pi fun i =>
+    (componentInvAlgHom N u i).comp
+      (Pi.evalAlgHom R (Components (R := R) N u) (negIndex N i))
+
+@[simp]
+lemma antipodeAlgHom_apply (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) (i : Fin N) :
+    antipodeAlgHom N u f i =
+      componentInvAlgHom N u i (f (negIndex N i)) :=
   rfl
 
 /-! ## Coordinate formulas for iterated comultiplication -/
@@ -791,6 +813,20 @@ noncomputable def evalRightIdentity (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
     (Algebra.TensorProduct.map (.id R (Component R N i.1 u))
       (identityComponentAlgHom N u))
 
+/-- Apply component inversion to the left tensor factor and multiply. -/
+noncomputable def evalAntipodeLeft (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    Component R N (negIndex N i).1 u ⊗[R] Component R N i.1 u →ₐ[R]
+      Component R N i.1 u :=
+  Algebra.TensorProduct.lift (componentInvAlgHom N u i)
+    (.id R (Component R N i.1 u)) fun _ _ => Commute.all _ _
+
+/-- Apply component inversion to the right tensor factor and multiply. -/
+noncomputable def evalAntipodeRight (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    Component R N i.1 u ⊗[R] Component R N (negIndex N i).1 u →ₐ[R]
+      Component R N i.1 u :=
+  Algebra.TensorProduct.lift (.id R (Component R N i.1 u))
+    (componentInvAlgHom N u i) fun _ _ => Commute.all _ _
+
 @[simp]
 lemma evalLeftIdentity_tmul (N : ℕ) [NeZero N] (u : Rˣ) (j : Fin N)
     (x : Component R N (0 : Fin N).1 u) (y : Component R N j.1 u) :
@@ -805,6 +841,22 @@ lemma evalRightIdentity_tmul (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
     evalRightIdentity N u i (x ⊗ₜ[R] y) = identityComponentAlgHom N u y • x := by
   rw [evalRightIdentity, AlgHom.comp_apply, Algebra.TensorProduct.map_tmul,
     AlgHom.id_apply]
+  rfl
+
+@[simp]
+lemma evalAntipodeLeft_tmul (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (x : Component R N (negIndex N i).1 u)
+    (y : Component R N i.1 u) :
+    evalAntipodeLeft N u i (x ⊗ₜ[R] y) =
+      componentInvAlgHom N u i x * y := by
+  rfl
+
+@[simp]
+lemma evalAntipodeRight_tmul (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (x : Component R N i.1 u)
+    (y : Component R N (negIndex N i).1 u) :
+    evalAntipodeRight N u i (x ⊗ₜ[R] y) =
+      x * componentInvAlgHom N u i y := by
   rfl
 
 @[simp]
