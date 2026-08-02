@@ -10,6 +10,8 @@ public import Mathlib.RingTheory.Bialgebra.Basic
 public import Mathlib.RingTheory.Flat.Basic
 public import Mathlib.RingTheory.Finiteness.Basic
 public import Mathlib.RingTheory.HopfAlgebra.Basic
+public import Mathlib.RingTheory.Etale.Pi
+public import Mathlib.RingTheory.Etale.StandardEtale
 public import Mathlib.LinearAlgebra.StdBasis
 public import Mathlib.RingTheory.TensorProduct.Pi
 
@@ -1288,5 +1290,64 @@ noncomputable instance coordinateHopfAlgebra (N : ℕ) [NeZero N] (u : Rˣ) :
     HopfAlgebra R (CoordinateAlgebra (R := R) N u) :=
   HopfAlgebra.ofAlgHom (antipodeAlgHom N u)
     (mul_antipode_rTensor_comul N u) (mul_antipode_lTensor_comul N u)
+
+/-! ## Étaleness over a field -/
+
+section Etale
+
+variable (K : Type u) [Field K]
+
+/-- The standard-étale presentation attached to a Kummer component, localizing at the
+derivative of its defining polynomial. -/
+noncomputable def componentStandardEtalePair
+    (N i : ℕ) [NeZero N] (u : Kˣ) : StandardEtalePair K where
+  f := componentPolynomial K N i u
+  monic_f := componentPolynomial_monic N i u
+  g := derivative (componentPolynomial K N i u)
+  cond := ⟨1, 0, 1, by simp⟩
+
+/-- Over a field in which `N` is nonzero, the derivative of a Kummer component equation
+is a unit at the distinguished root. -/
+lemma isUnit_mk_derivative_componentPolynomial
+    (N i : ℕ) [NeZero N] [NeZero (N : K)] (u : Kˣ) :
+    IsUnit (AdjoinRoot.mk (componentPolynomial K N i u)
+      (derivative (componentPolynomial K N i u))) := by
+  rw [show AdjoinRoot.mk (componentPolynomial K N i u)
+      (derivative (componentPolynomial K N i u)) =
+    aeval (AdjoinRoot.root (componentPolynomial K N i u))
+      (derivative (componentPolynomial K N i u)) by
+        rw [AdjoinRoot.aeval_eq]]
+  have hderiv : derivative (componentPolynomial K N i u) =
+      C (N : K) * X ^ (N - 1) := by
+    rw [componentPolynomial, derivative_sub, derivative_C, sub_zero,
+      derivative_X_pow]
+  rw [hderiv]
+  simp only [map_mul, map_natCast, map_pow, aeval_X]
+  exact (isUnit_iff_ne_zero.mpr (NeZero.ne (N : K))).map
+      (algebraMap K (Component K N i u)) |>.mul
+    ((isUnit_root N i u).pow (N - 1))
+
+/-- A Kummer component is étale over a field of characteristic prime to `N`. -/
+noncomputable instance componentEtale
+    (N i : ℕ) [NeZero N] [NeZero (N : K)] (u : Kˣ) :
+    Algebra.Etale K (Component K N i u) := by
+  let P : StandardEtalePair K := componentStandardEtalePair K N i u
+  let d : AdjoinRoot P.f := AdjoinRoot.mk P.f P.g
+  have hd : IsUnit d := by
+    dsimp [d, P, componentStandardEtalePair]
+    exact isUnit_mk_derivative_componentPolynomial K N i u
+  let e : P.Ring ≃ₐ[K] Component K N i u :=
+    P.equivAwayAdjoinRoot.trans
+      ((IsLocalization.atUnit (AdjoinRoot P.f) (Localization.Away d) d hd).symm.restrictScalars K)
+  exact Algebra.Etale.of_equiv e
+
+/-- The full Tate--Kummer coordinate algebra is étale over a field of characteristic prime
+to `N`. -/
+noncomputable instance coordinateEtale
+    (N : ℕ) [NeZero N] [NeZero (N : K)] (u : Kˣ) :
+    Algebra.Etale K (CoordinateAlgebra (R := K) N u) :=
+  inferInstance
+
+end Etale
 
 end TateKummer
