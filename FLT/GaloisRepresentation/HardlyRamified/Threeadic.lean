@@ -123,15 +123,30 @@ theorem finite_quotient_maximalIdeal_pow_of_finiteFree_moduleTopology
   exact AddSubgroup.quotient_finite_of_isOpen _
     (isOpen_maximalIdeal_pow_of_finiteFree_moduleTopology (R := R) n)
 
-/-- The arithmetic input for a hardly ramified representation over a finite local
+/-- The arithmetic filtration input for a hardly ramified representation over a finite local
 `ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
 the only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing
-`Ext¹(μ₃, ℤ/3ℤ) = 0` then reorders a composition series into a multiplicative subobject and a
-constant quotient.  Their two characters give the displayed identity.
+`Ext¹(μ₃, ℤ/3ℤ) = 0` then reorders a composition series into a diagonalizable subobject and a
+constant quotient.  On geometric points, the quotient is fixed and the subobject has the
+cyclotomic character, which equals the determinant by hard ramification.  The filtration is
+stable under the coefficient algebra because its scalars act by commuting endomorphisms.
 
 The simple-object classification is the `(ℓ,p) = (2,3)` case in the proof of Schoof,
 *Abelian varieties over Q with bad reduction in one prime only*, Theorem 1.3; the reordering is
 Proposition 3.2 and the required extension vanishing is Corollary 4.2. -/
+theorem schoof_three_adic_finite_multiplicative_constant_filtration
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
+    ∃ N : Submodule A W,
+      (∀ g : Γ ℚ, ∀ x : W, τ g x - x ∈ N) ∧
+      (∀ g : Γ ℚ, ∀ x : W, x ∈ N → τ g x = LinearMap.det (τ g) • x) := by
+  sorry
+
+/-- The character identity formally implied by Schoof's multiplicative/constant filtration.
+The linear-algebra step does not require either side of the filtration to be free. -/
 theorem schoof_three_adic_finite_character
     {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
@@ -139,7 +154,21 @@ theorem schoof_three_adic_finite_character
     (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
     (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
     ∀ g : Γ ℚ, LinearMap.trace A W (τ g) = 1 + LinearMap.det (τ g) := by
-  sorry
+  obtain ⟨N, hquot, hsub⟩ :=
+    schoof_three_adic_finite_multiplicative_constant_filtration W hW hτ
+  intro g
+  have hbij : Function.Bijective (τ g) := by
+    constructor
+    · intro x y hxy
+      have h := congrArg (τ g⁻¹) hxy
+      simpa only [← LinearMap.comp_apply, ← Module.End.mul_eq_comp, ← map_mul,
+        inv_mul_cancel g, map_one, Module.End.one_apply] using h
+    · intro y
+      refine ⟨τ g⁻¹ y, ?_⟩
+      simpa only [← LinearMap.comp_apply, ← Module.End.mul_eq_comp, ← map_mul,
+        mul_inv_cancel g, map_one, Module.End.one_apply]
+  exact LinearMap.trace_eq_one_add_det_of_multiplicative_constant_filtration
+    hW (τ g) hbij N (hquot g) (hsub g)
 
 /-- Apply the finite-ring classification to the representation modulo `𝔪ⁿ⁺²`.  All structural
 hypotheses on the quotient and preservation of hard ramification are discharged here; the only

@@ -8,6 +8,9 @@ module
 public import FLT.Deformations.RepresentationTheory.GaloisRep
 public import Mathlib.LinearAlgebra.Basis.VectorSpace
 
+import Mathlib.LinearAlgebra.Matrix.Charpoly.Coeff
+import Mathlib.LinearAlgebra.Charpoly.ToMatrix
+
 /-!
 # Trace criteria for reducibility in dimension two
 
@@ -23,6 +26,66 @@ local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 universe u v
 
 namespace LinearMap
+
+/-- Cayley--Hamilton in trace/determinant form for a finite free module of rank two over a
+local ring. -/
+theorem cayley_hamilton_rank_two
+    {A : Type u} {W : Type v} [CommRing A] [IsLocalRing A]
+    [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) (f : W →ₗ[A] W) :
+    f.comp f - (trace A W f) • f + (LinearMap.det f) • LinearMap.id = 0 := by
+  classical
+  have hfin : Module.finrank A W = 2 := Module.finrank_eq_of_rank_eq hW
+  let b : Module.Basis (Fin 2) A W := Module.finBasisOfFinrankEq A W hfin
+  have hchar : f.charpoly = Polynomial.X ^ 2 -
+      Polynomial.C (trace A W f) * Polynomial.X + Polynomial.C (LinearMap.det f) := by
+    rw [← f.charpoly_toMatrix b, Matrix.charpoly_fin_two,
+      trace_eq_matrix_trace A b, ← det_toMatrix b]
+  have hCH := f.aeval_self_charpoly
+  rw [hchar] at hCH
+  simpa [pow_two, Module.End.mul_eq_comp, Algebra.smul_def] using hCH
+
+/-- Let an automorphism of a free rank-two module act trivially on a quotient and through its
+determinant on the corresponding submodule.  The exact-sequence data alone, without any
+freeness assumption on the submodule or quotient, forces `trace = 1 + det`.
+
+The proof turns the filtration into an annihilating quadratic and compares it with
+Cayley--Hamilton.  Invertibility then lets one read off the scalar coefficient on a basis
+vector. -/
+theorem trace_eq_one_add_det_of_multiplicative_constant_filtration
+    {A : Type u} {W : Type v} [CommRing A] [IsLocalRing A]
+    [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) (f : W →ₗ[A] W) (hf : Function.Bijective f)
+    (N : Submodule A W) (hquot : ∀ x, f x - x ∈ N)
+    (hsub : ∀ x, x ∈ N → f x = LinearMap.det f • x) :
+    trace A W f = 1 + LinearMap.det f := by
+  classical
+  let d : A := LinearMap.det f
+  let t : A := trace A W f
+  have hCH := cayley_hamilton_rank_two hW f
+  have hCHx (x : W) : f (f x) - t • f x + d • x = 0 := by
+    have := LinearMap.congr_fun hCH x
+    simpa [d, t] using this
+  have hfil (x : W) : f (f x) - f x = d • f x - d • x := by
+    have hx := hsub (f x - x) (hquot x)
+    simpa [d, map_sub, smul_sub] using hx
+  have hscalar (x : W) : (1 + d - t) • f x = 0 := by
+    have hc := hCHx x
+    have hf := hfil x
+    have hrepl : f x + d • f x = f (f x) + d • x := by
+      simpa only [add_comm] using (sub_eq_sub_iff_add_eq_add.mp hf).symm
+    rw [sub_smul, add_smul, one_smul, hrepl]
+    simpa only [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hc
+  have hfin : Module.finrank A W = 2 := Module.finrank_eq_of_rank_eq hW
+  let b : Module.Basis (Fin 2) A W := Module.finBasisOfFinrankEq A W hfin
+  obtain ⟨x, hx⟩ := hf.2 (b 0)
+  have hb := hscalar x
+  rw [hx] at hb
+  have hb' := congrArg (fun x : W => (b.repr x) 0) hb
+  have hzero : 1 + d - t = 0 := by
+    simpa [b] using hb'
+  change t = 1 + d
+  exact (sub_eq_zero.mp hzero).symm
 
 /-- On a two-dimensional vector space, an endomorphism acting trivially on a nonzero
 one-dimensional quotient has trace equal to one plus its determinant. -/
