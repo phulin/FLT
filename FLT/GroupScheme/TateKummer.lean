@@ -288,6 +288,89 @@ lemma componentMulAlgHom_root (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
     unfold componentMulAlgHom
     apply AdjoinRoot.liftAlgHom_root
 
+/-! ## Inversion of component coordinates -/
+
+/-- The distinguished component root, regarded as a unit. -/
+noncomputable def componentRootUnit (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    (Component R N i.1 u)ˣ :=
+  (isUnit_root N i.1 u).unit
+
+@[simp]
+lemma componentRootUnit_val (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    (componentRootUnit N u i : Component R N i.1 u) =
+      AdjoinRoot.root (componentPolynomial R N i.1 u) :=
+  (isUnit_root N i.1 u).unit_spec
+
+/-- The defining equation of a component root, promoted to an equality of units. -/
+lemma componentRootUnit_pow (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    componentRootUnit N u i ^ N =
+      Units.map (algebraMap R (Component R N i.1 u)) (u ^ i.1) := by
+  apply Units.ext
+  change (AdjoinRoot.root (componentPolynomial R N i.1 u)) ^ N =
+    algebraMap R (Component R N i.1 u) ((u : R) ^ i.1)
+  exact root_pow N i.1 u
+
+/-- The unit which is the inverse-coordinate image of the root on component `-i`.
+The correction by the carry is `1` on component zero and `u` on every nonzero component. -/
+noncomputable def componentInvRootUnit
+    (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    (Component R N i.1 u)ˣ :=
+  (componentRootUnit N u i)⁻¹ *
+    Units.map (algebraMap R (Component R N i.1 u))
+      (u ^ addCarry N i (negIndex N i))
+
+/-- The inverse-coordinate root satisfies the equation of component `-i`. -/
+lemma componentInvRootUnit_pow
+    (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    componentInvRootUnit N u i ^ N =
+      Units.map (algebraMap R (Component R N i.1 u))
+        (u ^ (negIndex N i).1) := by
+  have hexp : addCarry N i (negIndex N i) * N =
+      i.1 + (negIndex N i).1 := by
+    rw [Nat.mul_comm, ← val_add_negIndex_eq_mul_addCarry N i]
+  have hunit :
+      (u ^ i.1)⁻¹ * (u ^ addCarry N i (negIndex N i)) ^ N =
+        u ^ (negIndex N i).1 := by
+    rw [← pow_mul, hexp, pow_add]
+    simp
+  rw [componentInvRootUnit, mul_pow, inv_pow, componentRootUnit_pow]
+  simpa only [map_inv₀, map_pow, map_mul] using
+    congrArg (Units.map (algebraMap R (Component R N i.1 u))) hunit
+
+/-- The image of the root under inversion from component `-i` to component `i`. -/
+noncomputable def componentInvRoot
+    (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    Component R N i.1 u :=
+  componentInvRootUnit N u i
+
+lemma componentInvRoot_pow (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    componentInvRoot N u i ^ N =
+      algebraMap R (Component R N i.1 u) ((u : R) ^ (negIndex N i).1) := by
+  change ((componentInvRootUnit N u i : Component R N i.1 u) ^ N) = _
+  rw [← Units.val_pow_eq_pow_val, componentInvRootUnit_pow]
+  rfl
+
+/-- Pullback along inversion from component `i` to component `-i`. -/
+noncomputable def componentInvAlgHom
+    (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    Component R N (negIndex N i).1 u →ₐ[R] Component R N i.1 u :=
+  AdjoinRoot.liftAlgHom
+    (componentPolynomial R N (negIndex N i).1 u)
+    (Algebra.ofId R _) (componentInvRoot N u i) (by
+      rw [show componentPolynomial R N (negIndex N i).1 u =
+        X ^ N - C ((u : R) ^ (negIndex N i).1) from rfl]
+      simp [componentInvRoot_pow])
+
+@[simp]
+lemma componentInvAlgHom_root
+    (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    componentInvAlgHom N u i
+        (AdjoinRoot.root
+          (componentPolynomial R N (negIndex N i).1 u)) =
+      componentInvRoot N u i := by
+  unfold componentInvAlgHom
+  apply AdjoinRoot.liftAlgHom_root
+
 /-! ## The global comultiplication and counit maps -/
 
 abbrev Components (N : ℕ) (u : Rˣ) (i : Fin N) :=
