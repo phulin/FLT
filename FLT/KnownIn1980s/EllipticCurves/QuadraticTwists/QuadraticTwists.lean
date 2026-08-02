@@ -266,15 +266,28 @@ theorem exists_smul_eq_quadraticTwistOf_quadraticTwistOf (hD : t ^ 2 - 4 * n ≠
   rw [variableChange_def]
   ext <;> simp only [quadraticTwistOf, inv_inv, Units.val_mk0] <;> field
 
+/-- The explicit change of Weierstrass variables induced by replacing a quadratic generator
+`θ` by `aθ + b`. -/
+def quadraticTwistOfGeneratorChange {a : K} (b : K) (ha : a ≠ 0) : VariableChange K :=
+  ⟨(Units.mk0 a ha)⁻¹, 0, a⁻¹ * b * E.a₁, a⁻¹ * b * (t ^ 2 - 4 * n) * E.a₃⟩
+
+/-- Applying `quadraticTwistOfGeneratorChange` replaces the trace and norm parameters `(t, n)`
+by `(at + 2b, b² + abt + a²n)`, the trace and norm of `aθ + b`. -/
+theorem quadraticTwistOfGeneratorChange_smul {a : K} (b : K) (ha : a ≠ 0) :
+    E.quadraticTwistOfGeneratorChange t n b ha • E.quadraticTwistOf t n
+      = E.quadraticTwistOf (a * t + 2 * b) (b ^ 2 + a * b * t + a ^ 2 * n) := by
+  rw [variableChange_def]
+  ext <;> simp only [quadraticTwistOfGeneratorChange, quadraticTwistOf, inv_inv,
+    Units.val_mk0] <;> field
+
 /-- Changing the parameters `(t, n)` — the trace and norm of a generator `θ` of a quadratic
 extension — into the trace and norm `(at + 2b, b² + abt + a²n)` of another generator `aθ + b`
 changes the quadratic twist by an explicit change of variables over `K`. -/
 theorem exists_smul_quadraticTwistOf_eq {a : K} (b : K) (ha : a ≠ 0) :
     ∃ C : VariableChange K, C • E.quadraticTwistOf t n
-      = E.quadraticTwistOf (a * t + 2 * b) (b ^ 2 + a * b * t + a ^ 2 * n) := by
-  refine ⟨⟨(Units.mk0 a ha)⁻¹, 0, a⁻¹ * b * E.a₁, a⁻¹ * b * (t ^ 2 - 4 * n) * E.a₃⟩, ?_⟩
-  rw [variableChange_def]
-  ext <;> simp only [quadraticTwistOf, inv_inv, Units.val_mk0] <;> field
+      = E.quadraticTwistOf (a * t + 2 * b) (b ^ 2 + a * b * t + a ^ 2 * n) :=
+  ⟨E.quadraticTwistOfGeneratorChange t n b ha,
+    E.quadraticTwistOfGeneratorChange_smul t n b ha⟩
 
 end QuadraticTwistOf
 
