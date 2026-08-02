@@ -123,6 +123,28 @@ lemma addIndex_assoc (N : ℕ) [NeZero N] (i j k : Fin N) :
     _ = (i.1 + (j.1 + k.1) % N) % N := by
       simpa [Nat.mod_eq_of_lt i.isLt] using Nat.add_mod i.1 (j.1 + k.1) N
 
+@[simp]
+lemma addIndex_zero_left (N : ℕ) [NeZero N] (i : Fin N) :
+    addIndex N 0 i = i := by
+  apply Fin.ext
+  simp [addIndex, Nat.mod_eq_of_lt i.isLt]
+
+@[simp]
+lemma addIndex_zero_right (N : ℕ) [NeZero N] (i : Fin N) :
+    addIndex N i 0 = i := by
+  apply Fin.ext
+  simp [addIndex, Nat.mod_eq_of_lt i.isLt]
+
+@[simp]
+lemma addCarry_zero_left (N : ℕ) [NeZero N] (i : Fin N) :
+    addCarry N 0 i = 0 := by
+  simp [addCarry, Nat.div_eq_of_lt i.isLt]
+
+@[simp]
+lemma addCarry_zero_right (N : ℕ) [NeZero N] (i : Fin N) :
+    addCarry N i 0 = 0 := by
+  simp [addCarry, Nat.div_eq_of_lt i.isLt]
+
 /-- The carry is a normalized additive two-cocycle. -/
 lemma addCarry_cocycle (N : ℕ) [NeZero N] (i j k : Fin N) :
     addCarry N i j + addCarry N (addIndex N i j) k =
@@ -229,6 +251,29 @@ lemma componentMulAlgHom_root (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
 abbrev Components (N : ℕ) (u : Rˣ) (i : Fin N) :=
   Component R N i.1 u
 
+/-- Reindex component algebras along an equality of component indices. -/
+noncomputable def componentEquivOfEq
+    (N : ℕ) (u : Rˣ) {i j : Fin N} (h : i = j) :
+    Component R N i.1 u ≃ₐ[R] Component R N j.1 u := by
+  subst j
+  exact AlgEquiv.refl
+
+@[simp]
+lemma componentEquivOfEq_root
+    (N : ℕ) (u : Rˣ) {i j : Fin N} (h : i = j) :
+    componentEquivOfEq N u h
+        (AdjoinRoot.root (componentPolynomial R N i.1 u)) =
+      AdjoinRoot.root (componentPolynomial R N j.1 u) := by
+  subst j
+  rfl
+
+lemma componentEquivOfEq_coordinate
+    (N : ℕ) (u : Rˣ) (f : CoordinateAlgebra (R := R) N u)
+    {i j : Fin N} (h : i = j) :
+    componentEquivOfEq N u h (f i) = f j := by
+  subst j
+  rfl
+
 /-- Decompose the tensor product of the two finite products into the product of all
 componentwise tensor products. The outer index is the right component. -/
 noncomputable def tensorCoordinateEquiv (N : ℕ) [NeZero N] (u : Rˣ) :
@@ -245,6 +290,12 @@ noncomputable def tensorCoordinateEquiv (N : ℕ) [NeZero N] (u : Rˣ) :
             (AlgEquiv.piCongrRight fun i =>
               Algebra.TensorProduct.comm R
                 (Component R N j.1 u) (Component R N i.1 u))))
+
+@[simp]
+lemma tensorCoordinateEquiv_tmul (N : ℕ) [NeZero N] (u : Rˣ)
+    (x y : CoordinateAlgebra (R := R) N u) (j i : Fin N) :
+    tensorCoordinateEquiv N u (x ⊗ₜ[R] y) j i = x i ⊗ₜ[R] y j := by
+  rfl
 
 /-- The coordinate map for multiplication, after decomposing the target into pairs of
 components. -/
@@ -284,6 +335,18 @@ noncomputable def identityComponentAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
         X ^ N - C ((u : R) ^ (0 : Fin N).1) from rfl]
       simp)
 
+@[simp]
+lemma identityComponentAlgHom_root (N : ℕ) [NeZero N] (u : Rˣ) :
+    identityComponentAlgHom N u
+      (AdjoinRoot.root (componentPolynomial R N (0 : Fin N).1 u)) = 1 := by
+  unfold identityComponentAlgHom
+  apply AdjoinRoot.liftAlgHom_root
+
+@[simp]
+lemma identityComponentAlgHom_one (N : ℕ) [NeZero N] (u : Rˣ) :
+    identityComponentAlgHom N u 1 = 1 :=
+  map_one _
+
 /-- Counit on the coordinate algebra: evaluate on the identity point. -/
 noncomputable def counitAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
     CoordinateAlgebra (R := R) N u →ₐ[R] R :=
@@ -295,5 +358,137 @@ lemma counitAlgHom_apply (N : ℕ) [NeZero N] (u : Rˣ)
     (f : CoordinateAlgebra (R := R) N u) :
     counitAlgHom N u f = identityComponentAlgHom N u (f 0) :=
   rfl
+
+/-- Evaluate the left tensor factor at the identity point. -/
+noncomputable def evalLeftIdentity (N : ℕ) [NeZero N] (u : Rˣ) (j : Fin N) :
+    (Component R N (0 : Fin N).1 u) ⊗[R] (Component R N j.1 u) →ₐ[R]
+      Component R N j.1 u :=
+  (Algebra.TensorProduct.lid R (Component R N j.1 u)).toAlgHom.comp
+    (Algebra.TensorProduct.map (identityComponentAlgHom N u)
+      (.id R (Component R N j.1 u)))
+
+/-- Evaluate the right tensor factor at the identity point. -/
+noncomputable def evalRightIdentity (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N) :
+    (Component R N i.1 u) ⊗[R] (Component R N (0 : Fin N).1 u) →ₐ[R]
+      Component R N i.1 u :=
+  (Algebra.TensorProduct.rid R R (Component R N i.1 u)).toAlgHom.comp
+    (Algebra.TensorProduct.map (.id R (Component R N i.1 u))
+      (identityComponentAlgHom N u))
+
+@[simp]
+lemma evalLeftIdentity_tmul (N : ℕ) [NeZero N] (u : Rˣ) (j : Fin N)
+    (x : Component R N (0 : Fin N).1 u) (y : Component R N j.1 u) :
+    evalLeftIdentity N u j (x ⊗ₜ[R] y) = identityComponentAlgHom N u x • y := by
+  rw [evalLeftIdentity, AlgHom.comp_apply, Algebra.TensorProduct.map_tmul,
+    AlgHom.id_apply]
+  rfl
+
+@[simp]
+lemma evalRightIdentity_tmul (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (x : Component R N i.1 u) (y : Component R N (0 : Fin N).1 u) :
+    evalRightIdentity N u i (x ⊗ₜ[R] y) = identityComponentAlgHom N u y • x := by
+  rw [evalRightIdentity, AlgHom.comp_apply, Algebra.TensorProduct.map_tmul,
+    AlgHom.id_apply]
+  rfl
+
+@[simp]
+lemma evalLeftIdentity_includeLeft (N : ℕ) [NeZero N] (u : Rˣ) (j : Fin N)
+    (x : Component R N (0 : Fin N).1 u) :
+    evalLeftIdentity N u j
+        (Algebra.TensorProduct.includeLeft
+          (R := R) (S := R) (B := Component R N j.1 u) x) =
+      algebraMap R (Component R N j.1 u) (identityComponentAlgHom N u x) := by
+  change evalLeftIdentity N u j (x ⊗ₜ[R] 1) = _
+  rw [evalLeftIdentity_tmul]
+  simp [Algebra.smul_def]
+
+@[simp]
+lemma evalLeftIdentity_includeRight (N : ℕ) [NeZero N] (u : Rˣ) (j : Fin N)
+    (y : Component R N j.1 u) :
+    evalLeftIdentity N u j
+        (Algebra.TensorProduct.includeRight
+          (R := R) (A := Component R N (0 : Fin N).1 u) y) = y := by
+  change evalLeftIdentity N u j (1 ⊗ₜ[R] y) = y
+  rw [evalLeftIdentity_tmul]
+  rw [identityComponentAlgHom_one (R := R), one_smul]
+
+@[simp]
+lemma evalRightIdentity_includeLeft (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (x : Component R N i.1 u) :
+    evalRightIdentity N u i
+        (Algebra.TensorProduct.includeLeft
+          (R := R) (S := R) (B := Component R N (0 : Fin N).1 u) x) = x := by
+  change evalRightIdentity N u i (x ⊗ₜ[R] 1) = x
+  rw [evalRightIdentity_tmul]
+  rw [identityComponentAlgHom_one (R := R), one_smul]
+
+@[simp]
+lemma evalRightIdentity_includeRight (N : ℕ) [NeZero N] (u : Rˣ) (i : Fin N)
+    (y : Component R N (0 : Fin N).1 u) :
+    evalRightIdentity N u i
+        (Algebra.TensorProduct.includeRight
+          (R := R) (A := Component R N i.1 u) y) =
+      algebraMap R (Component R N i.1 u) (identityComponentAlgHom N u y) := by
+  change evalRightIdentity N u i (1 ⊗ₜ[R] y) = _
+  rw [evalRightIdentity_tmul]
+  simp [Algebra.smul_def]
+
+/-- Multiplying a coordinate by the identity component on the left is the identity map. -/
+lemma evalLeftIdentity_componentMul (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) (j : Fin N) :
+    evalLeftIdentity N u j
+        (componentMulAlgHom N u 0 j (f (addIndex N 0 j))) = f j := by
+  let h : addIndex N 0 j = j := addIndex_zero_left N j
+  let g : Component R N (addIndex N 0 j).1 u →ₐ[R] Component R N j.1 u :=
+    (evalLeftIdentity N u j).comp (componentMulAlgHom N u 0 j)
+  have hg : g = (componentEquivOfEq N u h).toAlgHom := by
+    apply AdjoinRoot.algHom_ext
+    dsimp only [g]
+    rw [AlgHom.comp_apply, componentMulAlgHom_root]
+    calc
+      evalLeftIdentity N u j (componentMulRoot N u 0 j) =
+          AdjoinRoot.root (componentPolynomial R N j.1 u) := by
+        rw [componentMulRoot, map_mul, map_mul]
+        rw [evalLeftIdentity_includeLeft (R := R),
+          evalLeftIdentity_includeRight (R := R),
+          identityComponentAlgHom_root (R := R)]
+        rw [(evalLeftIdentity N u j).commutes]
+        simp [addCarry_zero_left]
+      _ = componentEquivOfEq N u h
+          (AdjoinRoot.root
+            (componentPolynomial R N (addIndex N 0 j).1 u)) :=
+        (componentEquivOfEq_root (R := R) N u h).symm
+  change g (f (addIndex N 0 j)) = f j
+  rw [hg]
+  exact componentEquivOfEq_coordinate N u f h
+
+/-- Multiplying a coordinate by the identity component on the right is the identity map. -/
+lemma evalRightIdentity_componentMul (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) (i : Fin N) :
+    evalRightIdentity N u i
+        (componentMulAlgHom N u i 0 (f (addIndex N i 0))) = f i := by
+  let h : addIndex N i 0 = i := addIndex_zero_right N i
+  let g : Component R N (addIndex N i 0).1 u →ₐ[R] Component R N i.1 u :=
+    (evalRightIdentity N u i).comp (componentMulAlgHom N u i 0)
+  have hg : g = (componentEquivOfEq N u h).toAlgHom := by
+    apply AdjoinRoot.algHom_ext
+    dsimp only [g]
+    rw [AlgHom.comp_apply, componentMulAlgHom_root]
+    calc
+      evalRightIdentity N u i (componentMulRoot N u i 0) =
+          AdjoinRoot.root (componentPolynomial R N i.1 u) := by
+        rw [componentMulRoot, map_mul, map_mul]
+        rw [evalRightIdentity_includeLeft (R := R),
+          evalRightIdentity_includeRight (R := R),
+          identityComponentAlgHom_root (R := R)]
+        rw [(evalRightIdentity N u i).commutes]
+        simp [addCarry_zero_right]
+      _ = componentEquivOfEq N u h
+          (AdjoinRoot.root
+            (componentPolynomial R N (addIndex N i 0).1 u)) :=
+        (componentEquivOfEq_root (R := R) N u h).symm
+  change g (f (addIndex N i 0)) = f i
+  rw [hg]
+  exact componentEquivOfEq_coordinate N u f h
 
 end TateKummer
