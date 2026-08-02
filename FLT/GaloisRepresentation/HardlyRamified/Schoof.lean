@@ -9,6 +9,7 @@ public import FLT.GaloisRepresentation.HardlyRamified.Defs
 
 import Mathlib.GroupTheory.PGroup
 import Mathlib.RingTheory.Localization.Away.Basic
+public import Mathlib.RingTheory.HopfAlgebra.Convolution
 
 /-!
 # Generic fibers of Schoof's finite-flat category
@@ -634,6 +635,73 @@ noncomputable def GaloisRep.genericEtaleHopfAlgebra
   exact HopfAlgebra.ofAlgHom (GaloisRep.genericEtaleAntipode rho)
     (GaloisRep.genericEtale_mul_antipode_rTensor_comul rho)
     (GaloisRep.genericEtale_mul_antipode_lTensor_comul rho)
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Convolution of geometric points agrees with the addition map used to define the
+generic comultiplication. -/
+theorem GaloisRep.genericEtale_convMul
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W)
+    (q₁ q₂ : WithConv (GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ]
+      AlgebraicClosure ℚ)) :
+    letI := GaloisRep.genericEtaleBialgebra rho
+    (q₁ * q₂).ofConv = GaloisRep.genericEtaleAddPoints rho
+      (Algebra.TensorProduct.lift q₁.ofConv q₂.ofConv
+        (fun _ _ => Commute.all _ _)) := by
+  letI := GaloisRep.genericEtaleBialgebra rho
+  rw [AlgHom.convMul_def]
+  change ((Algebra.TensorProduct.lmul' ℚ).comp
+      (Algebra.TensorProduct.map q₁.ofConv q₂.ofConv)).comp
+        (GaloisRep.genericEtaleComul rho) = _
+  rw [Algebra.TensorProduct.lmul'_comp_map,
+    GaloisRep.comp_genericEtaleComul]
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The additive group of geometric points of the generic Hopf algebra is the original
+finite Galois module. -/
+noncomputable def GaloisRep.genericEtalePointsAddEquiv
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W) :
+    letI := GaloisRep.genericEtaleHopfAlgebra rho
+    Additive (WithConv (GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ]
+      AlgebraicClosure ℚ)) ≃+ rho.Space := by
+  letI := GaloisRep.genericEtaleHopfAlgebra rho
+  exact
+    { toFun := fun q => (GaloisRep.genericEtalePointsEquiv rho).symm q.toMul.ofConv
+      invFun := fun x => Additive.ofMul
+        (WithConv.toConv (GaloisRep.genericEtalePointsEquiv rho x))
+      left_inv := fun q => by
+        apply Additive.toMul.injective
+        apply WithConv.ofConv_injective
+        exact (GaloisRep.genericEtalePointsEquiv rho).apply_symm_apply q.toMul.ofConv
+      right_inv := fun x => (GaloisRep.genericEtalePointsEquiv rho).symm_apply_apply x
+      map_add' := fun q₁ q₂ => by
+        change (GaloisRep.genericEtalePointsEquiv rho).symm
+            ((q₁.toMul * q₂.toMul).ofConv) =
+          (GaloisRep.genericEtalePointsEquiv rho).symm q₁.toMul.ofConv +
+            (GaloisRep.genericEtalePointsEquiv rho).symm q₂.toMul.ofConv
+        rw [GaloisRep.genericEtale_convMul,
+          GaloisRep.genericEtaleAddPoints_symm]
+        simp }
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The additive identification of generic geometric points is Galois-equivariant. -/
+theorem GaloisRep.genericEtalePointsAddEquiv_smul
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W) (sigma : Γ ℚ)
+    (q : GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) :
+    letI := GaloisRep.genericEtaleHopfAlgebra rho
+    GaloisRep.genericEtalePointsAddEquiv rho
+        (Additive.ofMul (WithConv.toConv (sigma.toAlgHom.comp q))) =
+      rho sigma (GaloisRep.genericEtalePointsAddEquiv rho
+        (Additive.ofMul (WithConv.toConv q))) := by
+  letI := GaloisRep.genericEtaleHopfAlgebra rho
+  change (GaloisRep.genericEtalePointsEquiv rho).symm (sigma • q) =
+    sigma • (GaloisRep.genericEtalePointsEquiv rho).symm q
+  exact GaloisRep.genericEtalePointsEquiv_symm_smul rho sigma q
 
 /-- The generic-fiber conditions satisfied by an object of Schoof's `(2, 3)` category.
 
