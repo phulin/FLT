@@ -1785,7 +1785,8 @@ lemma baseChangeTripleCoverEquiv_map_id_comul
         Algebra.TensorProduct.map_tmul, AlgHom.id_apply]
       simp only [baseChangeEquiv_apply]
       rw [baseChangeToCover_tmul, map_one, one_mul,
-        baseChangeTensorCoverEquiv_one_tmul_comulAlgHom]
+        baseChangeTensorCoverEquiv_one_tmul_comulAlgHom,
+        baseChangeToCover_tmul, map_one, one_mul]
   | add x y hx hy => simp only [map_add, TensorProduct.tmul_add, hx, hy]
 
 /-- Comultiply the first tensor factor after comultiplying once, then reassociate. -/
@@ -1859,10 +1860,11 @@ lemma baseChangeTripleCoverEquiv_assoc_map_comul_id
           rw [Algebra.TensorProduct.assoc_tmul,
             baseChangeTripleCoverEquiv_tmul,
             baseChangeTensorCoverEquiv_tmul,
+            baseChangeTensorCoverEquiv_tmul,
             Algebra.TensorProduct.assoc_tmul]
           simp only [baseChangeEquiv_apply]
-          rw [baseChangeToCover_tmul, baseChangeToCover_tmul, map_one, one_mul]
-      | add p q hp hq => simp only [map_add, TensorProduct.add_tmul, hp, hq]
+      | add p q hp hq =>
+          simp only [map_add, TensorProduct.add_tmul, TensorProduct.tmul_add, hp, hq]
   | add p q hp hq => simp only [map_add, TensorProduct.tmul_add, hp, hq]
 
 /-- Right-iterated descended comultiplication becomes the cover operation after scalar
@@ -1890,7 +1892,15 @@ lemma baseChangeTripleCoverEquiv_one_tmul_leftIterated
         ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
           leftIteratedComulAlgHom R N u t n h2 hdisc z) =
       coverLeftIteratedComulAlgHom R N u t n z := by
-  rw [leftIteratedComulAlgHom, AlgHom.comp_apply, AlgHom.comp_apply,
+  change baseChangeTripleCoverEquiv R N u t n h2 hdisc
+      ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+        (Algebra.TensorProduct.assoc R R R
+          (fixedSubalgebra R N u t n) (fixedSubalgebra R N u t n)
+            (fixedSubalgebra R N u t n))
+          (Algebra.TensorProduct.map (comulAlgHom R N u t n h2 hdisc)
+            (AlgHom.id R (fixedSubalgebra R N u t n))
+            (comulAlgHom R N u t n h2 hdisc z))) = _
+  rw [
     baseChangeTripleCoverEquiv_assoc_map_comul_id,
     baseChangeTensorCoverEquiv_one_tmul_comulAlgHom]
   rfl
@@ -1965,7 +1975,7 @@ end Coassociativity
 
 /-- The fixed quadratic-twist coordinate algebra, equipped with the comultiplication
 and counit descended from the quadratic cover. -/
-noncomputable instance coordinateBialgebra (h2 : IsUnit (2 : R))
+noncomputable def coordinateBialgebra (h2 : IsUnit (2 : R))
     (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
     Bialgebra R (fixedSubalgebra R N u t n) :=
   Bialgebra.ofAlgHom (comulAlgHom R N u t n h2 hdisc)
