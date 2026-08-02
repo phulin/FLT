@@ -59,6 +59,23 @@ theorem GaloisRep.genericEtaleAlgebra_isEtale
   infer_instance
 
 set_option backward.isDefEq.respectTransparency false in
+/-- The tensor square of the generic coordinate algebra is again finite etale. -/
+theorem GaloisRep.genericEtaleTensorSquare_isEtale
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    Algebra.Etale ℚ (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho) := by
+  letI : Algebra.Etale ℚ (GaloisRep.GenericEtaleAlgebra rho) :=
+    GaloisRep.genericEtaleAlgebra_isEtale rho
+  letI : Algebra (GaloisRep.GenericEtaleAlgebra rho)
+      (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+        GaloisRep.GenericEtaleAlgebra rho) := Algebra.TensorProduct.leftAlgebra
+  exact Algebra.Etale.comp ℚ (GaloisRep.GenericEtaleAlgebra rho)
+    (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho)
+
+set_option backward.isDefEq.respectTransparency false in
 /-- Evaluation identifies the representation's underlying finite Galois set with the
 geometric points of its generic coordinate algebra. -/
 noncomputable def GaloisRep.genericEtalePointsEquiv
@@ -82,6 +99,17 @@ theorem GaloisRep.genericEtalePointsEquiv_apply
   rfl
 
 set_option backward.isDefEq.respectTransparency false in
+/-- Evaluation is Galois-equivariant in the forward direction. -/
+theorem GaloisRep.genericEtalePointsEquiv_smul
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) (sigma : Γ ℚ) (x : rho.Space) :
+    GaloisRep.genericEtalePointsEquiv rho (sigma • x) =
+      sigma • GaloisRep.genericEtalePointsEquiv rho x := by
+  exact (MulActionHom.evalAlgHom (Γ ℚ) ℚ rho.Space
+    (AlgebraicClosure ℚ)).map_smul sigma x
+
+set_option backward.isDefEq.respectTransparency false in
 /-- The inverse evaluation bijection is Galois-equivariant. -/
 theorem GaloisRep.genericEtalePointsEquiv_symm_smul
     {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
@@ -97,6 +125,148 @@ theorem GaloisRep.genericEtalePointsEquiv_symm_smul
     sigma • GaloisRep.genericEtalePointsEquiv rho
       ((GaloisRep.genericEtalePointsEquiv rho).symm x)
   rw [Equiv.apply_symm_apply]
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The map on geometric points dual to addition on the representation space. -/
+noncomputable def GaloisRep.genericEtaleAddPoints
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    ((GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+        GaloisRep.GenericEtaleAlgebra rho) →ₐ[ℚ] AlgebraicClosure ℚ) →[Γ ℚ]
+      (GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) where
+  toFun q :=
+    GaloisRep.genericEtalePointsEquiv rho
+      ((GaloisRep.genericEtalePointsEquiv rho).symm
+          (q.comp Algebra.TensorProduct.includeLeft) +
+        (GaloisRep.genericEtalePointsEquiv rho).symm
+          (q.comp Algebra.TensorProduct.includeRight))
+  map_smul' sigma q := by
+    have h_left :
+        (sigma • q).comp Algebra.TensorProduct.includeLeft =
+          sigma • (q.comp Algebra.TensorProduct.includeLeft) := by
+      rfl
+    have h_right :
+        (sigma • q).comp Algebra.TensorProduct.includeRight =
+          sigma • (q.comp Algebra.TensorProduct.includeRight) := by
+      rfl
+    rw [h_left, h_right,
+      GaloisRep.genericEtalePointsEquiv_symm_smul,
+      GaloisRep.genericEtalePointsEquiv_symm_smul, ← smul_add,
+      GaloisRep.genericEtalePointsEquiv_smul]
+    simp only [id_eq]
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The map on geometric points dual to the zero element of the representation space. -/
+noncomputable def GaloisRep.genericEtaleZeroPoints
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    (ℚ →ₐ[ℚ] AlgebraicClosure ℚ) →[Γ ℚ]
+      (GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) where
+  toFun _ := GaloisRep.genericEtalePointsEquiv rho 0
+  map_smul' sigma q := by
+    rw [← GaloisRep.genericEtalePointsEquiv_smul]
+    simp
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The map on geometric points dual to negation on the representation space. -/
+noncomputable def GaloisRep.genericEtaleNegPoints
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    (GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) →[Γ ℚ]
+      (GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) where
+  toFun q := GaloisRep.genericEtalePointsEquiv rho
+    (- (GaloisRep.genericEtalePointsEquiv rho).symm q)
+  map_smul' sigma q := by
+    rw [GaloisRep.genericEtalePointsEquiv_symm_smul, ← smul_neg,
+      GaloisRep.genericEtalePointsEquiv_smul]
+    simp only [id_eq]
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Comultiplication on the generic coordinate algebra, obtained by finite-etale full
+faithfulness from addition on geometric points. -/
+noncomputable def GaloisRep.genericEtaleComul
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ]
+      (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+        GaloisRep.GenericEtaleAlgebra rho) := by
+  letI : Algebra.Etale ℚ (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho) :=
+    GaloisRep.genericEtaleTensorSquare_isEtale rho
+  exact InfiniteGalois.algHomOfMulActionHom ℚ (AlgebraicClosure ℚ)
+    (GaloisRep.GenericEtaleAlgebra rho)
+      (B := GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+        GaloisRep.GenericEtaleAlgebra rho) (GaloisRep.genericEtaleAddPoints rho)
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Counit on the generic coordinate algebra, obtained from its zero geometric point. -/
+noncomputable def GaloisRep.genericEtaleCounit
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] ℚ :=
+  InfiniteGalois.algHomOfMulActionHom ℚ (AlgebraicClosure ℚ)
+    (GaloisRep.GenericEtaleAlgebra rho) (B := ℚ)
+      (GaloisRep.genericEtaleZeroPoints rho)
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Antipode on the generic coordinate algebra, obtained from negation on geometric points. -/
+noncomputable def GaloisRep.genericEtaleAntipode
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho :=
+  InfiniteGalois.algHomOfMulActionHom ℚ (AlgebraicClosure ℚ)
+    (GaloisRep.GenericEtaleAlgebra rho)
+      (B := GaloisRep.GenericEtaleAlgebra rho) (GaloisRep.genericEtaleNegPoints rho)
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+theorem GaloisRep.comp_genericEtaleComul
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W)
+    (q : (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho) →ₐ[ℚ] AlgebraicClosure ℚ) :
+    q.comp (GaloisRep.genericEtaleComul rho) =
+      GaloisRep.genericEtaleAddPoints rho q := by
+  letI : Algebra.Etale ℚ (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho) :=
+    GaloisRep.genericEtaleTensorSquare_isEtale rho
+  exact InfiniteGalois.comp_algHomOfMulActionHom ℚ (AlgebraicClosure ℚ)
+    (GaloisRep.GenericEtaleAlgebra rho)
+      (B := GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+        GaloisRep.GenericEtaleAlgebra rho) (GaloisRep.genericEtaleAddPoints rho) q
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+theorem GaloisRep.comp_genericEtaleCounit
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) (q : ℚ →ₐ[ℚ] AlgebraicClosure ℚ) :
+    q.comp (GaloisRep.genericEtaleCounit rho) =
+      GaloisRep.genericEtaleZeroPoints rho q := by
+  exact InfiniteGalois.comp_algHomOfMulActionHom ℚ (AlgebraicClosure ℚ)
+    (GaloisRep.GenericEtaleAlgebra rho) (B := ℚ)
+      (GaloisRep.genericEtaleZeroPoints rho) q
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+theorem GaloisRep.comp_genericEtaleAntipode
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W)
+    (q : GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) :
+    q.comp (GaloisRep.genericEtaleAntipode rho) =
+      GaloisRep.genericEtaleNegPoints rho q := by
+  exact InfiniteGalois.comp_algHomOfMulActionHom ℚ (AlgebraicClosure ℚ)
+    (GaloisRep.GenericEtaleAlgebra rho)
+      (B := GaloisRep.GenericEtaleAlgebra rho) (GaloisRep.genericEtaleNegPoints rho) q
 
 /-- The generic-fiber conditions satisfied by an object of Schoof's `(2, 3)` category.
 
