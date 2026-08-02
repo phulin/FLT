@@ -8,6 +8,12 @@ module
 public import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
 public import Mathlib.RingTheory.Ideal.MinimalPrime.Basic
 public import Mathlib.NumberTheory.Padics.PadicIntegers
+public import FLT.Deformations.IsProartinian
+
+import FLT.Mathlib.LinearAlgebra.Dimension.Constructions
+import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
+import Mathlib.Topology.Algebra.Module.Compact
+import Mathlib.Topology.Homeomorph.Lemmas
 
 /-!
 # Characteristic-zero components of flat local algebras
@@ -21,6 +27,26 @@ the deformation ring, and some minimal prime avoids it.
 @[expose] public section
 
 namespace Deformation
+
+/-- A finite free local algebra with the module topology over a compact Hausdorff totally
+disconnected Noetherian ring is pro-Artinian. -/
+theorem isProartinian_of_finiteFree_moduleTopology
+    (A B : Type*) [CommRing A] [Nontrivial A] [IsNoetherianRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [CompactSpace A] [T2Space A]
+    [TotallyDisconnectedSpace A]
+    [CommRing B] [IsLocalRing B] [Algebra A B]
+    [Module.Finite A B] [Module.Free A B]
+    [TopologicalSpace B] [IsTopologicalRing B] [IsModuleTopology A B] : IsProartinian B := by
+  letI : CompactSpace B := Module.Finite.compactSpace A B
+  letI : T2Space B := IsModuleTopology.t2Space A
+  let e : B ≃ₗ[A] (Fin (Module.finrank A B) → A) := Module.Finite.equivPi A B
+  let eTop : B ≃L[A] (Fin (Module.finrank A B) → A) :=
+    IsModuleTopology.continuousLinearEquiv e
+  letI : TotallyDisconnectedSpace B :=
+    eTop.toHomeomorph.symm.totallyDisconnectedSpace
+  letI : IsNoetherianRing B := IsNoetherianRing.of_finite A B
+  letI : IsLocalRing.IsAdicTopology B := inferInstance
+  infer_instance
 
 /-- Let `B` be a flat local algebra over a local domain `A`.  Every nonzero `a : A` is avoided
 by a minimal prime of `B`.  Applied to a uniformizer of a coefficient DVR, this is the
