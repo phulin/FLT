@@ -98,7 +98,7 @@ end HopfAlgebra
 namespace Algebra.TensorProduct
 
 variable (R A B C : Type*) [CommRing R] [CommRing A] [Algebra R A]
-  [CommRing B] [Algebra R B] [CommRing C] [Algebra R C]
+  [CommSemiring B] [Algebra R B] [CommSemiring C] [Algebra R C]
 
 /-- Algebraic form of the standard linear equivalence distributing scalar extension over a
 tensor product. -/
