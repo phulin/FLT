@@ -9,6 +9,8 @@ public import Mathlib.RingTheory.Etale.StandardEtale
 public import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
 public import Mathlib.RingTheory.LocalRing.ResidueField.Basic
 public import Mathlib.Algebra.QuadraticAlgebra.Basic
+public import FLT.Mathlib.LinearAlgebra.Dimension.IsQuadraticExtension
+public import FLT.Mathlib.RingTheory.Norm.Quotient
 
 /-!
 # Quadratic descent algebras
@@ -96,6 +98,133 @@ noncomputable instance instNontrivial [IsDomain R] (t n : R) :
 noncomputable instance instFaithfullyFlat [IsDomain R] (t n : R) :
     Module.FaithfullyFlat R (Algebra R t n) :=
   inferInstance
+
+/-! ## Scalar extension and quadratic fields -/
+
+section BaseChange
+
+variable (K : Type u) [CommRing K] [_root_.Algebra R K]
+
+/-- Adjoining a root of the trace--norm polynomial commutes with scalar extension. -/
+noncomputable def algebraBaseChangeEquiv (t n : R) :
+    K ⊗[R] Algebra R t n ≃ₐ[K]
+      Algebra K (algebraMap R K t) (algebraMap R K n) := by
+  let pR := polynomial R t n
+  let pT := pR.map
+    (Algebra.TensorProduct.includeRight : R →ₐ[R] K ⊗[R] R).toRingHom
+  let pK := polynomial K (algebraMap R K t) (algebraMap R K n)
+  let e₁ : K ⊗[R] AdjoinRoot pR ≃ₐ[K] AdjoinRoot pT :=
+    AdjoinRoot.tensorAlgEquiv pR pT rfl
+  let e₂ : AdjoinRoot pT ≃ₐ[K] AdjoinRoot pK :=
+    AdjoinRoot.mapAlgEquiv (Algebra.TensorProduct.rid R K K) pT pK
+      (Associated.of_eq (by
+        simp [pT, pK, pR, polynomial, Algebra.smul_def]))
+  exact e₁.trans e₂
+
+end BaseChange
+
+section QuadraticField
+
+variable (K L : Type u) [Field K] [Field L] [_root_.Algebra K L]
+  [Algebra.IsQuadraticExtension K L]
+
+/-- Evaluation at a quadratic generator with prescribed trace and norm. -/
+noncomputable def fieldAlgHom (t n : K) (θ : L)
+    (htrace : Algebra.trace K L θ = t)
+    (hnorm : Algebra.norm K θ = n) :
+    Algebra K t n →ₐ[K] L :=
+  AdjoinRoot.liftAlgHom (polynomial K t n) (Algebra.ofId K L) θ (by
+    rw [eval₂_polynomial]
+    change θ ^ 2 + (-(algebraMap K L t) * θ + algebraMap K L n) = 0
+    have hθ := sq_sub_trace_mul_self_add_norm
+      (Algebra.IsQuadraticExtension.finrank_eq_two K L) θ
+    rw [htrace, hnorm] at hθ
+    linear_combination hθ)
+
+@[simp]
+lemma fieldAlgHom_root (t n : K) (θ : L)
+    (htrace : Algebra.trace K L θ = t)
+    (hnorm : Algebra.norm K θ = n) :
+    fieldAlgHom K L t n θ htrace hnorm
+        (AdjoinRoot.root (polynomial K t n)) = θ := by
+  apply AdjoinRoot.liftAlgHom_root
+
+/-- A non-base quadratic generator makes the evaluation map surjective. -/
+lemma fieldAlgHom_surjective (t n : K) (θ : L)
+    (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = t)
+    (hnorm : Algebra.norm K θ = n) :
+    Function.Surjective (fieldAlgHom K L t n θ htrace hnorm) := by
+  intro z
+  by_cases hz : z ∈ Set.range (algebraMap K L)
+  · obtain ⟨c, rfl⟩ := hz
+    refine ⟨algebraMap K (Algebra K t n) c, ?_⟩
+    exact (fieldAlgHom K L t n θ htrace hnorm).commutes c
+  · obtain ⟨a, b, _ha, hz⟩ :=
+      Algebra.IsQuadraticExtension.exists_eq_algebraMap_add_algebraMap_mul
+        K L hθ hz
+    refine ⟨algebraMap K (Algebra K t n) b +
+      algebraMap K (Algebra K t n) a * AdjoinRoot.root (polynomial K t n), ?_⟩
+    rw [map_add, map_mul, (fieldAlgHom K L t n θ htrace hnorm).commutes,
+      (fieldAlgHom K L t n θ htrace hnorm).commutes, fieldAlgHom_root]
+    exact hz.symm
+
+/-- Evaluation at a non-base generator is bijective because both sides have dimension two. -/
+lemma fieldAlgHom_bijective (t n : K) (θ : L)
+    (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = t)
+    (hnorm : Algebra.norm K θ = n) :
+    Function.Bijective (fieldAlgHom K L t n θ htrace hnorm) := by
+  have hsurj := fieldAlgHom_surjective K L t n θ hθ htrace hnorm
+  have hdim : Module.finrank K (Algebra K t n) = Module.finrank K L := by
+    calc
+      Module.finrank K (Algebra K t n) = (polynomial K t n).natDegree :=
+        (AdjoinRoot.powerBasis (polynomial_monic K t n).ne_zero).finrank
+      _ = 2 := natDegree_polynomial K t n
+      _ = Module.finrank K L :=
+        (Algebra.IsQuadraticExtension.finrank_eq_two K L).symm
+  have hinj :=
+    (LinearMap.injective_iff_surjective_of_finrank_eq_finrank hdim
+      (f := (fieldAlgHom K L t n θ htrace hnorm).toLinearMap)).mpr hsurj
+  exact ⟨hinj, hsurj⟩
+
+/-- The trace--norm presentation of a quadratic extension by a non-base generator. -/
+noncomputable def fieldAlgEquiv (t n : K) (θ : L)
+    (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = t)
+    (hnorm : Algebra.norm K θ = n) :
+    Algebra K t n ≃ₐ[K] L :=
+  AlgEquiv.ofBijective (fieldAlgHom K L t n θ htrace hnorm)
+    (fieldAlgHom_bijective K L t n θ hθ htrace hnorm)
+
+@[simp]
+lemma fieldAlgEquiv_root (t n : K) (θ : L)
+    (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = t)
+    (hnorm : Algebra.norm K θ = n) :
+    fieldAlgEquiv K L t n θ hθ htrace hnorm
+        (AdjoinRoot.root (polynomial K t n)) = θ := by
+  exact fieldAlgHom_root K L t n θ htrace hnorm
+
+section GenericFiber
+
+variable (R : Type u) [CommRing R] [_root_.Algebra R K]
+  [_root_.Algebra R L] [IsScalarTower R K L]
+
+/-- The generic fiber of the integral trace--norm algebra is the prescribed quadratic
+field extension. -/
+noncomputable def genericFiberFieldEquiv (t n : R) (θ : L)
+    (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n) :
+    K ⊗[R] Algebra R t n ≃ₐ[K] L :=
+  (algebraBaseChangeEquiv R K t n).trans
+    (fieldAlgEquiv K L (algebraMap R K t) (algebraMap R K n)
+      θ hθ htrace hnorm)
+
+end GenericFiber
+
+end QuadraticField
 
 /-- The standard étale presentation attached to the quadratic polynomial.  Localizing away
 from its discriminant is encoded by the constant polynomial `C discriminant`. -/
