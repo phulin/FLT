@@ -6,6 +6,7 @@ Authors: FLT Project
 module
 
 public import Mathlib.RingTheory.AdjoinRoot
+public import Mathlib.RingTheory.Bialgebra.Basic
 public import Mathlib.RingTheory.Flat.Basic
 public import Mathlib.RingTheory.Finiteness.Basic
 public import Mathlib.LinearAlgebra.StdBasis
@@ -868,5 +869,15 @@ lemma lTensor_counit_comp_comul (N : ℕ) [NeZero N] (u : Rˣ) :
   change applyCounitRight N u (comulAlgHom N u f) i = f i
   rw [applyCounitRight_apply, tensorCoordinateEquiv_comulAlgHom_apply]
   exact evalRightIdentity_componentMul N u f i
+
+/-! ## The finite-flat bialgebra -/
+
+/-- The explicit Tate--Kummer coordinate ring, with multiplication of group-scheme
+points encoded by its comultiplication. -/
+noncomputable instance coordinateBialgebra (N : ℕ) [NeZero N] (u : Rˣ) :
+    Bialgebra R (CoordinateAlgebra (R := R) N u) :=
+  Bialgebra.ofAlgHom (comulAlgHom N u) (counitAlgHom N u)
+    (comulAlgHom_coassoc N u) (rTensor_counit_comp_comul N u)
+      (lTensor_counit_comp_comul N u)
 
 end TateKummer
