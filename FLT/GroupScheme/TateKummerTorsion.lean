@@ -337,6 +337,60 @@ lemma kummerPointToTorsion_bijective
   ⟨kummerPointToTorsion_injective R S N u q a hq hqinj,
     kummerPointToTorsion_surjective R S N u q a hq⟩
 
+/-- Applying a base-algebra automorphism to a Kummer point applies it to the associated
+representative, provided the chosen factor `a` is fixed. -/
+lemma kummerRepresentative_map
+    (N : ℕ) (u : Rˣ) (a : Sˣ) (σ : S ≃ₐ[R] S)
+    (ha : Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (x : KummerUnitPoint R S N u) :
+    kummerRepresentative R S N u a
+        (kummerUnitPointMap R S N u σ x) =
+      Units.map σ.toRingEquiv.toMonoidHom
+        (kummerRepresentative R S N u a x) := by
+  rcases x with ⟨i, x⟩
+  change a ^ i.1 * Units.map σ.toRingEquiv.toMonoidHom x.1 =
+    Units.map σ.toRingEquiv.toMonoidHom (a ^ i.1 * x.1)
+  have hapow : Units.map σ.toRingEquiv.toMonoidHom (a ^ i.1) = a ^ i.1 := by
+    calc
+      _ = (Units.map σ.toRingEquiv.toMonoidHom a) ^ i.1 := map_pow _ _ i.1
+      _ = _ := congrArg (fun w : Sˣ ↦ w ^ i.1) ha
+  calc
+    a ^ i.1 * Units.map σ.toRingEquiv.toMonoidHom x.1 =
+        Units.map σ.toRingEquiv.toMonoidHom (a ^ i.1) *
+          Units.map σ.toRingEquiv.toMonoidHom x.1 :=
+      congrArg (fun w : Sˣ ↦ w * Units.map σ.toRingEquiv.toMonoidHom x.1) hapow.symm
+    _ = _ := (map_mul (Units.map σ.toRingEquiv.toMonoidHom) (a ^ i.1) x.1).symm
+
+/-- The Kummer-to-torsion bijection intertwines automorphisms with the induced action on
+the quotient by `q^ℤ`. -/
+lemma kummerPointToTorsion_map
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (σ : S ≃ₐ[R] S)
+    (hqσ : Units.map σ.toRingEquiv.toMonoidHom q = q)
+    (haσ : Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (x : KummerUnitPoint R S N u) :
+    kummerPointToTorsion R S N u q a hq
+        (kummerUnitPointMap R S N u σ x) =
+      QuotientGroup.torsionMapFixingGenerator q N
+        (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+        (kummerPointToTorsion R S N u q a hq x) := by
+  apply Subtype.ext
+  rw [QuotientGroup.torsionMapFixingGenerator_coe]
+  change Additive.ofMul
+      ((kummerRepresentative R S N u a
+          (kummerUnitPointMap R S N u σ x) :
+        Sˣ ⧸ Subgroup.zpowers q)) =
+    Additive.ofMul
+      (QuotientGroup.mapFixingGenerator q
+        (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+        (kummerRepresentative R S N u a x :
+          Sˣ ⧸ Subgroup.zpowers q))
+  rw [QuotientGroup.mapFixingGenerator_mk]
+  exact congrArg (fun w : Sˣ ↦ Additive.ofMul
+    (w : Sˣ ⧸ Subgroup.zpowers q))
+      (kummerRepresentative_map R S N u a σ haσ x)
+
 end QuotientTorsion
 
 section GenericFiber
@@ -368,6 +422,24 @@ lemma genericFiberPointToTorsion_convMul
     genericFiberAlgHomUnitEquiv_convMul,
     kummerPointToTorsion_mul]
   rfl
+
+/-- The quotient-torsion interpretation of generic-fiber points is Galois equivariant. -/
+lemma genericFiberPointToTorsion_comp
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (σ : S ≃ₐ[K] S)
+    (hqσ : Units.map σ.toRingEquiv.toMonoidHom q = q)
+    (haσ : Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (φ : K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S) :
+    genericFiberPointToTorsion R K S N u q a hq (σ.toAlgHom.comp φ) =
+      QuotientGroup.torsionMapFixingGenerator q N
+        (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+        (genericFiberPointToTorsion R K S N u q a hq φ) := by
+  rw [genericFiberPointToTorsion,
+    genericFiberAlgHomUnitEquiv_comp]
+  exact kummerPointToTorsion_map R S N u q a hq
+    (σ.restrictScalars R) hqσ haσ
+      (genericFiberAlgHomUnitEquiv R K S N u φ)
 
 /-- The quotient-torsion interpretation as an additive homomorphism on convolution
 points. -/
@@ -438,6 +510,29 @@ noncomputable def genericFiberTorsionAddEquiv
           (Additive (Sˣ ⧸ Subgroup.zpowers q)) (N : ℤ) :=
   AddEquiv.ofBijective (genericFiberToTorsionAddHom R K S N u q a hq)
     (genericFiberToTorsionAddHom_bijective R K S N u q a hq hqinj)
+
+/-- Galois equivariance of the additive equivalence between generic-fiber points and
+quotient torsion. -/
+lemma genericFiberTorsionAddEquiv_comp
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (hqinj : Function.Injective fun z : ℤ ↦ q ^ z)
+    (σ : S ≃ₐ[K] S)
+    (hqσ : Units.map σ.toRingEquiv.toMonoidHom q = q)
+    (haσ : Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (φ : K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S) :
+    genericFiberTorsionAddEquiv R K S N u q a hq hqinj
+        (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) =
+      QuotientGroup.torsionMapFixingGenerator q N
+        (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+        (genericFiberTorsionAddEquiv R K S N u q a hq hqinj
+          (Additive.ofMul (WithConv.toConv φ))) := by
+  change genericFiberPointToTorsion R K S N u q a hq
+      (σ.toAlgHom.comp φ) =
+    QuotientGroup.torsionMapFixingGenerator q N
+      (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+      (genericFiberPointToTorsion R K S N u q a hq φ)
+  exact genericFiberPointToTorsion_comp R K S N u q a hq σ hqσ haσ φ
 
 end GenericFiber
 
