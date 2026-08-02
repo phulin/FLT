@@ -1209,6 +1209,159 @@ lemma coverComulAlgHom_descentAlgEquiv
       rw [← hc]
   | add x y hx hy => simp only [map_add, hx, hy]
 
+/-! ## Descent of comultiplication -/
+
+/-- Transport cover comultiplication through the one- and two-factor base-change
+equivalences. -/
+noncomputable def transportedCoverComulAlgHom (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    BaseChangedFixedAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :=
+  (baseChangeTensorCoverEquiv R N u t n h2 hdisc).symm.toAlgHom.comp
+    ((Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n)).comp
+        (baseChangeEquiv R N u t n h2 hdisc).toAlgHom)
+
+/-- Transported cover comultiplication is equivariant for conjugation on the quadratic
+scalar. -/
+lemma transportedCoverComulAlgHom_equivariant (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : BaseChangedFixedAlgebra R N u t n) :
+    baseChangeTensorConjugationAlgEquiv R N u t n
+        (transportedCoverComulAlgHom R N u t n h2 hdisc z) =
+      transportedCoverComulAlgHom R N u t n h2 hdisc
+        (baseChangeConjugationAlgEquiv R N u t n z) := by
+  apply (baseChangeTensorCoverEquiv R N u t n h2 hdisc).injective
+  rw [← coverTensorDescentSemilinearMap_baseChangeTensorCoverEquiv]
+  simp only [transportedCoverComulAlgHom, AlgHom.comp_apply,
+    AlgEquiv.coe_toAlgHom, AlgEquiv.apply_symm_apply]
+  rw [coverComulAlgHom_descentAlgEquiv,
+    descentAlgEquiv_baseChangeEquiv]
+
+/-- The algebraic conjugation map on the scalar extension is its previously defined
+module-linear conjugation map. -/
+lemma baseChangeTensorConjugationAlgEquiv_eq_conjugationTensorLinear
+    (z : QuadraticDescent.Algebra R t n ⊗[R]
+      (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) :
+    baseChangeTensorConjugationAlgEquiv R N u t n z =
+      QuadraticDescent.conjugationTensorLinear R
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n z := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a q =>
+      rw [QuadraticDescent.conjugationTensorLinear_tmul]
+      rfl
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+/-- Restrict transported cover comultiplication to descended inputs.  Its codomain is
+still scalar-extended; the next lemmas show that its quadratic coefficient vanishes. -/
+noncomputable def baseChangedComulAlgHom (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    fixedSubalgebra R N u t n →ₐ[R]
+      QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :=
+  ((transportedCoverComulAlgHom R N u t n h2 hdisc).restrictScalars R).comp
+    (Algebra.TensorProduct.includeRight :
+      fixedSubalgebra R N u t n →ₐ[R] BaseChangedFixedAlgebra R N u t n)
+
+/-- Base-changed comultiplication of a descended element is fixed by conjugation on the
+quadratic scalar. -/
+lemma baseChangedComulAlgHom_fixed (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    QuadraticDescent.conjugationTensorLinear R
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+        (baseChangedComulAlgHom R N u t n h2 hdisc z) =
+      baseChangedComulAlgHom R N u t n h2 hdisc z := by
+  rw [← baseChangeTensorConjugationAlgEquiv_eq_conjugationTensorLinear]
+  change
+    baseChangeTensorConjugationAlgEquiv R N u t n
+        (transportedCoverComulAlgHom R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] z)) = _
+  rw [transportedCoverComulAlgHom_equivariant,
+    baseChangeConjugationAlgEquiv_tmul, map_one]
+  rfl
+
+/-- Therefore base-changed comultiplication has scalar quadratic coefficient. -/
+lemma baseChangedComulAlgHom_eq_one_tmul (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    baseChangedComulAlgHom R N u t n h2 hdisc z =
+      (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+        QuadraticDescent.tensorReCoeff R
+          (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+          (baseChangedComulAlgHom R N u t n h2 hdisc z) :=
+  QuadraticDescent.eq_one_tmul_tensorReCoeff_of_conjugationTensorLinear_eq R
+    (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n h2 _
+    (baseChangedComulAlgHom_fixed R N u t n h2 hdisc z)
+
+/-- Comultiplication on the descended quadratic-twist coordinate algebra. -/
+noncomputable def comulAlgHom (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    fixedSubalgebra R N u t n →ₐ[R]
+      fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n where
+  toFun z := QuadraticDescent.tensorReCoeff R
+    (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+    (baseChangedComulAlgHom R N u t n h2 hdisc z)
+  map_zero' := by simp
+  map_one' := by
+    let coeff := QuadraticDescent.tensorReCoeff R
+      (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+    calc
+      coeff (baseChangedComulAlgHom R N u t n h2 hdisc 1) = coeff 1 :=
+        congrArg coeff (baseChangedComulAlgHom R N u t n h2 hdisc).map_one
+      _ = 1 := by
+        change QuadraticDescent.tensorReCoeff R
+            (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+            ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+              (1 : fixedSubalgebra R N u t n ⊗[R]
+                fixedSubalgebra R N u t n)) = 1
+        rw [QuadraticDescent.tensorReCoeff_tmul,
+          QuadraticDescent.reCoeff_one, one_smul]
+  map_add' x y := by
+    let coeff := QuadraticDescent.tensorReCoeff R
+      (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+    calc
+      coeff (baseChangedComulAlgHom R N u t n h2 hdisc (x + y)) =
+          coeff (baseChangedComulAlgHom R N u t n h2 hdisc x +
+            baseChangedComulAlgHom R N u t n h2 hdisc y) :=
+        congrArg coeff
+          ((baseChangedComulAlgHom R N u t n h2 hdisc).map_add x y)
+      _ = coeff (baseChangedComulAlgHom R N u t n h2 hdisc x) +
+          coeff (baseChangedComulAlgHom R N u t n h2 hdisc y) :=
+        coeff.map_add _ _
+  map_mul' x y := by
+    change QuadraticDescent.tensorReCoeff R
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+        (baseChangedComulAlgHom R N u t n h2 hdisc (x * y)) = _
+    rw [map_mul, baseChangedComulAlgHom_eq_one_tmul R N u t n h2 hdisc x,
+      baseChangedComulAlgHom_eq_one_tmul R N u t n h2 hdisc y]
+    simp only [Algebra.TensorProduct.tmul_mul_tmul,
+      QuadraticDescent.tensorReCoeff_tmul, mul_one,
+      QuadraticDescent.reCoeff_one, one_smul]
+  commutes' r := by
+    rw [(baseChangedComulAlgHom R N u t n h2 hdisc).commutes]
+    change QuadraticDescent.tensorReCoeff R
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+        (algebraMap R (QuadraticDescent.Algebra R t n) r ⊗ₜ[R]
+          (1 : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) =
+      algebraMap R
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) r
+    rw [QuadraticDescent.tensorReCoeff_tmul,
+      QuadraticDescent.reCoeff_algebraMap]
+    exact (Algebra.algebraMap_eq_smul_one r).symm
+
+@[simp]
+lemma comulAlgHom_apply (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    comulAlgHom R N u t n h2 hdisc z =
+      QuadraticDescent.tensorReCoeff R
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) t n
+        (baseChangedComulAlgHom R N u t n h2 hdisc z) :=
+  rfl
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :

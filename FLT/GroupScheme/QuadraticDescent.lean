@@ -237,6 +237,10 @@ lemma reCoeff_algebraMap (t n r : R) :
     reCoeff R t n (algebraMap R (Algebra R t n) r) = r := by
   simp [reCoeff, quadraticAlgebraEquiv]
 
+@[simp]
+lemma reCoeff_one (t n : R) : reCoeff R t n (1 : Algebra R t n) = 1 := by
+  simpa only [map_one] using reCoeff_algebraMap R t n (1 : R)
+
 /-- Every element has its explicit scalar-plus-root decomposition. -/
 lemma eq_algebraMap_reCoeff_add_smul_root (t n : R) (z : Algebra R t n) :
     z = algebraMap R (Algebra R t n) (reCoeff R t n z) +
@@ -532,7 +536,7 @@ lemma evenPart_add_antiInvariant_mul_oddPart (t n : R) (h2 : IsUnit (2 : R))
 
 section TensorCoefficients
 
-variable (G : Type v) [AddCommGroup G] [Module R G]
+variable (G : Type v) [AddCommMonoid G] [Module R G]
 
 /-- Extract the scalar-basis coefficient after tensoring the quadratic algebra with a
 module. -/
@@ -617,13 +621,16 @@ lemma conjugationTensorLinear_tmul (t n : R) (a : Algebra R t n) (g : G) :
 lemma tensorImCoeff_conjugationTensorLinear (t n : R)
     (z : Algebra R t n ⊗[R] G) :
     tensorImCoeff R G t n (conjugationTensorLinear R G t n z) =
-      -tensorImCoeff R G t n z := by
+      (-1 : R) • tensorImCoeff R G t n z := by
   induction z using TensorProduct.induction_on with
   | zero => simp
   | tmul a g =>
       simp only [conjugationTensorLinear_tmul, tensorImCoeff_tmul,
-        imCoeff_conjugationAlgEquiv, neg_smul]
-  | add x y hx hy => simp only [map_add, hx, hy, neg_add_rev, add_comm]
+        imCoeff_conjugationAlgEquiv]
+      rw [smul_smul]
+      congr 1
+      ring
+  | add x y hx hy => simp only [map_add, hx, hy, smul_add]
 
 /-- When `2` is invertible, conjugation-fixed elements after arbitrary scalar extension are
 exactly the tensors with scalar quadratic coefficient. -/
@@ -632,11 +639,20 @@ lemma eq_one_tmul_tensorReCoeff_of_conjugationTensorLinear_eq
     (z : Algebra R t n ⊗[R] G)
     (hz : conjugationTensorLinear R G t n z = z) :
     z = (1 : Algebra R t n) ⊗ₜ[R] tensorReCoeff R G t n z := by
-  have himneg : -tensorImCoeff R G t n z = tensorImCoeff R G t n z := by
+  have himneg :
+      (-1 : R) • tensorImCoeff R G t n z = tensorImCoeff R G t n z := by
     rw [← tensorImCoeff_conjugationTensorLinear R G t n z, hz]
   have himtwo : (2 : R) • tensorImCoeff R G t n z = 0 := by
-    rw [two_smul]
-    exact neg_eq_iff_add_eq_zero.mp himneg
+    calc
+      (2 : R) • tensorImCoeff R G t n z =
+          tensorImCoeff R G t n z + tensorImCoeff R G t n z := by rw [two_smul]
+      _ = (-1 : R) • tensorImCoeff R G t n z + tensorImCoeff R G t n z :=
+        congrArg (fun x => x + tensorImCoeff R G t n z) himneg.symm
+      _ = (-1 : R) • tensorImCoeff R G t n z +
+          (1 : R) • tensorImCoeff R G t n z := by rw [one_smul]
+      _ = ((-1 : R) + 1) • tensorImCoeff R G t n z :=
+        (add_smul (-1 : R) 1 (tensorImCoeff R G t n z)).symm
+      _ = 0 := by simp
   have hhalf : (↑(h2.unit⁻¹) : R) * 2 = 1 := by
     calc
       (↑(h2.unit⁻¹) : R) * 2 =
