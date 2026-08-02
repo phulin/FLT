@@ -6,6 +6,7 @@ Authors: Michael Stoll, Claude
 module
 
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
+public import FLT.Mathlib.AlgebraicGeometry.EllipticCurve.VariableChange
 
 /-!
 # Isomorphism of point groups induced by a change of variables
@@ -227,6 +228,46 @@ lemma equivVariableChange_some {x y : F} (h : (C • W).toAffine.Nonsingular x y
       = .some ((C.u : F) ^ 2 * x + C.r) ((C.u : F) ^ 3 * y + (C.u : F) ^ 2 * C.s * x + C.t)
           (equation_iff_nonsingular.mp
             ((variableChange_equation W C x y).mpr (equation_iff_nonsingular.mpr h))) := rfl
+
+section BaseChange
+
+variable {K : Type*} [Field K] (V : WeierstrassCurve K) [V.IsElliptic]
+variable (D : VariableChange K)
+
+/-- The point-group isomorphism induced by a change of variables defined over the base field,
+after extension to any field `M`.  Packaging the base-change equality here keeps later Galois
+arguments independent of definitional choices for mapped Weierstrass equations. -/
+def variableChangePointEquiv (M : Type*) [Field M] [Algebra K M] [DecidableEq M] :
+    ((D • V)⁄M).Point ≃+ (V⁄M).Point :=
+  have : (V.baseChange M).IsElliptic :=
+    inferInstanceAs (V.map (algebraMap K M)).IsElliptic
+  (equivOfEq (WeierstrassCurve.baseChange_smul_baseChange M D V).symm).trans
+    (equivVariableChange (V.baseChange M) (D.baseChange M))
+
+/-- Naturality of `variableChangePointEquiv`: a change of variables defined over `K` commutes
+with every `K`-algebra map between extension fields. -/
+theorem variableChangePointEquiv_map
+    {M N : Type*} [Field M] [Field N] [Algebra K M] [Algebra K N]
+    [DecidableEq M] [DecidableEq N] (f : M →ₐ[K] N)
+    (P : ((D • V)⁄M).Point) :
+    variableChangePointEquiv V D N (Point.map f P) =
+      Point.map f (variableChangePointEquiv V D M P) := by
+  have hu : (((D.baseChange N).u : N)) = f (((D.baseChange M).u : M)) := by
+    simp only [VariableChange.baseChange, VariableChange.map, Units.coe_map,
+      MonoidHom.coe_coe]
+    exact (f.commutes _).symm
+  have hr : (D.baseChange N).r = f (D.baseChange M).r := (f.commutes _).symm
+  have hs : (D.baseChange N).s = f (D.baseChange M).s := (f.commutes _).symm
+  have ht : (D.baseChange N).t = f (D.baseChange M).t := (f.commutes _).symm
+  rcases P with _ | ⟨x, y, h⟩
+  · simp [← zero_def]
+  · simp only [variableChangePointEquiv, AddEquiv.trans_apply, equivOfEq_some,
+      equivVariableChange_some, Point.map_some]
+    refine some_eq_some (V.baseChange N) ?_ ?_
+    · simp only [map_add, map_mul, map_pow, hu, hr]
+    · simp only [map_add, map_mul, map_pow, hu, hs, ht]
+
+end BaseChange
 
 end Point
 
