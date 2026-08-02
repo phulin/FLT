@@ -229,6 +229,94 @@ theorem torsion_hasFlatProlongationAt_of_nonsplit_multiplicative
     v P.freyCurve P.p P.hppos
   simpa only [K, R, Ω, E] using hmodel
 
+/-- At a bad Frey exponent, multiplicative reduction gives a flat prolongation whether
+or not the node is already split. -/
+theorem torsion_hasFlatProlongationAt_of_multiplicative
+    (P : FreyPackage) (hbad : (P.p : ℤ) ∣ P.a * P.b * P.c) :
+    letI : Fact P.p.Prime := ⟨P.pp⟩
+    let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let _ : Field K :=
+      IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing K :=
+      (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ K :=
+      IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasMultiplicativeReduction R],
+      (P.freyCurve.galoisRep P.p P.hppos).HasFlatProlongationAt v := by
+  letI : Fact P.p.Prime := ⟨P.pp⟩
+  dsimp only
+  intro hmult
+  let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let _ : Field K :=
+    IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing K :=
+    (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ K :=
+    IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let E := P.freyCurve.baseChange K
+  let _ : E.HasMultiplicativeReduction R := hmult
+  by_cases hsplit : E.HasSplitMultiplicativeReduction R
+  · let _ : E.HasSplitMultiplicativeReduction R := hsplit
+    exact torsion_hasFlatProlongationAt_of_split_multiplicative P hbad
+  · exact torsion_hasFlatProlongationAt_of_nonsplit_multiplicative
+      P hbad hsplit
+
+/-- Multiplicative reduction at a bad Frey exponent makes the torsion representation
+flat at that exponent. -/
+theorem torsion_isFlatAt_of_multiplicative
+    (P : FreyPackage) (hbad : (P.p : ℤ) ∣ P.a * P.b * P.c) :
+    letI : Fact P.p.Prime := ⟨P.pp⟩
+    let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let _ : Field K :=
+      IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing K :=
+      (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ K :=
+      IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasMultiplicativeReduction R],
+      (P.freyCurve.galoisRep P.p P.hppos).IsFlatAt v := by
+  letI : Fact P.p.Prime := ⟨P.pp⟩
+  dsimp only
+  intro hmult
+  let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+  have hmodel := torsion_hasFlatProlongationAt_of_multiplicative P hbad
+  exact hmodel.isFlatAt_of_field v _
+
+/-- The Frey `p`-torsion representation is flat at `p`: use good reduction when `p`
+does not divide `abc`, and the split-or-descended Tate--Kummer model otherwise. -/
+theorem torsion_isFlatAt (P : FreyPackage) :
+    haveI : Fact P.p.Prime := ⟨P.pp⟩
+    (P.freyCurve.galoisRep P.p P.hppos).IsFlatAt
+      P.pp.toHeightOneSpectrumRingOfIntegersRat := by
+  letI : Fact P.p.Prime := ⟨P.pp⟩
+  by_cases hbad : (P.p : ℤ) ∣ P.a * P.b * P.c
+  · let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let _ : Field K :=
+      IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing K :=
+      (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ K :=
+      IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let E := P.freyCurve.baseChange K
+    let _ : E.HasMultiplicativeReduction R := by
+      have hpodd : 2 < P.p := by
+        have hp5 := P.hp5
+        omega
+      exact hasMultiplicativeReduction_at_completion_of_dvd_abc
+        P P.pp hpodd hbad
+    exact torsion_isFlatAt_of_multiplicative P hbad
+  · exact torsion_isFlatAt_of_not_dvd_abc P hbad
+
 /-- The split-multiplicative Tate--Kummer prolongation proves flatness at the Frey
 exponent. -/
 theorem torsion_isFlatAt_of_split_multiplicative
