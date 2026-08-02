@@ -5,6 +5,7 @@ Authors: Kevin Buzzard, Ruben Van de Velde, Pietro Monticone
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import FLT.Deformations.RepresentationTheory.AbsoluteGaloisGroup
 public import FLT.Deformations.RepresentationTheory.Etale
 public import FLT.Deformations.IsProartinian
@@ -895,7 +896,8 @@ condition: finite-flat Galois modules are closed under finite products and equiv
 quotients. The product model is obtained from a finite product of group schemes; the quotient
 model is obtained by schematic closure and the quotient construction for finite flat group
 schemes. See de Smit--Lenstra, *Explicit construction of universal deformation rings*, §6.3,
-and Conrad, *The flat deformation functor*, §1. -/
+and Conrad, *The flat deformation functor*, §1.  The group-scheme quotient used there is the
+classical representability theorem of SGA 3, Exposé VIB, available well before 1990. -/
 theorem GaloisRep.HasFlatProlongationAt.quotient_pi
     {C P : Type*} [CommRing C] [TopologicalSpace C]
     [AddCommGroup P] [Module C P]
@@ -904,7 +906,7 @@ theorem GaloisRep.HasFlatProlongationAt.quotient_pi
     (hf : Function.Surjective f)
     (heq : ∀ σ x, f (fun i ↦ ρ.toLocal v σ (x i)) = ρ'.toLocal v σ (f x)) :
     ρ'.HasFlatProlongationAt v := by
-  sorry
+  knownin1980s
 
 /-- A module-finite extension of coefficient rings preserves the existence of a finite-flat
 prolongation. Choose a finite free module surjecting onto the target coefficient ring. After

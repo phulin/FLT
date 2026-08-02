@@ -5,6 +5,7 @@ Authors: Andrew Yang
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import FLT.Deformations.LiftFunctor
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import Mathlib.NumberTheory.NumberField.InfinitePlace.TotallyRealComplex
@@ -35,7 +36,9 @@ variable (ρ : (repnFunctor n G 𝓞).obj .residueField) [(toRepresentation ρ).
 
 lemma isCorepresentable_deformationFunctor :
     (deformationFunctor n G 𝓞 ρ).toFunctor.IsCorepresentable := by
-  sorry -- de Smit and Lenstra, Proposition 2.3 (1).
+  -- Schlessinger's representability criterion (1968), in Mazur's profinite Galois
+  -- deformation framework; compare Mazur, *Deforming Galois representations* (1989).
+  knownin1980s
 
 end
 
@@ -103,7 +106,10 @@ variable (hρ : ρ ∈ (narrowSLiftFunctor 𝓞 l S ρ).obj _)
 include hK hl hS hρ in
 lemma isCorepresentable_narrowSLiftFunctor :
     (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.IsCorepresentable := by
-  sorry
+  -- Apply Schlessinger--Mazur representability to the determinant, ramification, trace, and
+  -- finite-flat local conditions.  The weight-two flat condition is controlled by the
+  -- pre-1990 Fontaine--Laffaille finite-flat deformation theory.
+  knownin1980s
 
 /-- The universal lifting ring `Rᵘⁿⁱᵛ` representing the functor of narrow `S`-lifts. -/
 def narrowSLiftUniversalRing : ProartinianCat 𝓞 :=
