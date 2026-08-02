@@ -1076,6 +1076,17 @@ noncomputable instance instFinite
 
 end Subrepresentation
 
+/-- Every representation on a finite module admits a composition series by invariant
+submodules, starting at zero and ending at the whole representation. -/
+theorem Representation.exists_subrepresentation_compositionSeries
+    {R G W : Type*} [Ring R] [Monoid G] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : Representation R G W) :
+    ∃ s : CompositionSeries (Subrepresentation rho),
+      s.head = ⊥ ∧ s.last = ⊤ := by
+  obtain ⟨f, f₀, n, hn⟩ :=
+    exists_covBy_seq_of_wellFoundedLT_wellFoundedGT (Subrepresentation rho)
+  exact ⟨⟨n, fun i ↦ f i, fun i ↦ hn.2 i i.2⟩, f₀.eq_bot, hn.1.eq_top⟩
+
 /-- A Galois representation is a representation (note that we
 are forgetting topological information here). -/
 def GaloisRep.toRepresentation (ρ : GaloisRep K A M) : Representation A (Γ K) M :=
@@ -1088,10 +1099,7 @@ theorem GaloisRep.exists_invariant_compositionSeries [Finite M]
     (ρ : GaloisRep K A M) :
     ∃ s : CompositionSeries (Subrepresentation ρ.toRepresentation),
       s.head = ⊥ ∧ s.last = ⊤ := by
-  obtain ⟨f, f₀, n, hn⟩ :=
-    exists_covBy_seq_of_wellFoundedLT_wellFoundedGT
-      (Subrepresentation ρ.toRepresentation)
-  exact ⟨⟨n, fun i ↦ f i, fun i ↦ hn.2 i i.2⟩, f₀.eq_bot, hn.1.eq_top⟩
+  exact ρ.toRepresentation.exists_subrepresentation_compositionSeries
 
 /-- Irreducibility of a Galois representation over a field. -/
 def GaloisRep.IsIrreducible {k : Type*} [Field k] [TopologicalSpace k] [Module k M]
