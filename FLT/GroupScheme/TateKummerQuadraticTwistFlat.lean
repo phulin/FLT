@@ -6,6 +6,7 @@ Authors: FLT Project
 module
 
 public import FLT.GroupScheme.TateKummerQuadraticTwistTorsion
+public import FLT.GroupScheme.TateKummerFlat
 public import Mathlib.RingTheory.Etale.Descent
 
 /-!
@@ -684,6 +685,68 @@ lemma quadraticTwistTateKummerTorsionAddEquiv_comp
     e.symm_apply_apply]
   exact quadraticTateKummerTorsionAddEquiv_comp R K L S W N u₀ t n
     θ hθ htrace hnorm h2 hdisc a hq haσ σ φ
+
+/-! ## Finite-flat model -/
+
+/-- If the Tate parameter of a split quadratic twist factors as an `N`-th power times
+an integral unit, quadratic descent gives a finite flat model for the original curve's
+`N`-torsion.  Its generic-fiber point identification has the ordinary (untwisted)
+Galois action. -/
+theorem torsion_flat_of_quadratic_twist_factorization [IsFractionRing R K]
+    (N : ℕ) [NeZero N] [NeZero (N : K)]
+    (u₀ : Rˣ) (t n : R)
+    (θ : L) (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q₀ a₀ : R)
+    (hq₀ : algebraMap R K q₀ = (C • E.quadraticTwist L).q)
+    (hfac : q₀ = a₀ ^ N * (u₀ : R)) :
+    ∃ (H : Type u) (_ : CommRing H) (_ : HopfAlgebra R H)
+      (_ : Module.Finite R H) (_ : Module.Flat R H)
+      (_ : Algebra.Etale K (K ⊗[R] H))
+      (f : Additive (WithConv (K ⊗[R] H →ₐ[K] S)) ≃+
+        AddSubgroup.torsionBy (E⁄S).Point (N : ℤ)),
+      ∀ (σ : S ≃ₐ[K] S) (φ : K ⊗[R] H →ₐ[K] S),
+        (f (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) :
+            (E⁄S).Point) =
+          Affine.Point.map σ.toAlgHom
+            (f (Additive.ofMul (WithConv.toConv φ))) := by
+  let W := C • E.quadraticTwist L
+  let ha : a₀ ≠ 0 := W.tateKummer_factor_ne_zero (R := R) (K := K)
+    N q₀ a₀ u₀ hq₀ hfac
+  let haS : algebraMap R S a₀ ≠ 0 := by
+    intro hzero
+    apply ha
+    apply IsFractionRing.injective R K
+    apply (algebraMap K S).injective
+    rw [← IsScalarTower.algebraMap_apply R K S]
+    simpa only [map_zero] using hzero
+  let aS : Sˣ := tateKummerRootUnit (R := R) (S := S) a₀ haS
+  let hqS : aS ^ N * Units.map (algebraMap R S) u₀ = W.qUnitSepClosure S :=
+    W.tateKummerRootUnit_pow_mul (R := R) (K := K) (S := S)
+      N q₀ a₀ u₀ hq₀ hfac haS
+  let H := TateKummer.QuadraticTwist.fixedSubalgebra R N u₀ t n
+  letI : HopfAlgebra R H :=
+    TateKummer.QuadraticTwist.coordinateHopfAlgebra R N u₀ t n h2 hdisc
+  letI : Module.Finite R H :=
+    TateKummer.QuadraticTwist.fixedModuleFinite R N u₀ t n h2
+  letI : Module.Flat R H :=
+    TateKummer.QuadraticTwist.fixedModuleFlat R N u₀ t n h2
+  letI : Algebra.Etale K (K ⊗[R] H) :=
+    TateKummer.QuadraticTwist.genericFiberEtale R N u₀ t n K L θ
+      htrace hnorm h2 hdisc
+  let f := quadraticTwistTateKummerTorsionAddEquiv R K L S E C
+    N u₀ t n θ htrace hnorm h2 hdisc aS hqS
+  refine ⟨H, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, f, ?_⟩
+  intro σ φ
+  have h := quadraticTwistTateKummerTorsionAddEquiv_comp R K L S E C
+    N u₀ t n θ hθ htrace hnorm h2 hdisc aS hqS
+      (fun τ ↦ unitsMap_tateKummerRootUnit (R := R) (K := K) (S := S)
+        a₀ haS τ) σ φ
+  exact congrArg Subtype.val h
 
 end CurveTorsion
 
