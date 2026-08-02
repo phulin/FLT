@@ -412,4 +412,36 @@ lemma antiInvariant_isUnit (t n : R)
   rw [← isUnit_pow_iff (n := 2) (by norm_num), antiInvariant_sq]
   exact hdisc.map (algebraMap R (Algebra R t n))
 
+/-- An explicit inverse to the trace-zero generator. -/
+noncomputable def antiInvariantInv (t n : R)
+    (hdisc : IsUnit (discriminant R t n)) : Algebra R t n :=
+  algebraMap R (Algebra R t n) (↑(hdisc.unit⁻¹) : R) * antiInvariant R t n
+
+lemma antiInvariantInv_mul (t n : R)
+    (hdisc : IsUnit (discriminant R t n)) :
+    antiInvariantInv R t n hdisc * antiInvariant R t n = 1 := by
+  rw [antiInvariantInv, mul_assoc, ← pow_two, antiInvariant_sq, ← map_mul]
+  rw [← map_one (algebraMap R (Algebra R t n))]
+  apply congrArg (algebraMap R (Algebra R t n))
+  calc
+    (↑(hdisc.unit⁻¹) : R) * discriminant R t n =
+        (↑(hdisc.unit⁻¹) : R) * (hdisc.unit : R) :=
+      congrArg (fun x : R ↦ (↑(hdisc.unit⁻¹) : R) * x) hdisc.unit_spec.symm
+    _ = 1 := hdisc.unit.inv_mul
+
+lemma antiInvariant_mul_inv (t n : R)
+    (hdisc : IsUnit (discriminant R t n)) :
+    antiInvariant R t n * antiInvariantInv R t n hdisc = 1 := by
+  rw [mul_comm]
+  exact antiInvariantInv_mul R t n hdisc
+
+/-- The explicit inverse is also anti-invariant. -/
+@[simp]
+lemma conjugationAlgEquiv_antiInvariantInv (t n : R)
+    (hdisc : IsUnit (discriminant R t n)) :
+    conjugationAlgEquiv R t n (antiInvariantInv R t n hdisc) =
+      -antiInvariantInv R t n hdisc := by
+  simp only [antiInvariantInv, map_mul, AlgEquiv.commutes,
+    conjugationAlgEquiv_antiInvariant, mul_neg]
+
 end QuadraticDescent
