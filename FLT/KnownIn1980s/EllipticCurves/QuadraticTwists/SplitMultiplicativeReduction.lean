@@ -9,6 +9,7 @@ public import FLT.KnownIn1980s.EllipticCurves.QuadraticTwists.QuadraticTwists
 public import FLT.Mathlib.Algebra.Algebra.Equiv
 public import FLT.Mathlib.AlgebraicGeometry.EllipticCurve.Reduction
 public import FLT.Mathlib.RingTheory.Norm.Quotient
+public import Mathlib.RingTheory.Henselian
 
 import FLT.Mathlib.RingTheory.Unramified.LocalRing
 import Mathlib.LinearAlgebra.Charpoly.ToMatrix
@@ -73,6 +74,39 @@ section Reduction
 -- Let `R` be a discrete valuation ring with fraction field `K` (for example the ring of
 -- integers of a nonarchimedean local field). The instances are introduced in stages, as needed.
 variable (R : Type u) [CommRing R] [Algebra R K]
+
+open Polynomial IsLocalRing in
+/-- A unit of a Henselian local ring whose residue is a square is itself a square, provided the
+residue characteristic is not `2`.  This is the elementary `X² - x` case of Hensel's lemma. -/
+lemma isSquare_of_isSquare_residue [IsLocalRing R]
+    [HenselianRing R (maximalIdeal R)] {x : R}
+    (h2 : residue R (2 : R) ≠ 0) (hx : residue R x ≠ 0)
+    (hs : IsSquare (residue R x)) : IsSquare x := by
+  obtain ⟨z, hz⟩ := hs
+  obtain ⟨a₀, ha₀⟩ := residue_surjective z
+  let f : R[X] := X ^ 2 - C x
+  have hf : f.Monic := monic_X_pow_sub_C x (by omega)
+  have hroot : f.eval a₀ ∈ maximalIdeal R := by
+    rw [← residue_eq_zero_iff]
+    simp only [f, eval_sub, eval_pow, eval_X, eval_C, map_sub, map_pow, ha₀]
+    rw [hz, pow_two, sub_self]
+  have ha₀0 : residue R a₀ ≠ 0 := by
+    rw [ha₀]
+    intro hz0
+    apply hx
+    rw [hz, hz0, zero_mul]
+  have hderiv : IsUnit (Ideal.Quotient.mk (maximalIdeal R) (f.derivative.eval a₀)) := by
+    rw [residue_ne_zero_iff_isUnit] at h2 ha₀0
+    have hu : IsUnit (f.derivative.eval a₀) := by
+      simpa only [f, derivative_sub, derivative_pow, derivative_X, derivative_C, Nat.cast_ofNat,
+        C_0, sub_zero, eval_mul, eval_C, eval_X, Nat.reduceSub, pow_one, eval_one,
+        mul_one] using h2.mul ha₀0
+    exact hu.map (Ideal.Quotient.mk (maximalIdeal R))
+  obtain ⟨a, ha, -⟩ := HenselianRing.is_henselian f hf a₀ hroot hderiv
+  refine ⟨a, ?_⟩
+  rw [IsRoot.def] at ha
+  simp only [f, eval_sub, eval_pow, eval_X, eval_C] at ha
+  simpa only [pow_two] using (sub_eq_zero.mp ha).symm
 
 open Polynomial in
 /-- **Twisting flips the square class (residue characteristic ≠ 2).** Combining the split criterion
