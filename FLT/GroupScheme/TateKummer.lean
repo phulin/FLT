@@ -346,6 +346,39 @@ lemma tripleCoordinateEquiv_tmul (N : ℕ) [NeZero N] (u : Rˣ)
       (x i ⊗ₜ[R] y j) ⊗ₜ[R] z k := by
   rfl
 
+@[simp]
+lemma tripleCoordinateEquiv_tmul_right (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u)
+    (x : CoordinateAlgebra (R := R) N u) (k j i : Fin N) :
+    tripleCoordinateEquiv N u (z ⊗ₜ[R] x) k j i =
+      tensorCoordinateEquiv N u z j i ⊗ₜ[R] x k := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul y z => rfl
+  | add y z hy hz =>
+      simp only [TensorProduct.add_tmul, map_add, Pi.add_apply, hy, hz]
+
+@[simp]
+lemma tripleCoordinateEquiv_assoc_symm_tmul_left
+    (N : ℕ) [NeZero N] (u : Rˣ)
+    (x : CoordinateAlgebra (R := R) N u)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u)
+    (k j i : Fin N) :
+    tripleCoordinateEquiv N u
+        ((Algebra.TensorProduct.assoc R R R
+          (CoordinateAlgebra (R := R) N u)
+          (CoordinateAlgebra (R := R) N u)
+          (CoordinateAlgebra (R := R) N u)).symm (x ⊗ₜ[R] z)) k j i =
+      (Algebra.TensorProduct.assoc R R R
+        (Component R N i.1 u) (Component R N j.1 u)
+        (Component R N k.1 u)).symm
+        (x i ⊗ₜ[R] tensorCoordinateEquiv N u z k j) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul y z => rfl
+  | add y z hy hz =>
+      simp only [TensorProduct.tmul_add, map_add, Pi.add_apply, hy, hz]
+
 /-- The coordinate map for multiplication, after decomposing the target into pairs of
 components. -/
 noncomputable def comulCoordinates (N : ℕ) [NeZero N] (u : Rˣ) :
@@ -373,6 +406,61 @@ lemma tensorCoordinateEquiv_comulAlgHom_apply
       ((tensorCoordinateEquiv N u).symm (comulCoordinates N u f)) j i = _
   rw [AlgEquiv.apply_symm_apply]
   rfl
+
+/-! ## Coordinate formulas for iterated comultiplication -/
+
+/-- In triple coordinates, comultiplication in the first tensor factor is componentwise
+application of the corresponding component multiplication map. -/
+lemma tripleCoordinateEquiv_map_comul_left
+    (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u)
+    (k j i : Fin N) :
+    tripleCoordinateEquiv N u
+        (Algebra.TensorProduct.map (comulAlgHom N u)
+          (.id R (CoordinateAlgebra (R := R) N u)) z) k j i =
+      Algebra.TensorProduct.map (componentMulAlgHom N u i j)
+        (.id R (Component R N k.1 u))
+        (tensorCoordinateEquiv N u z k (addIndex N i j)) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [Algebra.TensorProduct.map_tmul, AlgHom.id_apply,
+        tripleCoordinateEquiv_tmul_right,
+        tensorCoordinateEquiv_tmul, tensorCoordinateEquiv_comulAlgHom_apply,
+        Algebra.TensorProduct.map_tmul, AlgHom.id_apply]
+  | add x y hx hy =>
+      simp only [map_add, Pi.add_apply, hx, hy]
+
+/-- In left-associated triple coordinates, comultiplication in the second tensor factor
+is componentwise application of the corresponding component multiplication map, followed
+by reassociation. -/
+lemma tripleCoordinateEquiv_assoc_symm_map_comul_right
+    (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u)
+    (k j i : Fin N) :
+    tripleCoordinateEquiv N u
+        ((Algebra.TensorProduct.assoc R R R
+          (CoordinateAlgebra (R := R) N u)
+          (CoordinateAlgebra (R := R) N u)
+          (CoordinateAlgebra (R := R) N u)).symm
+          (Algebra.TensorProduct.map
+            (.id R (CoordinateAlgebra (R := R) N u))
+            (comulAlgHom N u) z)) k j i =
+      (Algebra.TensorProduct.assoc R R R
+        (Component R N i.1 u) (Component R N j.1 u)
+        (Component R N k.1 u)).symm
+        (Algebra.TensorProduct.map (.id R (Component R N i.1 u))
+          (componentMulAlgHom N u j k)
+          (tensorCoordinateEquiv N u z (addIndex N j k) i)) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [Algebra.TensorProduct.map_tmul, AlgHom.id_apply,
+        tripleCoordinateEquiv_assoc_symm_tmul_left,
+        tensorCoordinateEquiv_tmul, tensorCoordinateEquiv_comulAlgHom_apply,
+        Algebra.TensorProduct.map_tmul, AlgHom.id_apply]
+  | add x y hx hy =>
+      simp only [map_add, Pi.add_apply, hx, hy]
 
 /-- Evaluation at the identity point on component zero. -/
 noncomputable def identityComponentAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
