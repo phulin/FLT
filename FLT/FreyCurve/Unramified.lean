@@ -130,6 +130,65 @@ theorem torsion_isUnramifiedAt_of_dvd_abc_of_split_multiplicative
   rw [hmaps]
   exact hfixed'
 
+/-- At every bad odd prime distinct from the Frey exponent, the `p`-torsion representation is
+unramified.  Multiplicative reduction holds at the completion; the local Tate argument handles
+both its split and nonsplit forms. -/
+theorem torsion_isUnramifiedAt_of_dvd_abc
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqp : q ≠ P.p)
+    (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    haveI : Fact P.p.Prime := ⟨P.pp⟩
+    (P.freyCurve.galoisRep P.p P.hppos).IsUnramifiedAt
+      hq.toHeightOneSpectrumRingOfIntegersRat := by
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.HasMultiplicativeReduction R := by
+    simpa [E, R, K, v] using
+      hasMultiplicativeReduction_at_completion_of_dvd_abc P hq hqodd hqbad
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) :=
+    Rat.HeightOneSpectrum.neZero_residueField_of_not_dvd hq (by
+      rw [Nat.prime_dvd_prime_iff_eq hq P.pp]
+      exact hqp)
+  let _ : Algebra K (AlgebraicClosure K) := AlgebraicClosure.instAlgebra K
+  let _ : Algebra ℚ (AlgebraicClosure K) := AlgebraicClosure.instAlgebra K
+  let _ : DecidableEq (AlgebraicClosure K) := Classical.typeDecidableEq _
+  let _ : NeZero (P.p : ℚ) := ⟨by exact_mod_cast P.pp.ne_zero⟩
+  apply P.freyCurve.galoisRep_isUnramifiedAt_of_local_torsion_fixed v P.p P.hppos
+  intro σ hσ T
+  have hfixed := torsion_fixed_by_localInertia_of_multiplicative
+    P hq hqodd hqbad σ hσ T
+  apply Subtype.ext
+  have hfixed' := congrArg Subtype.val hfixed
+  change WeierstrassCurve.Points.map E σ.toAlgHom T.1 = T.1 at hfixed'
+  rw [P.freyCurve.nTorsionMap_coe]
+  have hmaps : WeierstrassCurve.Points.map P.freyCurve
+      ((σ.restrictScalars ℚ).toAlgHom) T.1 =
+      WeierstrassCurve.Points.map E σ.toAlgHom T.1 := by
+    rcases T.1 with (_ | ⟨x, y, h⟩) <;> rfl
+  rw [hmaps]
+  exact hfixed'
+
+/-- The Frey `p`-torsion representation is unramified at every odd rational prime other than
+`p`.  This is the combined good- and multiplicative-reduction statement. -/
+theorem torsion_isUnramifiedAt_of_odd_ne_exponent
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqp : q ≠ P.p) :
+    haveI : Fact P.p.Prime := ⟨P.pp⟩
+    (P.freyCurve.galoisRep P.p P.hppos).IsUnramifiedAt
+      hq.toHeightOneSpectrumRingOfIntegersRat := by
+  by_cases hqbad : (q : ℤ) ∣ P.a * P.b * P.c
+  · exact torsion_isUnramifiedAt_of_dvd_abc P hq hqodd hqp hqbad
+  · exact torsion_isUnramifiedAt_of_not_dvd_abc P hq hqodd hqp hqbad
+
 end
 
 end FreyCurve

@@ -565,6 +565,42 @@ theorem torsion_fixed_by_localInertia_of_nonsplit_multiplicative_of_j_eq
   rw [E.nTorsionMap_coe]
   exact hEpoint
 
+/-- At a bad odd prime, local inertia fixes the `p`-torsion of a multiplicative curve with
+the Frey `j`-invariant, independently of whether the reduction is split. -/
+theorem torsion_fixed_by_localInertia_of_multiplicative_of_j_eq
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let Ω := AlgebraicClosure K
+    let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+    ∀ (E : WeierstrassCurve K) [E.IsElliptic]
+      [E.HasMultiplicativeReduction R]
+      [NeZero (P.p : IsLocalRing.ResidueField R)]
+      [DecidableEq Ω]
+      (_hj : E.j = algebraMap ℚ K P.freyCurve.j)
+      (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
+      ∀ T : AddSubgroup.torsionBy (E⁄Ω).Point (P.p : ℤ),
+        E.nTorsionMap P.p σ.toAlgHom T = T := by
+  dsimp only
+  intro E hell hmult hp hdec hjmap σ hσ T
+  classical
+  by_cases hsplit : E.HasSplitMultiplicativeReduction
+      (hq.toHeightOneSpectrumRingOfIntegersRat.adicCompletionIntegers ℚ)
+  · let _ : E.HasSplitMultiplicativeReduction
+        (hq.toHeightOneSpectrumRingOfIntegersRat.adicCompletionIntegers ℚ) := hsplit
+    exact torsion_fixed_by_localInertia_of_split_multiplicative_of_j_eq
+      P hq hqodd hqbad E hjmap σ hσ T
+  · exact torsion_fixed_by_localInertia_of_nonsplit_multiplicative_of_j_eq
+      P hq hqodd hqbad E hsplit hjmap σ hσ T
+
 /-- At a bad odd split-multiplicative prime distinct from the Frey exponent, local inertia
 fixes every `p`-torsion point of the completed Frey curve. -/
 theorem torsion_fixed_by_localInertia_of_split_multiplicative
@@ -609,6 +645,52 @@ theorem torsion_fixed_by_localInertia_of_split_multiplicative
   let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
   let _ : DecidableEq Ω := hdec
   exact torsion_fixed_by_localInertia_of_split_multiplicative_of_j_eq
+    P hq hqodd hqbad E (P.freyCurve.map_j _) σ hσ T
+
+/-- At a bad odd multiplicative prime distinct from the Frey exponent, local inertia fixes
+every `p`-torsion point of the completed Frey curve. -/
+theorem torsion_fixed_by_localInertia_of_multiplicative
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    let Ω := AlgebraicClosure K
+    let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+    ∀ [E.HasMultiplicativeReduction R]
+      [NeZero (P.p : IsLocalRing.ResidueField R)]
+      [DecidableEq Ω]
+      (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
+      ∀ T : AddSubgroup.torsionBy (E⁄Ω).Point (P.p : ℤ),
+        E.nTorsionMap P.p σ.toAlgHom T = T := by
+  dsimp only
+  intro hmult hp hdec σ hσ T
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let Ω := AlgebraicClosure K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.HasMultiplicativeReduction R := by
+    simpa [E, R, K, v] using hmult
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := by
+    simpa [R, v] using hp
+  let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+  let _ : DecidableEq Ω := hdec
+  exact torsion_fixed_by_localInertia_of_multiplicative_of_j_eq
     P hq hqodd hqbad E (P.freyCurve.map_j _) σ hσ T
 
 end
