@@ -1961,6 +1961,19 @@ lemma coassoc_comulAlgHom
 
 end Coassociativity
 
+/-! ## The descended bialgebra -/
+
+/-- The fixed quadratic-twist coordinate algebra, equipped with the comultiplication
+and counit descended from the quadratic cover. -/
+noncomputable instance coordinateBialgebra (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    Bialgebra R (fixedSubalgebra R N u t n) :=
+  Bialgebra.ofAlgHom (comulAlgHom R N u t n h2 hdisc)
+    (counitAlgHom R N u t n h2)
+    (coassoc_comulAlgHom R N u t n h2 hdisc)
+    (rightCounit_comp_comulAlgHom R N u t n h2 hdisc)
+    (leftCounit_comp_comulAlgHom R N u t n h2 hdisc)
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
