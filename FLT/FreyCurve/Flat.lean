@@ -5,7 +5,8 @@ Authors: FLT Project
 -/
 module
 
-public import FLT.FreyCurve.Reduction
+public import FLT.FreyCurve.Tate
+public import FLT.GroupScheme.TateKummerFlat
 public import FLT.KnownIn1980s.EllipticCurves.Flat
 
 /-!
@@ -57,6 +58,59 @@ theorem torsion_isFlatAt_of_not_dvd_abc (P : FreyPackage)
     WeierstrassCurve.galoisRep_hasFlatProlongationAt_of_good_reduction
       v P.freyCurve P.p P.hppos
   exact hmodel.isFlatAt_of_field v _
+
+/-- If the completed Frey curve has split multiplicative reduction at its exponent,
+the divisible valuation of its Tate parameter gives a Tate--Kummer finite-flat
+prolongation of the global torsion representation. -/
+theorem torsion_hasFlatProlongationAt_of_split_multiplicative
+    (P : FreyPackage) (hbad : (P.p : ℤ) ∣ P.a * P.b * P.c) :
+    letI : Fact P.p.Prime := ⟨P.pp⟩
+    let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasSplitMultiplicativeReduction R],
+      (P.freyCurve.galoisRep P.p P.hppos).HasFlatProlongationAt v := by
+  letI : Fact P.p.Prime := ⟨P.pp⟩
+  dsimp only
+  intro hsplit
+  let v := P.pp.toHeightOneSpectrumRingOfIntegersRat
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let Ω := AlgebraicClosure K
+  let E := P.freyCurve.baseChange K
+  let _ : Field K :=
+    IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing K :=
+    (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ K :=
+    IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.HasSplitMultiplicativeReduction R := hsplit
+  let _ : E.HasSplitMultiplicativeReduction
+      (ValuativeRel.valuation K).integer :=
+    hasSplitMultiplicativeReduction_valuativeRel_of_adicCompletion v E
+  let _ : DecidableEq K := Classical.typeDecidableEq K
+  let _ : DecidableEq Ω := Classical.typeDecidableEq Ω
+  let _ : DecidableEq ℚ := Classical.typeDecidableEq ℚ
+  let _ : DecidableEq (AlgebraicClosure ℚ) :=
+    Classical.typeDecidableEq (AlgebraicClosure ℚ)
+  let _ : NeZero P.p := ⟨P.pp.ne_zero⟩
+  let _ : NeZero (P.p : ℚ) := ⟨by exact_mod_cast P.pp.ne_zero⟩
+  let _ : NeZero (P.p : K) := ⟨by exact_mod_cast P.pp.ne_zero⟩
+  have hpodd : 2 < P.p := by
+    have hp5 := P.hp5
+    omega
+  obtain ⟨q₀, a, u, hq₀, hfac⟩ :=
+    exists_tateParameter_eq_pow_mul_unit_of_j_eq
+      P P.pp hpodd hbad E (P.freyCurve.map_j K)
+  have hq₀' : algebraMap R K q₀ = E.q := by
+    simpa [R, K] using hq₀
+  have hmodel :=
+    E.torsion_flat_of_split_multiplicative_factorization R K Ω
+      P.p q₀ a u hq₀' hfac
+  exact WeierstrassCurve.galoisRep_hasFlatProlongationAt_of_local_model
+    v P.freyCurve P.p P.hppos hmodel
 
 end
 

@@ -167,7 +167,7 @@ gives a flat prolongation of the global torsion representation.  This is the com
 local-to-global transport used by both the good-reduction and Tate--Kummer models. -/
 theorem WeierstrassCurve.galoisRep_hasFlatProlongationAt_of_local_model
     {F : Type u} [Field F] [NumberField F]
-    (v : IsDedekindDomain.HeightOneSpectrum (𝒪 F))
+    (v : IsDedekindDomain.HeightOneSpectrum (𝓞 F))
     (W : WeierstrassCurve F) [W.IsElliptic]
     [DecidableEq F] [DecidableEq (AlgebraicClosure F)]
     [DecidableEq (AlgebraicClosure (v.adicCompletion F))]
