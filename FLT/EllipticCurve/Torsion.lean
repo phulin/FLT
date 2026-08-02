@@ -47,13 +47,21 @@ noncomputable instance (n : ℕ) : Module (ZMod n) (E.nTorsion n) :=
 
 -- This theorem needs e.g. a theory of division polynomials. It's ongoing work of David Angdinata.
 -- Please do not work on it without talking to KB and David first.
-theorem WeierstrassCurve.n_torsion_finite {n : ℕ} (hn : 0 < n) : Finite (E.nTorsion n) := sorry
-
--- This theorem needs e.g. a theory of division polynomials. It's ongoing work of David Angdinata.
--- Please do not work on it without talking to KB and David first.
 -- This theorem was well-known in the early part of the 20th century.
 theorem WeierstrassCurve.n_torsion_card [IsSepClosed k] {n : ℕ} (hn : (n : k) ≠ 0) :
     Nat.card (E.nTorsion n) = n^2 := sorry
+
+/-- If `n` is nonzero in a separably closed field, the `n`-torsion is finite.  This is an
+immediate consequence of its cardinality; spelling it out avoids a separate, stronger
+finiteness input in positive characteristic. -/
+theorem WeierstrassCurve.n_torsion_finite [IsSepClosed k] {n : ℕ} (hn : (n : k) ≠ 0) :
+    Finite (E.nTorsion n) := by
+  apply Nat.finite_of_card_ne_zero
+  rw [E.n_torsion_card hn]
+  apply pow_ne_zero
+  intro hn0
+  subst n
+  exact hn (by simp)
 
 /-- A group killed by a prime `p` and having cardinality `p ^ r` is the standard
 `r`-dimensional vector space over `ZMod p`. -/
@@ -496,14 +504,17 @@ theorem WeierstrassCurve.n_torsion_rank [IsSepClosed k] {n : ℕ} (hnp : n.Prime
   rw [e''.rank_eq, rank_ulift, rank_fun']
   norm_num
 
-/-- Positive torsion is finite as a module over `ZMod n`. -/
-theorem WeierstrassCurve.n_torsion_module_finite {n : ℕ} (hn : 0 < n) :
+/-- Prime-to-characteristic torsion over a separably closed field is finite as a module over
+`ZMod n`. -/
+theorem WeierstrassCurve.n_torsion_module_finite [IsSepClosed k] {n : ℕ}
+    (hn : (n : k) ≠ 0) :
     Module.Finite (ZMod n) (E.nTorsion n) := by
   letI : Finite (E.nTorsion n) := E.n_torsion_finite hn
   exact Module.Finite.of_finite
 
-noncomputable instance (n : ℕ) [NeZero n] : Module.Finite (ZMod n) (E.nTorsion n) :=
-  E.n_torsion_module_finite (Nat.pos_of_ne_zero (NeZero.ne n))
+noncomputable instance (n : ℕ) [IsSepClosed k] [NeZero (n : k)] :
+    Module.Finite (ZMod n) (E.nTorsion n) :=
+  E.n_torsion_module_finite (NeZero.ne (n : k))
 
 -- This should be a straightforward but perhaps long unravelling of the definition
 /-- The map on points for an elliptic curve over `k` induced by a morphism of `k`-algebras
@@ -595,7 +606,7 @@ noncomputable instance : DecidableEq (AlgebraicClosure ℚ) := Classical.typeDec
 /-- The continuous Galois representation associated to an elliptic curve over a field. -/
 noncomputable def WeierstrassCurve.galoisRep {K : Type u} [Field K]
     (E : WeierstrassCurve K) [E.IsElliptic]
-    [DecidableEq K] [DecidableEq (AlgebraicClosure K)] (n : ℕ) (hn : 0 < n) :
+    [DecidableEq K] [DecidableEq (AlgebraicClosure K)] (n : ℕ) [NeZero (n : K)] (hn : 0 < n) :
     GaloisRep K (ZMod n) ((E.map (algebraMap K (AlgebraicClosure K))).nTorsion n) := by
   let T := (E⁄(AlgebraicClosure K)).nTorsion n
   change GaloisRep K (ZMod n) T
@@ -649,7 +660,12 @@ noncomputable def WeierstrassCurve.galoisRep {K : Type u} [Field K]
   letI : (E⁄(AlgebraicClosure K)).IsElliptic := by
     change (E.map (algebraMap K (AlgebraicClosure K))).IsElliptic
     infer_instance
-  haveI : Finite T := (E⁄(AlgebraicClosure K)).n_torsion_finite hn
+  have hnAC : (n : AlgebraicClosure K) ≠ 0 := by
+    intro h
+    apply NeZero.ne (n : K)
+    apply (algebraMap K (AlgebraicClosure K)).injective
+    simpa only [map_natCast, map_zero] using h
+  haveI : Finite T := (E⁄(AlgebraicClosure K)).n_torsion_finite hnAC
   suffices IsOpen (⋂ P : T, {g | ρ g P = f P}) by
     convert this using 1
     ext g
