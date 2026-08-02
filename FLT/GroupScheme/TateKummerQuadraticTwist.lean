@@ -1090,6 +1090,125 @@ lemma coverTensorDescentSemilinearMap_baseChangeTensorCoverEquiv
       | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
   | add x y hx hy => simp only [map_add, hx, hy]
 
+/-! ## Compatibility of cover comultiplication with descent -/
+
+/-- Comultiplication on the tensor-product cover is the scalar extension of
+comultiplication on the Tate--Kummer algebra. -/
+lemma coverComulAlgHom_tmul (a : QuadraticDescent.Algebra R t n)
+    (h : TateKummer.CoordinateAlgebra (R := R) N u) :
+    Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n) (a ⊗ₜ[R] h) =
+      TensorProduct.AlgebraTensorModule.distribBaseChange R
+        (QuadraticDescent.Algebra R t n)
+        (TateKummer.CoordinateAlgebra (R := R) N u)
+        (TateKummer.CoordinateAlgebra (R := R) N u)
+        (a ⊗ₜ[R] Bialgebra.comulAlgHom R
+          (TateKummer.CoordinateAlgebra (R := R) N u) h) := by
+  rw [Bialgebra.TensorProduct.comulAlgHom_def]
+  simp only [AlgHom.comp_apply, Algebra.TensorProduct.map_tmul]
+  rw [show Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+      (QuadraticDescent.Algebra R t n) a =
+        (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[QuadraticDescent.Algebra R t n]
+          a by rfl]
+  change
+    Algebra.TensorProduct.tensorTensorTensorComm R
+        (QuadraticDescent.Algebra R t n) R (QuadraticDescent.Algebra R t n)
+        (QuadraticDescent.Algebra R t n) (QuadraticDescent.Algebra R t n)
+        (TateKummer.CoordinateAlgebra (R := R) N u)
+        (TateKummer.CoordinateAlgebra (R := R) N u)
+        (((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[
+            QuadraticDescent.Algebra R t n] a)
+          ⊗ₜ[R] Bialgebra.comulAlgHom R
+            (TateKummer.CoordinateAlgebra (R := R) N u) h) = _
+  generalize Bialgebra.comulAlgHom R
+    (TateKummer.CoordinateAlgebra (R := R) N u) h = q
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [Algebra.TensorProduct.tensorTensorTensorComm_tmul,
+        TensorProduct.AlgebraTensorModule.distribBaseChange_tmul]
+      have hsmul (z : TateKummer.CoordinateAlgebra (R := R) N u) :
+          a • ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] z) = a ⊗ₜ[R] z := by
+        rw [TensorProduct.AlgebraTensorModule.smul_eq_lsmul_rTensor]
+        simp
+      rw [← hsmul x, ← hsmul y]
+      exact (TensorProduct.smul_tmul a
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] x)
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] y)).symm
+  | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+
+/-- Semilinear descent commutes with the base-change distribution map. -/
+lemma coverTensorDescentSemilinearMap_distribBaseChange
+    (a : QuadraticDescent.Algebra R t n)
+    (q : TateKummer.CoordinateAlgebra (R := R) N u ⊗[R]
+      TateKummer.CoordinateAlgebra (R := R) N u) :
+    coverTensorDescentSemilinearMap R N u t n
+        (TensorProduct.AlgebraTensorModule.distribBaseChange R
+          (QuadraticDescent.Algebra R t n)
+          (TateKummer.CoordinateAlgebra (R := R) N u)
+          (TateKummer.CoordinateAlgebra (R := R) N u) (a ⊗ₜ[R] q)) =
+      TensorProduct.AlgebraTensorModule.distribBaseChange R
+        (QuadraticDescent.Algebra R t n)
+        (TateKummer.CoordinateAlgebra (R := R) N u)
+        (TateKummer.CoordinateAlgebra (R := R) N u)
+        (QuadraticDescent.conjugationAlgEquiv R t n a ⊗ₜ[R]
+          TensorProduct.map (TateKummer.antipodeAlgHom N u).toLinearMap
+            (TateKummer.antipodeAlgHom N u).toLinearMap q) := by
+  induction q using TensorProduct.induction_on with
+  | zero =>
+      change coverTensorDescentSemilinearMap R N u t n 0 = 0
+      exact (coverTensorDescentSemilinearMap R N u t n).map_zero
+  | tmul x y =>
+      rw [TensorProduct.AlgebraTensorModule.distribBaseChange_tmul,
+        coverTensorDescentSemilinearMap_tmul,
+        descentAlgEquiv_tmul, descentAlgEquiv_tmul,
+        TensorProduct.map_tmul,
+        TensorProduct.AlgebraTensorModule.distribBaseChange_tmul]
+      simp only [TateKummer.antipodeAlgEquiv_apply, map_one]
+      rfl
+  | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+
+/-- The cover comultiplication is equivariant for the quadratic descent datum. -/
+lemma coverComulAlgHom_descentAlgEquiv
+    (z : CoverCoordinateAlgebra R N u t n) :
+    coverTensorDescentSemilinearMap R N u t n
+        (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) z) =
+      Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n) (descentAlgEquiv R N u t n z) := by
+  induction z using TensorProduct.induction_on with
+  | zero =>
+      change coverTensorDescentSemilinearMap R N u t n 0 = 0
+      exact (coverTensorDescentSemilinearMap R N u t n).map_zero
+  | tmul a h =>
+      have hc := LinearMap.congr_fun
+        (HopfAlgebra.comul_comp_antipode_of_isCocomm
+          (R := R) (A := TateKummer.CoordinateAlgebra (R := R) N u)) h
+      simp only [LinearMap.comp_apply] at hc
+      change
+        Bialgebra.comulAlgHom R (TateKummer.CoordinateAlgebra (R := R) N u)
+            (TateKummer.antipodeAlgHom N u h) =
+          TensorProduct.map (TateKummer.antipodeAlgHom N u).toLinearMap
+            (TateKummer.antipodeAlgHom N u).toLinearMap
+            (Bialgebra.comulAlgHom R
+              (TateKummer.CoordinateAlgebra (R := R) N u) h) at hc
+      rw [coverComulAlgHom_tmul,
+        coverTensorDescentSemilinearMap_distribBaseChange,
+        descentAlgEquiv_tmul, coverComulAlgHom_tmul]
+      change
+        TensorProduct.AlgebraTensorModule.distribBaseChange R
+            (QuadraticDescent.Algebra R t n)
+            (TateKummer.CoordinateAlgebra (R := R) N u)
+            (TateKummer.CoordinateAlgebra (R := R) N u)
+            (QuadraticDescent.conjugationAlgEquiv R t n a ⊗ₜ[R]
+              TensorProduct.map (TateKummer.antipodeAlgHom N u).toLinearMap
+                (TateKummer.antipodeAlgHom N u).toLinearMap
+                (Bialgebra.comulAlgHom R
+                  (TateKummer.CoordinateAlgebra (R := R) N u) h)) = _
+      rw [TateKummer.antipodeAlgEquiv_apply]
+      rw [← hc]
+  | add x y hx hy => simp only [map_add, hx, hy]
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
