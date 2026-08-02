@@ -523,6 +523,118 @@ theorem GaloisRep.genericEtale_coassoc
             (q23.comp Algebra.TensorProduct.includeRight)))
       (congrArg (GaloisRep.genericEtalePointsEquiv rho).symm h12_right))
 
+set_option backward.isDefEq.respectTransparency false in
+/-- The bialgebra structure on the generic coordinate algebra induced by addition and zero. -/
+@[instance_reducible]
+noncomputable def GaloisRep.genericEtaleBialgebra
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W) :
+    Bialgebra ℚ (GaloisRep.GenericEtaleAlgebra rho) :=
+  Bialgebra.ofAlgHom (GaloisRep.genericEtaleComul rho)
+    (GaloisRep.genericEtaleCounit rho)
+    (GaloisRep.genericEtale_coassoc rho)
+    (GaloisRep.genericEtale_rTensor_counit rho)
+    (GaloisRep.genericEtale_lTensor_counit rho)
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Negation is a right convolution inverse to the identity on the generic coordinate algebra. -/
+theorem GaloisRep.genericEtale_mul_antipode_rTensor_comul
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W) :
+    letI := GaloisRep.genericEtaleBialgebra rho
+    ((Algebra.TensorProduct.lift (GaloisRep.genericEtaleAntipode rho)
+      (.id ℚ (GaloisRep.GenericEtaleAlgebra rho))
+      (fun _ _ => Commute.all _ _)).comp
+        (Bialgebra.comulAlgHom ℚ (GaloisRep.GenericEtaleAlgebra rho))) =
+      (Algebra.ofId ℚ (GaloisRep.GenericEtaleAlgebra rho)).comp
+        (Bialgebra.counitAlgHom ℚ (GaloisRep.GenericEtaleAlgebra rho)) := by
+  let E := GaloisRep.GenericEtaleAlgebra rho
+  letI := GaloisRep.genericEtaleBialgebra rho
+  change ((Algebra.TensorProduct.lift (GaloisRep.genericEtaleAntipode rho)
+    (.id ℚ E) (fun _ _ => Commute.all _ _)).comp
+      (GaloisRep.genericEtaleComul rho)) =
+    (Algebra.ofId ℚ E).comp (GaloisRep.genericEtaleCounit rho)
+  apply InfiniteGalois.algHom_ext_of_comp_eq ℚ (AlgebraicClosure ℚ) E
+  intro q
+  rw [← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleComul,
+    ← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleCounit]
+  apply (GaloisRep.genericEtalePointsEquiv rho).symm.injective
+  rw [GaloisRep.genericEtaleAddPoints_symm,
+    GaloisRep.genericEtaleZeroPoints_symm]
+  let qT : (E ⊗[ℚ] E) →ₐ[ℚ] AlgebraicClosure ℚ :=
+    q.comp (Algebra.TensorProduct.lift
+      (GaloisRep.genericEtaleAntipode rho) (.id ℚ E)
+        (fun _ _ => Commute.all _ _))
+  have h_left : qT.comp Algebra.TensorProduct.includeLeft =
+      GaloisRep.genericEtaleNegPoints rho q := by
+    dsimp only [qT]
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.lift_comp_includeLeft,
+      GaloisRep.comp_genericEtaleAntipode]
+  have h_right : qT.comp Algebra.TensorProduct.includeRight = q := by
+    dsimp only [qT]
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.lift_comp_includeRight']
+    simp
+  rw [h_left, h_right, GaloisRep.genericEtaleNegPoints_symm]
+  exact neg_add_cancel _
+
+set_option backward.isDefEq.respectTransparency false in
+/-- Negation is a left convolution inverse to the identity on the generic coordinate algebra. -/
+theorem GaloisRep.genericEtale_mul_antipode_lTensor_comul
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W) :
+    letI := GaloisRep.genericEtaleBialgebra rho
+    ((Algebra.TensorProduct.lift
+      (.id ℚ (GaloisRep.GenericEtaleAlgebra rho))
+      (GaloisRep.genericEtaleAntipode rho)
+      (fun _ _ => Commute.all _ _)).comp
+        (Bialgebra.comulAlgHom ℚ (GaloisRep.GenericEtaleAlgebra rho))) =
+      (Algebra.ofId ℚ (GaloisRep.GenericEtaleAlgebra rho)).comp
+        (Bialgebra.counitAlgHom ℚ (GaloisRep.GenericEtaleAlgebra rho)) := by
+  let E := GaloisRep.GenericEtaleAlgebra rho
+  letI := GaloisRep.genericEtaleBialgebra rho
+  change ((Algebra.TensorProduct.lift (.id ℚ E)
+    (GaloisRep.genericEtaleAntipode rho) (fun _ _ => Commute.all _ _)).comp
+      (GaloisRep.genericEtaleComul rho)) =
+    (Algebra.ofId ℚ E).comp (GaloisRep.genericEtaleCounit rho)
+  apply InfiniteGalois.algHom_ext_of_comp_eq ℚ (AlgebraicClosure ℚ) E
+  intro q
+  rw [← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleComul,
+    ← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleCounit]
+  apply (GaloisRep.genericEtalePointsEquiv rho).symm.injective
+  rw [GaloisRep.genericEtaleAddPoints_symm,
+    GaloisRep.genericEtaleZeroPoints_symm]
+  let qT : (E ⊗[ℚ] E) →ₐ[ℚ] AlgebraicClosure ℚ :=
+    q.comp (Algebra.TensorProduct.lift (.id ℚ E)
+      (GaloisRep.genericEtaleAntipode rho)
+        (fun _ _ => Commute.all _ _))
+  have h_left : qT.comp Algebra.TensorProduct.includeLeft = q := by
+    dsimp only [qT]
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.lift_comp_includeLeft]
+    simp
+  have h_right : qT.comp Algebra.TensorProduct.includeRight =
+      GaloisRep.genericEtaleNegPoints rho q := by
+    dsimp only [qT]
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.lift_comp_includeRight',
+      GaloisRep.comp_genericEtaleAntipode]
+  rw [h_left, h_right, GaloisRep.genericEtaleNegPoints_symm]
+  exact add_neg_cancel _
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The Hopf-algebra structure on the generic coordinate algebra of a finite Galois module. -/
+@[instance_reducible]
+noncomputable def GaloisRep.genericEtaleHopfAlgebra
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W) :
+    HopfAlgebra ℚ (GaloisRep.GenericEtaleAlgebra rho) := by
+  letI := GaloisRep.genericEtaleBialgebra rho
+  exact HopfAlgebra.ofAlgHom (GaloisRep.genericEtaleAntipode rho)
+    (GaloisRep.genericEtale_mul_antipode_rTensor_comul rho)
+    (GaloisRep.genericEtale_mul_antipode_lTensor_comul rho)
+
 /-- The generic-fiber conditions satisfied by an object of Schoof's `(2, 3)` category.
 
 The last field states tameness in the finite Galois extension cut out by the representation:
