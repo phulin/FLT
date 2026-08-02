@@ -8,6 +8,7 @@ module
 public import FLT.GroupScheme.QuadraticDescent
 public import FLT.GroupScheme.TateKummer
 public import Mathlib.Algebra.Module.Projective
+public import Mathlib.RingTheory.HopfAlgebra.TensorProduct
 public import Mathlib.RingTheory.TensorProduct.Free
 
 /-!
@@ -139,6 +140,49 @@ lemma descentAlgEquiv_apply_apply (z : CoverCoordinateAlgebra R N u t n) :
     descentAlgEquiv R N u t n (descentAlgEquiv R N u t n z) = z :=
   descentAlgEquiv_involutive R N u t n z
 
+/-! ## Descent of inversion -/
+
+/-- Inversion on the Tate--Kummer factor, viewed as an algebra endomorphism over the
+quadratic cover. -/
+noncomputable def coverAntipodeAlgHom :
+    CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n :=
+  Algebra.TensorProduct.map
+    (AlgHom.id (QuadraticDescent.Algebra R t n) (QuadraticDescent.Algebra R t n))
+    (TateKummer.antipodeAlgHom N u)
+
+@[simp]
+lemma coverAntipodeAlgHom_tmul
+    (a : QuadraticDescent.Algebra R t n)
+    (h : TateKummer.CoordinateAlgebra (R := R) N u) :
+    coverAntipodeAlgHom R N u t n (a ⊗ₜ[R] h) =
+      a ⊗ₜ[R] TateKummer.antipodeAlgHom N u h := by
+  rfl
+
+/-- Inversion on the cover is an involution. -/
+lemma coverAntipodeAlgHom_involutive :
+    Function.Involutive (coverAntipodeAlgHom R N u t n) := by
+  intro z
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a h =>
+      simp only [coverAntipodeAlgHom_tmul]
+      rw [TateKummer.antipodeAlgHom_involutive N u h]
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+/-- Quadratic descent commutes with inversion on the cover.  Both composites apply
+quadratic conjugation to the first factor and apply inversion twice to the second. -/
+lemma descentAlgEquiv_coverAntipodeAlgHom
+    (z : CoverCoordinateAlgebra R N u t n) :
+    descentAlgEquiv R N u t n (coverAntipodeAlgHom R N u t n z) =
+      coverAntipodeAlgHom R N u t n (descentAlgEquiv R N u t n z) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a h =>
+      simp only [coverAntipodeAlgHom_tmul, descentAlgEquiv_tmul]
+      simp only [TateKummer.antipodeAlgEquiv_apply]
+  | add x y hx hy => simp only [map_add, hx, hy]
+
 @[simp]
 lemma descentAlgEquiv_algebraMap_cover
     (a : QuadraticDescent.Algebra R t n) :
@@ -214,6 +258,37 @@ noncomputable def fixedSubalgebra :
 lemma mem_fixedSubalgebra (z : CoverCoordinateAlgebra R N u t n) :
     z ∈ fixedSubalgebra R N u t n ↔ descentAlgEquiv R N u t n z = z :=
   Iff.rfl
+
+/-- The antipode preserves the descent condition, hence restricts to inversion on the
+quadratic-twist coordinate algebra. -/
+noncomputable def antipodeAlgHom :
+    fixedSubalgebra R N u t n →ₐ[R] fixedSubalgebra R N u t n :=
+  AlgHom.codRestrict
+    (((coverAntipodeAlgHom R N u t n).restrictScalars R).comp
+      (Subalgebra.val (fixedSubalgebra R N u t n)))
+    (fixedSubalgebra R N u t n) fun z => by
+      rw [mem_fixedSubalgebra]
+      change
+        descentAlgEquiv R N u t n (coverAntipodeAlgHom R N u t n z) =
+          coverAntipodeAlgHom R N u t n z
+      rw [descentAlgEquiv_coverAntipodeAlgHom]
+      exact congrArg (coverAntipodeAlgHom R N u t n)
+        ((mem_fixedSubalgebra R N u t n z).mp z.property)
+
+@[simp]
+lemma coe_antipodeAlgHom (z : fixedSubalgebra R N u t n) :
+    (antipodeAlgHom R N u t n z : CoverCoordinateAlgebra R N u t n) =
+      coverAntipodeAlgHom R N u t n z :=
+  rfl
+
+/-- The descended inversion remains involutive. -/
+lemma antipodeAlgHom_involutive :
+    Function.Involutive (antipodeAlgHom R N u t n) := by
+  intro z
+  apply Subtype.ext
+  change
+    coverAntipodeAlgHom R N u t n (coverAntipodeAlgHom R N u t n z) = z
+  exact coverAntipodeAlgHom_involutive R N u t n z
 
 /-- Averaging over the order-two descent action. -/
 noncomputable def fixedProjection (h2 : IsUnit (2 : R)) :
