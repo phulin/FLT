@@ -950,6 +950,28 @@ theorem
 
 variable [E.IsElliptic]
 
+/- The named proposition keeps the dependent existential for the unramified twist opaque during
+downstream type-class elaboration.  Consumers unfold it only when they actually need the
+extension and its certificate. -/
+def UnramifiedQuadraticTwistData : Prop :=
+  ∃ (L : Type u) (_ : Field L) (_ : Algebra K L) (_ : Algebra.IsQuadraticExtension K L)
+    (_ : Algebra.IsSeparable K L) (_ : Algebra R L) (_ : IsScalarTower R K L)
+    (θ : L) (t n : R),
+    _root_.IsIntegral R θ ∧
+    θ ∉ Set.range (algebraMap K L) ∧
+    Algebra.trace K L θ = algebraMap R K t ∧
+    Algebra.norm K θ = algebraMap R K n ∧
+    IsLocalRing.residue R (t ^ 2 - 4 * n) ≠ 0 ∧
+    ((E.quadraticTwist L).minimal R).HasSplitMultiplicativeReduction R
+
+/-- The reduction-only package underlying the historical public existence theorem. -/
+def SplitQuadraticTwistData : Prop :=
+  ∃ (L : Type u) (_ : Field L) (_ : Algebra K L) (_ : Algebra.IsQuadraticExtension K L)
+    (_ : Algebra.IsSeparable K L),
+    ((E.quadraticTwist L).minimal R).HasSplitMultiplicativeReduction R
+
+set_option maxHeartbeats 1000000 in
+-- The construction carries a long chain of local-ring and transported-instance witnesses.
 open IsLocalRing in
 /-- If `E` has multiplicative reduction which is not split, then `E` has a quadratic twist with
 split multiplicative reduction — namely the twist by the unramified quadratic extension of `K`.
@@ -970,15 +992,8 @@ have additive reduction. -/
 theorem exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction
     [E.HasMultiplicativeReduction R]
     (h : ¬E.HasSplitMultiplicativeReduction R) :
-    ∃ (L : Type u) (_ : Field L) (_ : Algebra K L) (_ : Algebra.IsQuadraticExtension K L)
-      (_ : Algebra.IsSeparable K L) (_ : Algebra R L) (_ : IsScalarTower R K L)
-      (θ : L) (t n : R),
-      _root_.IsIntegral R θ ∧
-      θ ∉ Set.range (algebraMap K L) ∧
-      Algebra.trace K L θ = algebraMap R K t ∧
-      Algebra.norm K θ = algebraMap R K n ∧
-      residue R (t ^ 2 - 4 * n) ≠ 0 ∧
-      ((E.quadraticTwist L).minimal R).HasSplitMultiplicativeReduction R := by
+    UnramifiedQuadraticTwistData E R := by
+  unfold UnramifiedQuadraticTwistData
   -- The node polynomial reduced to the residue field `k`; nonsplitness makes it irreducible
   -- (`irreducible_nodePoly_map`), and multiplicative reduction makes it separable
   -- (`separable_nodePoly_map`). Its root field `k' = k[X]/(P)` is therefore a separable
@@ -1063,13 +1078,14 @@ multiplicative reduction.  This is the reduction-only projection of
 `exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction`. -/
 theorem exists_quadraticTwist_hasSplitMultiplicativeReduction [E.HasMultiplicativeReduction R]
     (h : ¬E.HasSplitMultiplicativeReduction R) :
-    ∃ (L : Type u) (_ : Field L) (_ : Algebra K L) (_ : Algebra.IsQuadraticExtension K L)
-      (_ : Algebra.IsSeparable K L),
-      ((E.quadraticTwist L).minimal R).HasSplitMultiplicativeReduction R := by
-  obtain ⟨L, _, _, _, _, _, _, θ, t, n, _, _, _, _, _, hsplit⟩ :=
+    SplitQuadraticTwistData E R := by
+  unfold SplitQuadraticTwistData
+  have hd : UnramifiedQuadraticTwistData E R :=
     exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction E R h
-  exact ⟨L, ‹Field L›, ‹Algebra K L›, ‹Algebra.IsQuadraticExtension K L›,
-    ‹Algebra.IsSeparable K L›, hsplit⟩
+  unfold UnramifiedQuadraticTwistData at hd
+  obtain ⟨L, hfield, halgebra, hquadratic, hseparable, halgebraR, htower,
+      θ, t, n, hθint, hθbase, htrace, hnorm, hdisc, hsplit⟩ := hd
+  exact ⟨L, hfield, halgebra, hquadratic, hseparable, hsplit⟩
 
 end Reduction
 
