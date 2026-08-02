@@ -6,6 +6,7 @@ Authors: Joseph Tooby-Smith
 module
 
 public import FLT.Deformations.RepresentationTheory.AbsoluteGaloisGroup
+public import FLT.KnownIn1980s.EllipticCurves.MaybeMathlib
 public import FLT.Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
 
 /-!
@@ -89,6 +90,29 @@ theorem localInertia_fixed_of_pow_eq_one
     _ = 1 * (u : S) := by rw [hyone]
     _ = z0 := by simpa using hu
   exact congrArg Subtype.val hfix
+
+/-- If inertia fixes one `n`-th root `r` of the Tate parameter `q`, it fixes every unit
+whose class in `Ωˣ / q^ℤ` is killed by `n`.  Indeed, such a unit is a root of unity times an
+integral power of `r`, and both factors are fixed. -/
+theorem localInertia_fixed_unit_of_mk_pow_eq_one
+    (v : HeightOneSpectrum (𝓞 K)) (n : ℕ)
+    [NeZero (n : IsLocalRing.ResidueField (v.adicCompletionIntegers K))]
+    (σ : Γ(v.adicCompletion K)) (hσ : σ ∈ localInertiaGroup v)
+    (q r u : (AlgebraicClosure (v.adicCompletion K))ˣ)
+    (hr : r ^ n = q)
+    (hfixr : Units.map σ.toAlgHom.toRingHom.toMonoidHom r = r)
+    (hu : (u : (AlgebraicClosure (v.adicCompletion K))ˣ ⧸ Subgroup.zpowers q) ^ n = 1) :
+    Units.map σ.toAlgHom.toRingHom.toMonoidHom u = u := by
+  obtain ⟨ζ, z, hζ, huz⟩ :=
+    QuotientGroup.exists_pow_eq_one_mul_zpow_of_mk_pow_eq_one hr hu
+  have hζfield : (ζ : AlgebraicClosure (v.adicCompletion K)) ^ n = 1 := by
+    exact congrArg Units.val hζ
+  have hfixζfield : σ (ζ : AlgebraicClosure (v.adicCompletion K)) = ζ :=
+    localInertia_fixed_of_pow_eq_one v n σ hσ ζ hζfield
+  have hfixζ : Units.map σ.toAlgHom.toRingHom.toMonoidHom ζ = ζ := by
+    apply Units.ext
+    exact hfixζfield
+  rw [huz, map_mul, map_zpow, hfixζ, hfixr]
 
 /-- Local inertia fixes an `n`-th root of a unit of the base valuation ring when `n` is
 nonzero in the residue field.
