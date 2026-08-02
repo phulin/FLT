@@ -10,6 +10,7 @@ public import FLT.GaloisRepresentation.HardlyRamified.Defs
 import Mathlib.GroupTheory.PGroup
 import Mathlib.RingTheory.Localization.Away.Basic
 public import Mathlib.RingTheory.HopfAlgebra.Convolution
+public import Mathlib.RingTheory.Bialgebra.Equiv
 
 /-!
 # Generic fibers of Schoof's finite-flat category
@@ -745,6 +746,90 @@ def GaloisRep.HasFiniteFlatModelAwayTwo
         (ℚ ⊗[SchoofThreeBase] G →ₐ[ℚ] AlgebraicClosure ℚ))),
         e (Additive.ofMul (WithConv.toConv
           (sigma.toAlgHom.comp x.toMul.ofConv))) = rho sigma (e x)
+
+set_option backward.isDefEq.respectTransparency false in
+private noncomputable def precompBialgEquivPoints
+    {R A B C : Type*} [CommSemiring R] [CommSemiring A] [CommSemiring B]
+    [CommSemiring C] [Bialgebra R A] [Bialgebra R B] [Algebra R C]
+    (e : A ≃ₐc[R] B) :
+    Additive (WithConv (A →ₐ[R] C)) ≃+ Additive (WithConv (B →ₐ[R] C)) where
+  toFun q := Additive.ofMul (WithConv.toConv
+    (q.toMul.ofConv.comp e.symm.toAlgEquiv.toAlgHom))
+  invFun q := Additive.ofMul (WithConv.toConv
+    (q.toMul.ofConv.comp e.toAlgEquiv.toAlgHom))
+  left_inv q := by
+    apply Additive.toMul.injective
+    apply WithConv.ofConv_injective
+    change (q.toMul.ofConv.comp e.symm.toAlgEquiv.toAlgHom).comp
+      e.toAlgEquiv.toAlgHom = q.toMul.ofConv
+    rw [AlgHom.comp_assoc, show
+      e.symm.toAlgEquiv.toAlgHom.comp e.toAlgEquiv.toAlgHom = .id R A by
+        exact congrArg BialgHom.toAlgHom (BialgEquiv.symm_comp e)]
+    simp
+  right_inv q := by
+    apply Additive.toMul.injective
+    apply WithConv.ofConv_injective
+    change (q.toMul.ofConv.comp e.toAlgEquiv.toAlgHom).comp
+      e.symm.toAlgEquiv.toAlgHom = q.toMul.ofConv
+    rw [AlgHom.comp_assoc, show
+      e.toAlgEquiv.toAlgHom.comp e.symm.toAlgEquiv.toAlgHom = .id R B by
+        exact congrArg BialgHom.toAlgHom (BialgEquiv.comp_symm e)]
+    simp
+  map_add' q₁ q₂ := by
+    apply Additive.toMul.injective
+    apply WithConv.ofConv_injective
+    exact AlgHom.convMul_comp_bialgHom_distrib q₁.toMul q₂.toMul e.symm.toBialgHom
+
+/-- An integral Hopf order for the canonical generic coordinate algebra.  This isolates the
+globalization step: the finite-flat Hopf algebra is over `ℤ[1/2]`, and its rational base change
+is required to be the canonical generic bialgebra constructed from `rho`. -/
+def GaloisRep.HasIntegralHopfOrderAwayTwo
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Module.Finite A W]
+    [Module.Free A W] [Finite W] (rho : GaloisRep ℚ A W) : Prop :=
+  letI : Algebra SchoofThreeBase ℚ := schoofThreeBaseToRat.toAlgebra
+  ∃ (G : Type) (_ : CommRing G) (_ : HopfAlgebra SchoofThreeBase G)
+    (_ : Module.Flat SchoofThreeBase G) (_ : Module.Finite SchoofThreeBase G)
+    (_ : Algebra.Etale ℚ (ℚ ⊗[SchoofThreeBase] G)),
+    letI := GaloisRep.genericEtaleBialgebra rho
+    Nonempty ((ℚ ⊗[SchoofThreeBase] G) ≃ₐc[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho)
+
+set_option backward.isDefEq.respectTransparency false in
+/-- An integral Hopf order supplies the global finite-flat model, including the additive and
+Galois-equivariant identification of its rational geometric points with the representation. -/
+theorem GaloisRep.HasIntegralHopfOrderAwayTwo.toFiniteFlatModel
+    {A W : Type} [Finite W] [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [DiscreteTopology A]
+    [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    {rho : GaloisRep ℚ A W} (h : GaloisRep.HasIntegralHopfOrderAwayTwo rho) :
+    GaloisRep.HasFiniteFlatModelAwayTwo rho := by
+  letI : Algebra SchoofThreeBase ℚ := schoofThreeBaseToRat.toAlgebra
+  rcases h with ⟨G, hG, hHopf, hFlat, hFinite, hEtale, ⟨b⟩⟩
+  letI : CommRing G := hG
+  letI : HopfAlgebra SchoofThreeBase G := hHopf
+  letI : Module.Flat SchoofThreeBase G := hFlat
+  letI : Module.Finite SchoofThreeBase G := hFinite
+  letI : Algebra.Etale ℚ (ℚ ⊗[SchoofThreeBase] G) := hEtale
+  letI := GaloisRep.genericEtaleHopfAlgebra rho
+  let pointEquiv := (precompBialgEquivPoints b).trans
+    (GaloisRep.genericEtalePointsAddEquiv rho)
+  let e : Additive (WithConv
+      (ℚ ⊗[SchoofThreeBase] G →ₐ[ℚ] AlgebraicClosure ℚ)) →+ W :=
+    pointEquiv.toAddMonoidHom
+  refine ⟨G, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, e, pointEquiv.bijective, ?_⟩
+  intro sigma x
+  change GaloisRep.genericEtalePointsAddEquiv rho
+      (Additive.ofMul (WithConv.toConv
+        ((sigma.toAlgHom.comp x.toMul.ofConv).comp
+          b.symm.toAlgEquiv.toAlgHom))) =
+    rho sigma (GaloisRep.genericEtalePointsAddEquiv rho
+      (Additive.ofMul (WithConv.toConv
+        (x.toMul.ofConv.comp b.symm.toAlgEquiv.toAlgHom))))
+  rw [AlgHom.comp_assoc]
+  exact GaloisRep.genericEtalePointsAddEquiv_smul rho sigma
+    (x.toMul.ofConv.comp b.symm.toAlgEquiv.toAlgHom)
 
 /-- A represented object of Schoof's `(2, 3)` category: the four arithmetic generic-fiber
 conditions together with an actual global finite-flat model over `ℤ[1/2]`. -/
