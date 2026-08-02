@@ -9,7 +9,10 @@ public import FLT.GaloisRepresentation.HardlyRamified.ModThree
 public import FLT.NumberField.Chebotarev
 
 import FLT.Deformations.CharacteristicZeroPoint
+import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 import Mathlib.NumberTheory.Padics.ProperSpace
+import Mathlib.Topology.Algebra.Module.Compact
+import Mathlib.Topology.Algebra.Ring.Compact
 import Mathlib.Topology.MetricSpace.Ultra.TotallySeparated
 
 /-!
@@ -85,6 +88,23 @@ theorem trace_sub_one_add_det_mem_ideal_iff_quotient_character
   simpa only [Ideal.Quotient.algebraMap_eq, map_add, map_one] using
     (Ideal.Quotient.mk_eq_mk_iff_sub_mem (I := I) t (1 + d)).symm
 
+/-- The coefficient map to a maximal-ideal-power quotient is continuous when the quotient is
+given its discrete topology.  Finite freeness over `ℤ_[3]` makes `R` compact Hausdorff and
+Noetherian, so every such power is open. -/
+theorem continuous_algebraMap_quotient_maximalIdeal_pow
+    {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
+    [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [IsModuleTopology ℤ_[3] R] (n : ℕ)
+    [TopologicalSpace (R ⧸ maximalIdeal R ^ n)]
+    [DiscreteTopology (R ⧸ maximalIdeal R ^ n)] :
+    Continuous (algebraMap R (R ⧸ maximalIdeal R ^ n)) := by
+  letI : IsNoetherianRing R := IsNoetherianRing.of_finite ℤ_[3] R
+  letI : CompactSpace R := Module.Finite.compactSpace ℤ_[3] R
+  letI : T2Space R := IsModuleTopology.t2Space ℤ_[3]
+  apply RingHom.continuous_iff_isOpen_ker.mpr
+  rw [Ideal.Quotient.algebraMap_eq, Ideal.mk_ker]
+  exact IsLocalRing.isOpen_maximalIdeal_pow R n
+
 /-- The higher finite-level arithmetic input for the 3-adic classification.  Applied to the
 finite flat group scheme underlying the representation modulo `𝔪ⁿ⁺²`, Schoof's argument first
 shows that its only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing
@@ -102,10 +122,42 @@ theorem schoof_three_adic_finite_level_character_succ_succ
     (V : Type*) [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
     (hV : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
     (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ) :
+    let A := R ⧸ maximalIdeal R ^ (n + 2)
+    letI : TopologicalSpace A := ⊥
+    letI : DiscreteTopology A := ⟨rfl⟩
+    letI : IsTopologicalRing A := ⟨⟩
+    letI : ContinuousSMul R A := continuousSMul_of_algebraMap R A
+      (continuous_algebraMap_quotient_maximalIdeal_pow (R := R) (n + 2))
+    ∀ g : Γ ℚ, LinearMap.trace A (A ⊗[R] V) ((ρ.baseChange A) g) =
+      1 + LinearMap.det ((ρ.baseChange A) g) := by
+  sorry
+
+/-- The scalar form of the finite-quotient character identity, obtained from the actual
+quotient representation by functoriality of trace and determinant. -/
+theorem three_adic_finite_level_quotient_character_succ_succ
+    {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
+    [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [IsModuleTopology ℤ_[3] R]
+    (V : Type*) [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
+    (hV : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
+    (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ) :
     ∀ g : Γ ℚ,
       algebraMap R (R ⧸ maximalIdeal R ^ (n + 2)) (LinearMap.trace R V (ρ g)) =
         1 + algebraMap R (R ⧸ maximalIdeal R ^ (n + 2)) (LinearMap.det (ρ g)) := by
-  sorry
+  let A := R ⧸ maximalIdeal R ^ (n + 2)
+  letI : TopologicalSpace A := ⊥
+  letI : DiscreteTopology A := ⟨rfl⟩
+  letI : IsTopologicalRing A := ⟨⟩
+  letI : ContinuousSMul R A := continuousSMul_of_algebraMap R A
+    (continuous_algebraMap_quotient_maximalIdeal_pow (R := R) (n + 2))
+  intro g
+  have h := schoof_three_adic_finite_level_character_succ_succ V hV hρ n g
+  rw [GaloisRep.trace_baseChange] at h
+  have hdet : LinearMap.det (((ρ.baseChange A)) g) =
+      algebraMap R A (LinearMap.det (ρ g)) :=
+    GaloisRep.det_baseChange ρ g
+  rw [hdet] at h
+  exact h
 
 /-- Compatibility form of the finite-level theorem.  The induction hypothesis records the
 interface used by the original proof, but Schoof's classification applies directly to the
@@ -125,7 +177,7 @@ theorem three_adic_trace_deformation_step
   intro g
   apply (trace_sub_one_add_det_mem_ideal_iff_quotient_character
     (maximalIdeal R ^ (n + 2)) _ _).mpr
-  exact schoof_three_adic_finite_level_character_succ_succ V hV hρ n g
+  exact three_adic_finite_level_quotient_character_succ_succ V hV hρ n g
 
 /-- At every positive maximal-ideal power, the finite-level devissage makes the character
 congruent to `1 + det`. -/
@@ -144,7 +196,7 @@ theorem three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow_succ
       apply (trace_sub_one_add_det_mem_ideal_iff_quotient_character
         (maximalIdeal R ^ (n + 2)) _ _).mpr
       simpa only [Nat.succ_eq_add_one, Nat.add_assoc, Nat.reduceAdd] using
-        schoof_three_adic_finite_level_character_succ_succ V hV hρ n g
+        three_adic_finite_level_quotient_character_succ_succ V hV hρ n g
 
 /-- The finite-level character congruence for every maximal-ideal power.  The zeroth power is
 the unit ideal; positive powers are the arithmetic Schoof--Fontaine input. -/
