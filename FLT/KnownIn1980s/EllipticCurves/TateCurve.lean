@@ -11,6 +11,7 @@ public import FLT.KnownIn1980s.EllipticCurves.WeilPairing
 public import FLT.KnownIn1980s.EllipticCurves.TateParameter
 public import FLT.KnownIn1980s.EllipticCurves.TateCurveBaseChange
 public import FLT.KnownIn1980s.EllipticCurves.ReductionBaseChange
+public import FLT.Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
 
 /-!
 
@@ -230,15 +231,6 @@ theorem WeierstrassCurve.valuation_q_lt_one : valuation k E.q < 1 :=
 noncomputable def WeierstrassCurve.qUnit : kˣ :=
   Units.mk0 E.q E.q_ne_zero
 
--- `DecidableEq k` is needed for the group law on `(E⁄k).Point`
-variable [DecidableEq k] in
-/-- Tate's uniformization theorem: if `E/k` is an elliptic curve with split multiplicative
-reduction then `E(k)` is isomorphic to `kˣ/⟨q⟩`.
--/
-noncomputable def WeierstrassCurve.tateEquiv :
-    Additive (kˣ ⧸ Subgroup.zpowers E.qUnit) ≃+ (E⁄k).Point :=
-  sorry
-
 -- Tate's theorem (Silverman, ATAEC V.5.3): an elliptic curve with split multiplicative
 -- reduction is isomorphic, by a change of Weierstrass coordinates, to the Tate curve of its
 -- Tate parameter. Since `j(E)` is non-integral, `Aut` of the curve is `{±1}` and there are
@@ -248,6 +240,34 @@ noncomputable def WeierstrassCurve.tateEquiv :
 theorem WeierstrassCurve.exists_variableChange_tateCurve :
     ∃ C : VariableChange k, C • tateCurve E.q = E :=
   sorry
+
+/-- A fixed change of variables from the Tate curve of `E.q` to `E`. This is the sole
+noncanonical choice in the general Tate uniformization. -/
+noncomputable def WeierstrassCurve.tateVariableChange : VariableChange k :=
+  Classical.choose E.exists_variableChange_tateCurve
+
+theorem WeierstrassCurve.tateVariableChange_smul :
+    E.tateVariableChange • tateCurve E.q = E :=
+  Classical.choose_spec E.exists_variableChange_tateCurve
+
+-- `DecidableEq k` is needed for the group law on `(E⁄k).Point`
+variable [DecidableEq k] in
+/-- Tate's uniformization theorem: if `E/k` is an elliptic curve with split multiplicative
+reduction then `E(k)` is isomorphic to `kˣ/⟨q⟩`. It is obtained by transporting the explicit
+uniformization of the Tate curve along `tateVariableChange`. -/
+noncomputable def WeierstrassCurve.tateEquiv :
+    Additive (kˣ ⧸ Subgroup.zpowers E.qUnit) ≃+ (E⁄k).Point :=
+  let C := E.tateVariableChange
+  let T := tateCurve E.q
+  have hC : C • T = E := E.tateVariableChange_smul
+  letI : (tateCurve E.q).IsElliptic := by
+    have hT : C⁻¹ • E = T :=
+      (congrArg (fun W : WeierstrassCurve k ↦ C⁻¹ • W) hC.symm).trans (inv_smul_smul C T)
+    change T.IsElliptic
+    rw [← hT]
+    infer_instance
+  (tateCurveEquiv E.qUnit E.valuation_q_lt_one).trans <|
+    (Affine.Point.equivVariableChange T C).symm.trans <| Affine.Point.equivOfEq hC
 
 open scoped ArithmeticFunction.sigma in
 /-- The Lambert series rearrangement `∑_{n≥1} n³qⁿ/(1-qⁿ) = ∑_{n≥1} σ₃(n)qⁿ` for
