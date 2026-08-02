@@ -287,6 +287,25 @@ Provable from `exists_quadraticTwist_hasSplitMultiplicativeReduction`
 `nodePoly_map_splits_iff_isSquare` (char `≠ 2`, `Reduction.lean:144`) /
 `nodePoly_map_splits_iff_of_two_eq_zero` (char `2`, `Reduction.lean:156`), and
 `of_isMinimal_smul` above; it is not exposed as a standalone lemma in PR #1088. -/
+lemma valuation_discrim_mul_variableChange_u_sq_eq_one
+    (W W' : WeierstrassCurve k) [W.HasMultiplicativeReduction 𝒪[k]]
+    [W'.HasMultiplicativeReduction 𝒪[k]] (t n : k) (C : VariableChange k)
+    (hC : C • W' = W.quadraticTwistOf t n) :
+    valuation k ((t ^ 2 - 4 * n) * (C.u : k) ^ 2) = 1 := by
+  have hc₄ := congrArg WeierstrassCurve.c₄ hC
+  have hv := congrArg (valuation k) hc₄
+  rw [variableChange_c₄, c₄_quadraticTwistOf, map_mul, map_pow, map_mul, map_pow,
+    W.valuation_c₄_eq_one, W'.valuation_c₄_eq_one, mul_one, Units.val_inv_eq_inv_val,
+    map_inv₀] at hv
+  have hu0 : valuation k (C.u : k) ≠ 0 :=
+    (valuation k).ne_zero_iff.mpr C.u.ne_zero
+  have hv' : valuation k (t ^ 2 - 4 * n) ^ 2 = (valuation k (C.u : k))⁻¹ ^ 4 := by
+    simpa only [mul_one] using hv.symm
+  have hsq : valuation k ((t ^ 2 - 4 * n) * (C.u : k) ^ 2) ^ 2 = 1 := by
+    rw [map_mul, map_pow, mul_pow, ← pow_mul, show 2 * 2 = 4 by norm_num, hv', inv_pow]
+    exact inv_mul_cancel₀ (pow_ne_zero 4 hu0)
+  exact (pow_eq_one_iff_of_nonneg zero_le (by norm_num)).mp hsq
+
 theorem not_hasSplitMultiplicativeReduction_quadraticTwist (W : WeierstrassCurve k)
     [W.IsElliptic] [W.HasSplitMultiplicativeReduction 𝒪[k]] (L : Type u) [Field L] [Algebra k L]
     [Algebra.IsQuadraticExtension k L] [Algebra.IsSeparable k L] (W' : WeierstrassCurve k)
