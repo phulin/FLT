@@ -581,6 +581,99 @@ theorem WeierstrassCurve.nTorsionMap_comp
   ext P
   exact DFunLike.congr_fun (WeierstrassCurve.Points.map_comp E K L M f g) P.1
 
+/-- An algebra embedding between separably closed coefficient fields induces a bijection on
+`n`-torsion, provided `n` is nonzero in both fields. Injectivity is inherited from the field
+embedding and surjectivity follows because both torsion groups have cardinality `n²`. -/
+theorem WeierstrassCurve.nTorsionMap_bijective_of_isSepClosed
+    {K : Type v} {L : Type w} [Field K] [Field L]
+    [Algebra k K] [Algebra k L] [IsSepClosed K] [IsSepClosed L]
+    [DecidableEq K] [DecidableEq L]
+    (n : ℕ) [NeZero (n : K)] [NeZero (n : L)] (f : K →ₐ[k] L) :
+    Function.Bijective (E.nTorsionMap n f) := by
+  let _ : (E⁄K).IsElliptic := by
+    change (E.map (algebraMap k K)).IsElliptic
+    infer_instance
+  let _ : (E⁄L).IsElliptic := by
+    change (E.map (algebraMap k L)).IsElliptic
+    infer_instance
+  let _ : Finite ((E⁄K).nTorsion n) :=
+    (E⁄K).n_torsion_finite (NeZero.ne (n : K))
+  let _ : Finite ((E⁄L).nTorsion n) :=
+    (E⁄L).n_torsion_finite (NeZero.ne (n : L))
+  have hinj : Function.Injective (E.nTorsionMap n f) := by
+    intro P Q hPQ
+    apply Subtype.ext
+    apply WeierstrassCurve.Affine.Point.map_injective (f := f)
+    exact congrArg Subtype.val hPQ
+  apply (Nat.bijective_iff_injective_and_card _).2
+  refine ⟨hinj, ?_⟩
+  change Nat.card ((E⁄K).nTorsion n) = Nat.card ((E⁄L).nTorsion n)
+  rw [(E⁄K).n_torsion_card (NeZero.ne (n : K)),
+    (E⁄L).n_torsion_card (NeZero.ne (n : L))]
+
+/-- The `ZMod n`-linear equivalence on torsion induced by an algebra embedding between
+separably closed coefficient fields. -/
+noncomputable def WeierstrassCurve.nTorsionLinearEquivOfIsSepClosed
+    {K : Type v} {L : Type w} [Field K] [Field L]
+    [Algebra k K] [Algebra k L] [IsSepClosed K] [IsSepClosed L]
+    [DecidableEq K] [DecidableEq L]
+    (n : ℕ) [NeZero (n : K)] [NeZero (n : L)] (f : K →ₐ[k] L) :
+    letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄L).Point (n : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    AddSubgroup.torsionBy (E⁄K).Point (n : ℤ) ≃ₗ[ZMod n]
+      AddSubgroup.torsionBy (E⁄L).Point (n : ℤ) := by
+  letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄L).Point (n : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  exact LinearEquiv.ofBijective ((E.nTorsionMap n f).toZModLinearMap n)
+    (E.nTorsionMap_bijective_of_isSepClosed n f)
+
+@[simp]
+theorem WeierstrassCurve.nTorsionLinearEquivOfIsSepClosed_apply
+    {K : Type v} {L : Type w} [Field K] [Field L]
+    [Algebra k K] [Algebra k L] [IsSepClosed K] [IsSepClosed L]
+    [DecidableEq K] [DecidableEq L]
+    (n : ℕ) [NeZero (n : K)] [NeZero (n : L)] (f : K →ₐ[k] L)
+    (P : AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :
+    letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄L).Point (n : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    nTorsionLinearEquivOfIsSepClosed (E := E) n f P = E.nTorsionMap n f P := by
+  rfl
+
+/-- Naturality of `nTorsionLinearEquivOfIsSepClosed`: a commuting square of field
+endomorphisms induces a commuting square on elliptic-curve torsion. -/
+theorem WeierstrassCurve.nTorsionLinearEquivOfIsSepClosed_nTorsionMap
+    {K : Type v} {L : Type w} [Field K] [Field L]
+    [Algebra k K] [Algebra k L] [IsSepClosed K] [IsSepClosed L]
+    [DecidableEq K] [DecidableEq L]
+    (n : ℕ) [NeZero (n : K)] [NeZero (n : L)] (f : K →ₐ[k] L)
+    (σK : K →ₐ[k] K) (σL : L →ₐ[k] L)
+    (hcomm : f.comp σK = σL.comp f)
+    (P : AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :
+    letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄L).Point (n : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    nTorsionLinearEquivOfIsSepClosed (E := E) n f (E.nTorsionMap n σK P) =
+      E.nTorsionMap n σL
+        (nTorsionLinearEquivOfIsSepClosed (E := E) n f P) := by
+  letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod n) (AddSubgroup.torsionBy (E⁄L).Point (n : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  apply Subtype.ext
+  change WeierstrassCurve.Affine.Point.map f
+      (WeierstrassCurve.Affine.Point.map σK P.1) =
+    WeierstrassCurve.Affine.Point.map σL
+      (WeierstrassCurve.Affine.Point.map f P.1)
+  rw [WeierstrassCurve.Affine.Point.map_map,
+    WeierstrassCurve.Affine.Point.map_map, hcomm]
+
 omit [E.IsElliptic] [DecidableEq k] in
 /-- For the Krull topology, the set of automorphisms sending one elliptic-curve point to
 another is open. -/
