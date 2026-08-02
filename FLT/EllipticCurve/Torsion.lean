@@ -783,4 +783,98 @@ theorem galoisRep_isUnramifiedAt_of_local_torsion_fixed
     rw [WeierstrassCurve.Affine.Point.map_map, WeierstrassCurve.Affine.Point.map_map, hcomp]
   exact congrArg Subtype.val (hmap.trans (hfixed σ hσ (E.nTorsionMap n F P)))
 
+/-- The canonical embedding of the global algebraic closure into the algebraic closure of a
+completion, built from the chosen adic embedding. -/
+noncomputable def adicCompletionAlgebraicClosureHom
+    (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) :
+    AlgebraicClosure K →ₐ[K] AlgebraicClosure (v.adicCompletion K) :=
+  { toRingHom := AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v)
+    commutes' := fun x => by
+      change AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v)
+          (algebraMap K (AlgebraicClosure K) x) =
+        algebraMap K (AlgebraicClosure (v.adicCompletion K)) x
+      calc
+        _ = algebraMap (v.adicCompletion K) (AlgebraicClosure (v.adicCompletion K))
+            (Field.AbsoluteGaloisGroup.adicEmbedding v x) :=
+          AlgebraicClosure.map_algebraMap
+            (Field.AbsoluteGaloisGroup.adicEmbedding v) x
+        _ = _ := (IsScalarTower.algebraMap_apply K (v.adicCompletion K)
+          (AlgebraicClosure (v.adicCompletion K)) x).symm }
+
+/-- Base change along the adic embedding is a bijection on `n`-torsion in characteristic
+zero.  Injectivity comes from the field embedding; surjectivity follows because both torsion
+groups have cardinality `n²`. -/
+theorem adicCompletion_nTorsionMap_bijective
+    (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) (n : ℕ) [NeZero n]
+    [DecidableEq (AlgebraicClosure (v.adicCompletion K))] :
+    Function.Bijective (E.nTorsionMap n (adicCompletionAlgebraicClosureHom v)) := by
+  let F := adicCompletionAlgebraicClosureHom v
+  let _ : (E⁄(AlgebraicClosure K)).IsElliptic := by
+    change (E.map (algebraMap K (AlgebraicClosure K))).IsElliptic
+    infer_instance
+  let _ : (E⁄(AlgebraicClosure (v.adicCompletion K))).IsElliptic := by
+    change (E.map (algebraMap K (AlgebraicClosure (v.adicCompletion K)))).IsElliptic
+    infer_instance
+  have hnGlobal : (n : AlgebraicClosure K) ≠ 0 := by exact_mod_cast NeZero.ne n
+  have hnLocal : (n : AlgebraicClosure (v.adicCompletion K)) ≠ 0 := by
+    exact_mod_cast NeZero.ne n
+  let _ : Finite ((E⁄(AlgebraicClosure K)).nTorsion n) :=
+    (E⁄(AlgebraicClosure K)).n_torsion_finite hnGlobal
+  let _ : Finite ((E⁄(AlgebraicClosure (v.adicCompletion K))).nTorsion n) :=
+    (E⁄(AlgebraicClosure (v.adicCompletion K))).n_torsion_finite hnLocal
+  have hinj : Function.Injective (E.nTorsionMap n F) := by
+    intro P Q hPQ
+    apply Subtype.ext
+    apply WeierstrassCurve.Affine.Point.map_injective (f := F)
+    exact congrArg Subtype.val hPQ
+  apply (Nat.bijective_iff_injective_and_card _).2
+  refine ⟨hinj, ?_⟩
+  change Nat.card ((E⁄(AlgebraicClosure K)).nTorsion n) =
+    Nat.card ((E⁄(AlgebraicClosure (v.adicCompletion K))).nTorsion n)
+  rw [(E⁄(AlgebraicClosure K)).n_torsion_card,
+    (E⁄(AlgebraicClosure (v.adicCompletion K))).n_torsion_card]
+  · exact hnLocal
+  · exact hnGlobal
+
+/-- The additive equivalence on torsion induced by the adic embedding. -/
+noncomputable def adicCompletion_nTorsionAddEquiv
+    (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) (n : ℕ) [NeZero n]
+    [DecidableEq (AlgebraicClosure (v.adicCompletion K))] :
+    AddSubgroup.torsionBy (E⁄(AlgebraicClosure K)).Point (n : ℤ) ≃+
+      AddSubgroup.torsionBy
+        (E⁄(AlgebraicClosure (v.adicCompletion K))).Point (n : ℤ) :=
+  AddEquiv.ofBijective (E.nTorsionMap n (adicCompletionAlgebraicClosureHom v))
+    (E.adicCompletion_nTorsionMap_bijective v n)
+
+/-- The adic torsion equivalence intertwines the local Galois action on global torsion with
+the natural action on torsion over the algebraic closure of the completion. -/
+theorem adicCompletion_nTorsionAddEquiv_galois
+    (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) (n : ℕ) [NeZero n]
+    [DecidableEq (AlgebraicClosure (v.adicCompletion K))]
+    (σ : Field.absoluteGaloisGroup (v.adicCompletion K))
+    (P : AddSubgroup.torsionBy (E⁄(AlgebraicClosure K)).Point (n : ℤ)) :
+    E.adicCompletion_nTorsionAddEquiv v n
+        (E.nTorsionMap n
+          ((Field.absoluteGaloisGroup.map
+            (Field.AbsoluteGaloisGroup.adicEmbedding v) σ).toAlgHom) P) =
+      E.nTorsionMap n (σ.toAlgHom.restrictScalars K)
+        (E.adicCompletion_nTorsionAddEquiv v n P) := by
+  let F := adicCompletionAlgebraicClosureHom v
+  have hcomp : F.comp
+      (Field.absoluteGaloisGroup.map
+        (Field.AbsoluteGaloisGroup.adicEmbedding v) σ).toAlgHom =
+      (σ.toAlgHom.restrictScalars K).comp F := by
+    ext x
+    exact Field.absoluteGaloisGroup.lift_map
+      (Field.AbsoluteGaloisGroup.adicEmbedding v) σ x
+  apply Subtype.ext
+  change WeierstrassCurve.Affine.Point.map F
+      (WeierstrassCurve.Affine.Point.map
+        (Field.absoluteGaloisGroup.map
+          (Field.AbsoluteGaloisGroup.adicEmbedding v) σ).toAlgHom P.1) =
+    WeierstrassCurve.Affine.Point.map (σ.toAlgHom.restrictScalars K)
+      (WeierstrassCurve.Affine.Point.map F P.1)
+  rw [WeierstrassCurve.Affine.Point.map_map,
+    WeierstrassCurve.Affine.Point.map_map, hcomp]
+
 end WeierstrassCurve
