@@ -795,6 +795,23 @@ def GaloisRep.HasIntegralHopfOrderAwayTwo
     Nonempty ((ℚ ⊗[SchoofThreeBase] G) ≃ₐc[ℚ]
       GaloisRep.GenericEtaleAlgebra rho)
 
+/-- Global finite-flat gluing over the Dedekind ring `ℤ[1/2]`.  The generic finite etale
+group scheme extends uniquely etale at primes away from `3`; the supplied finite-flat model
+at `3` is glued to those models, and schematic closure transports the Hopf operations.
+
+This is the classical local-to-global theory of finite flat commutative group schemes over a
+Dedekind base (SGA 3, Exposés VIB and VIII, together with the finite-flat closure/gluing
+theorems of Raynaud).  Only this pre-1990 geometric existence theorem is deferred here; the
+canonical generic Hopf algebra and the recovery of its Galois module are formalized above and
+below. -/
+theorem GaloisRep.IsSchoofThreeGenericFiber.toIntegralHopfOrderAwayTwo
+    {A W : Type} [Finite W] [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [DiscreteTopology A]
+    [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    {rho : GaloisRep ℚ A W} (h : GaloisRep.IsSchoofThreeGenericFiber rho) :
+    GaloisRep.HasIntegralHopfOrderAwayTwo rho := by
+  knownin1980s
+
 set_option backward.isDefEq.respectTransparency false in
 /-- An integral Hopf order supplies the global finite-flat model, including the additive and
 Galois-equivariant identification of its rational geometric points with the representation. -/
@@ -839,5 +856,15 @@ def GaloisRep.IsSchoofThreeObject
     (rho : GaloisRep ℚ A W) : Prop :=
   GaloisRep.IsSchoofThreeGenericFiber rho ∧
     GaloisRep.HasFiniteFlatModelAwayTwo rho
+
+/-- The classical global gluing theorem upgrades the four generic-fiber conditions to an
+actual object of Schoof's finite-flat category. -/
+theorem GaloisRep.IsSchoofThreeGenericFiber.toSchoofThreeObject
+    {A W : Type} [Finite W] [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [DiscreteTopology A]
+    [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    {rho : GaloisRep ℚ A W} (h : GaloisRep.IsSchoofThreeGenericFiber rho) :
+    GaloisRep.IsSchoofThreeObject rho :=
+  ⟨h, h.toIntegralHopfOrderAwayTwo.toFiniteFlatModel⟩
 
 end GaloisRepresentation
