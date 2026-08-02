@@ -57,6 +57,33 @@ theorem exists_minimalPrime_avoiding_algebraMap
   exact Set.disjoint_left.mp hPdisj (hQP haQ)
     (Submonoid.mem_powers (algebraMap A B a))
 
+/-- A flat local algebra over a discrete valuation ring has a minimal-prime quotient on
+which the coefficient map is injective. -/
+theorem exists_characteristicZero_minimalPrime_of_dvr
+    (A B : Type*) [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
+    [CommRing B] [IsLocalRing B] [Algebra A B]
+    [Module.Flat A B] [IsLocalHom (algebraMap A B)] :
+    ∃ P ∈ minimalPrimes B,
+      Function.Injective ((Ideal.Quotient.mk P).comp (algebraMap A B)) := by
+  obtain ⟨ϖ, hϖ⟩ := IsDiscreteValuationRing.exists_irreducible A
+  obtain ⟨P, hPmin, hϖP⟩ :=
+    exists_minimalPrime_avoiding_algebraMap A B ϖ hϖ.ne_zero
+  have hPprime : P.IsPrime := hPmin.1.1
+  letI : P.IsPrime := hPprime
+  have hcomap : P.comap (algebraMap A B) = ⊥ := by
+    by_contra hne
+    obtain ⟨n, hn⟩ := IsDiscreteValuationRing.ideal_eq_span_pow_irreducible hne hϖ
+    have hpow : ϖ ^ n ∈ P.comap (algebraMap A B) := by
+      rw [hn]
+      exact Ideal.subset_span (Set.mem_singleton _)
+    change algebraMap A B (ϖ ^ n) ∈ P at hpow
+    rw [map_pow] at hpow
+    exact hϖP (hPprime.mem_of_pow_mem n hpow)
+  refine ⟨P, hPmin, ?_⟩
+  rw [RingHom.injective_iff_ker_eq_bot, RingHom.ker_eq_comap_bot,
+    ← Ideal.comap_comap, ← RingHom.ker_eq_comap_bot (Ideal.Quotient.mk P),
+    Ideal.mk_ker, hcomap]
+
 /-- A flat local `ℤ_[p]`-algebra has a minimal-prime quotient of characteristic zero.  The
 quotient map is not included in the conclusion as an extra datum: it is canonically
 `Ideal.Quotient.mk P`, and the stated composite is its coefficient map. -/
@@ -65,25 +92,7 @@ theorem exists_characteristicZero_minimalPrime
     (B : Type*) [CommRing B] [IsLocalRing B] [Algebra ℤ_[p] B]
     [Module.Flat ℤ_[p] B] [IsLocalHom (algebraMap ℤ_[p] B)] :
     ∃ P ∈ minimalPrimes B,
-      Function.Injective ((Ideal.Quotient.mk P).comp (algebraMap ℤ_[p] B)) := by
-  have hp0 : (p : ℤ_[p]) ≠ 0 := by
-    exact_mod_cast (Fact.out : p.Prime).ne_zero
-  obtain ⟨P, hPmin, hpP⟩ :=
-    exists_minimalPrime_avoiding_algebraMap ℤ_[p] B (p : ℤ_[p]) hp0
-  have hPprime : P.IsPrime := hPmin.1.1
-  letI : P.IsPrime := hPprime
-  have hcomap : P.comap (algebraMap ℤ_[p] B) = ⊥ := by
-    by_contra hne
-    obtain ⟨n, hn⟩ := PadicInt.ideal_eq_span_pow_p hne
-    have hpow : (p : ℤ_[p]) ^ n ∈ P.comap (algebraMap ℤ_[p] B) := by
-      rw [hn]
-      exact Ideal.subset_span (Set.mem_singleton _)
-    change algebraMap ℤ_[p] B ((p : ℤ_[p]) ^ n) ∈ P at hpow
-    rw [map_pow] at hpow
-    exact hpP (hPprime.mem_of_pow_mem n hpow)
-  refine ⟨P, hPmin, ?_⟩
-  rw [RingHom.injective_iff_ker_eq_bot, RingHom.ker_eq_comap_bot,
-    ← Ideal.comap_comap, ← RingHom.ker_eq_comap_bot (Ideal.Quotient.mk P),
-    Ideal.mk_ker, hcomap]
+      Function.Injective ((Ideal.Quotient.mk P).comp (algebraMap ℤ_[p] B)) :=
+  exists_characteristicZero_minimalPrime_of_dvr ℤ_[p] B
 
 end Deformation
