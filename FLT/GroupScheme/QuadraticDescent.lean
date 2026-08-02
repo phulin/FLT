@@ -232,4 +232,41 @@ lemma conjugationAlgEquiv_symm (t n : R) :
     (conjugationAlgEquiv R t n).symm = conjugationAlgEquiv R t n := by
   rfl
 
+/-- The trace-zero generator of the quadratic algebra. -/
+noncomputable def antiInvariant (t n : R) : Algebra R t n :=
+  2 * AdjoinRoot.root (polynomial R t n) -
+    AdjoinRoot.of (polynomial R t n) t
+
+/-- Quadratic conjugation negates the trace-zero generator. -/
+@[simp]
+lemma conjugationAlgEquiv_antiInvariant (t n : R) :
+    conjugationAlgEquiv R t n (antiInvariant R t n) =
+      -antiInvariant R t n := by
+  simp only [antiInvariant, map_sub, map_mul, map_ofNat,
+    conjugationAlgEquiv_apply, conjugationAlgHom_root, conjugateRoot]
+  rw [← AdjoinRoot.algebraMap_eq,
+    (conjugationAlgHom R t n).commutes]
+  ring
+
+/-- The square of the trace-zero generator is the quadratic discriminant. -/
+lemma antiInvariant_sq (t n : R) :
+    antiInvariant R t n ^ 2 =
+      algebraMap R (Algebra R t n) (discriminant R t n) := by
+  have hr := root_sq_sub_trace_mul_add_norm R t n
+  unfold antiInvariant discriminant
+  rw [map_sub, map_pow, map_mul, map_ofNat]
+  change
+    (2 * AdjoinRoot.root (polynomial R t n) -
+        AdjoinRoot.of (polynomial R t n) t) ^ 2 =
+      (AdjoinRoot.of (polynomial R t n) t) ^ 2 -
+        4 * AdjoinRoot.of (polynomial R t n) n
+  linear_combination 4 * hr
+
+/-- Unit discriminant makes the trace-zero generator invertible. -/
+lemma antiInvariant_isUnit (t n : R)
+    (hdisc : IsUnit (discriminant R t n)) :
+    IsUnit (antiInvariant R t n) := by
+  rw [← isUnit_pow_iff (n := 2) (by norm_num), antiInvariant_sq]
+  exact hdisc.map (algebraMap R (Algebra R t n))
+
 end QuadraticDescent
