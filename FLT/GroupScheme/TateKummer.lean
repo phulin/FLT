@@ -9,6 +9,7 @@ public import Mathlib.RingTheory.AdjoinRoot
 public import Mathlib.RingTheory.Bialgebra.Basic
 public import Mathlib.RingTheory.Flat.Basic
 public import Mathlib.RingTheory.Finiteness.Basic
+public import Mathlib.RingTheory.HopfAlgebra.Basic
 public import Mathlib.LinearAlgebra.StdBasis
 public import Mathlib.RingTheory.TensorProduct.Pi
 
@@ -135,6 +136,46 @@ lemma addIndex_zero_right (N : ℕ) [NeZero N] (i : Fin N) :
     addIndex N i 0 = i := by
   apply Fin.ext
   simp [addIndex, Nat.mod_eq_of_lt i.isLt]
+
+/-- Additive inverse of a component index, represented in the standard range. -/
+def negIndex (N : ℕ) [NeZero N] (i : Fin N) : Fin N :=
+  ⟨(N - i.1) % N, Nat.mod_lt _ (Nat.pos_of_ne_zero (NeZero.ne N))⟩
+
+lemma addIndex_comm (N : ℕ) [NeZero N] (i j : Fin N) :
+    addIndex N i j = addIndex N j i := by
+  apply Fin.ext
+  simp [addIndex, Nat.add_comm]
+
+lemma addCarry_comm (N : ℕ) (i j : Fin N) :
+    addCarry N i j = addCarry N j i := by
+  simp [addCarry, Nat.add_comm]
+
+@[simp]
+lemma addIndex_negIndex_right (N : ℕ) [NeZero N] (i : Fin N) :
+    addIndex N i (negIndex N i) = 0 := by
+  apply Fin.ext
+  by_cases hi : i.1 = 0
+  · simp [addIndex, negIndex, hi]
+  · have hle : i.1 ≤ N := Nat.le_of_lt i.isLt
+    have hlt : N - i.1 < N := by omega
+    have hsum : i.1 + (N - i.1) = N := by omega
+    simp only [addIndex, negIndex, Fin.val_mk]
+    rw [Nat.mod_eq_of_lt hlt, hsum, Nat.mod_self]
+    rfl
+
+@[simp]
+lemma addIndex_negIndex_left (N : ℕ) [NeZero N] (i : Fin N) :
+    addIndex N (negIndex N i) i = 0 := by
+  rw [addIndex_comm]
+  exact addIndex_negIndex_right N i
+
+/-- The total exponent in a component index and its inverse is exactly the carried multiple
+of `N`. -/
+lemma val_add_negIndex_eq_mul_addCarry (N : ℕ) [NeZero N] (i : Fin N) :
+    i.1 + (negIndex N i).1 = N * addCarry N i (negIndex N i) := by
+  have h := addIndex_val_add_mul_addCarry N i (negIndex N i)
+  rw [addIndex_negIndex_right] at h
+  simpa using h.symm
 
 @[simp]
 lemma addCarry_zero_left (N : ℕ) [NeZero N] (i : Fin N) :
