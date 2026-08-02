@@ -277,6 +277,34 @@ lemma not_exists_artinSchreier_residue_of_quadratic_generator [IsLocalRing R]
   · exact hθ ⟨algebraMap R K a, (sub_eq_zero.mp haθ).symm⟩
   · exact hθ ⟨algebraMap R K t - algebraMap R K a, (sub_eq_zero.mp haθ).symm⟩
 
+/-- The field-level Artin--Schreier class attached to a generator of a separable quadratic
+extension in characteristic `2` is nontrivial.  If
+`tr(θ)² (z² + z) = N(θ)`, then `tr(θ) z` is a root of the characteristic polynomial of
+`θ`.  Factoring the rank-two Cayley--Hamilton identity therefore puts `θ` in the base field. -/
+lemma not_exists_artinSchreier_of_quadratic_generator
+    {L : Type*} [Field L] [Algebra K L] [Algebra.IsQuadraticExtension K L]
+    { θ : L } (hθ : θ ∉ Set.range (algebraMap K L)) (h2 : (2 : K) = 0) :
+    ¬ ∃ z : K, Algebra.trace K L θ ^ 2 * (z ^ 2 + z) = Algebra.norm K θ := by
+  rintro ⟨z, hz⟩
+  let t : K := Algebra.trace K L θ
+  let n : K := Algebra.norm K θ
+  have ha : (t * z) ^ 2 - t * (t * z) + n = 0 := by
+    dsimp only [t, n]
+    linear_combination -hz + Algebra.trace K L θ ^ 2 * z ^ 2 * h2
+  have hθpoly := sq_sub_trace_mul_self_add_norm
+    (Algebra.IsQuadraticExtension.finrank_eq_two K L) θ
+  have haL := congrArg (algebraMap K L) ha
+  simp only [map_add, map_sub, map_mul, map_pow, map_zero] at haL
+  have hfac :
+      (θ - algebraMap K L (t * z)) *
+        (θ - algebraMap K L (t - t * z)) = 0 := by
+    simp only [map_sub, map_mul]
+    dsimp only [t, n] at haL ⊢
+    linear_combination hθpoly - haL
+  rcases mul_eq_zero.mp hfac with haθ | haθ
+  · exact hθ ⟨t * z, (sub_eq_zero.mp haθ).symm⟩
+  · exact hθ ⟨t - t * z, (sub_eq_zero.mp haθ).symm⟩
+
 open Polynomial in
 /-- **Twisting flips the square class (residue characteristic ≠ 2).** Combining the split criterion
 `nodePoly_map_splits_iff_isSquare` with the coefficient scaling of the quadratic twist
