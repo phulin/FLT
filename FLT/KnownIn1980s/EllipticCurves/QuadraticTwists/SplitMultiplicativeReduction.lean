@@ -133,6 +133,53 @@ lemma not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_isSquare
   apply (eq_div_iff (mul_ne_zero hs0 hs0)).mpr
   rw [← hs, ← hz, map_mul]
 
+/-- **An irreducible Artin--Schreier twist flips a split node to a nonsplit node (residue
+characteristic `2`).**  If `φ(t) ≠ 0`, the reduced quadratic twisting polynomial is
+`X² + φ(t)X + φ(n)`.  Its irreducibility is expressed by saying that
+`φ(n) / φ(t)²` is not in the image of `z ↦ z² + z`.  If both the original and twisted node
+polynomials split, their Artin--Schreier splitting equations differ by exactly this class,
+giving a root of the twisting polynomial and a contradiction. -/
+lemma not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_exists_artinSchreier
+    {A : Type*} [CommRing A] {k : Type*} [Field k]
+    (h2 : (2 : k) = 0) (φ : A →+* k) (W : WeierstrassCurve A) (t n : A)
+    (hc₄ : φ W.c₄ ≠ 0) (hc₆ : φ W.c₆ ≠ 0) (ht : φ t ≠ 0)
+    (hsplit : (W.nodePoly.map φ).Splits)
+    (hAS : ¬ ∃ z : k, φ t ^ 2 * (z ^ 2 + z) = φ n) :
+    ¬ ((W.quadraticTwistOf t n).nodePoly.map φ).Splits := by
+  intro htwist
+  have h4 : (4 : k) = 0 := by linear_combination (2 : k) * h2
+  have hDmap : φ (t ^ 2 - 4 * n) = φ t ^ 2 := by
+    simp only [map_sub, map_pow, map_mul, map_ofNat, h4, zero_mul, sub_zero]
+  have hc₄twist : φ (W.quadraticTwistOf t n).c₄ ≠ 0 := by
+    rw [c₄_quadraticTwistOf, map_mul, map_pow, hDmap]
+    exact mul_ne_zero (pow_ne_zero 2 (pow_ne_zero 2 ht)) hc₄
+  have hc₆twist : φ (W.quadraticTwistOf t n).c₆ ≠ 0 := by
+    rw [c₆_quadraticTwistOf, map_mul, map_pow, hDmap]
+    exact mul_ne_zero (pow_ne_zero 3 (pow_ne_zero 2 ht)) hc₆
+  obtain ⟨z₀, hz₀⟩ :=
+    (nodePoly_map_splits_iff_of_two_eq_zero h2 φ W hc₄ hc₆).mp hsplit
+  obtain ⟨z₁, hz₁⟩ := (nodePoly_map_splits_iff_of_two_eq_zero h2 φ
+    (W.quadraticTwistOf t n) hc₄twist hc₆twist).mp htwist
+  rw [show (W.quadraticTwistOf t n).a₁ = t * W.a₁ from rfl,
+    kappa_quadraticTwistOf, c₄_quadraticTwistOf] at hz₁
+  simp only [map_mul, map_pow, map_sub, map_neg, map_ofNat, h4, zero_mul, sub_zero] at hz₁
+  have hA : φ (W.a₁ * W.c₄) ≠ 0 := by
+    have hdisc := map_splitPolynomial_discrim φ W
+    intro hA
+    refine neg_ne_zero.mpr (mul_ne_zero hc₄ hc₆) ?_
+    rw [← map_mul, ← map_neg]
+    linear_combination -hdisc + φ (W.a₁ * W.c₄) * hA
+      + φ W.c₄ * φ (54 * W.b₆ - 3 * W.b₂ * W.b₄ + W.a₂ * W.c₄) * h4
+  have hASsub : (z₁ + z₀) ^ 2 + (z₁ + z₀) =
+      (z₁ ^ 2 + z₁) - (z₀ ^ 2 + z₀) := by
+    linear_combination (z₁ * z₀ + z₀ ^ 2 + z₀) * h2
+  simp only [map_mul] at hz₀ hA
+  apply hAS
+  refine ⟨z₁ + z₀, ?_⟩
+  rw [hASsub]
+  apply mul_left_cancel₀ (mul_ne_zero (pow_ne_zero 8 ht) (pow_ne_zero 2 hA))
+  linear_combination hz₁ - φ t ^ 10 * hz₀
+
 /-- The `R`-model twist base-changes to the twist over `K`: for `E` integral over `R`, twisting its
 integral model by `t, n : R` and base-changing to `K` equals twisting `E` by the images
 `(algebraMap R K t, algebraMap R K n)`. Together with the coefficient laws this is the bridge from
@@ -432,9 +479,9 @@ extension is a normalized integral generator whose reduced discriminant is a non
 theorem not_hasSplitMultiplicativeReduction_baseChange_quadraticTwistOf_of_not_isSquare
     [E.HasSplitMultiplicativeReduction R] (t' n' : R)
     (hD : residue R (t' ^ 2 - 4 * n') ≠ 0)
-    (hDnsq : ¬ IsSquare (residue R (t' ^ 2 - 4 * n')))
-    [hW : (((E.integralModel R).quadraticTwistOf t' n')⁄K).HasMultiplicativeReduction R] :
+    (hDnsq : ¬ IsSquare (residue R (t' ^ 2 - 4 * n'))) :
     ¬ (((E.integralModel R).quadraticTwistOf t' n')⁄K).HasSplitMultiplicativeReduction R := by
+  letI hW := hasMultiplicativeReduction_baseChange_quadraticTwistOf E R t' n' hD
   intro hWsplit
   have h2 : (2 : ResidueField R) ≠ 0 := by
     intro h2
@@ -457,6 +504,43 @@ theorem not_hasSplitMultiplicativeReduction_baseChange_quadraticTwistOf_of_not_i
     (by rw [ResidueField.algebraMap_eq]; exact hD)
     ‹E.HasSplitMultiplicativeReduction R›.splitMultiplicativeReduction
     (by simpa only [ResidueField.algebraMap_eq] using hDnsq) htwist
+
+open IsLocalRing in
+/-- **An irreducible Artin--Schreier unit twist of a split multiplicative curve is nonsplit
+(residue characteristic `2`).**  This is the reduction-predicate packaging of
+`not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_exists_artinSchreier`.
+
+The hypotheses say that the reduced twisting polynomial `X² + t'X + n'` is separable
+(`t' ≠ 0`) and has no root in the residue field.  Its discriminant is consequently a unit, so
+the explicit twisted integral model still has multiplicative reduction, but its node polynomial
+does not split. -/
+theorem
+    not_hasSplitMultiplicativeReduction_baseChange_quadraticTwistOf_of_not_exists_artinSchreier
+    [E.HasSplitMultiplicativeReduction R] (t' n' : R)
+    (h2 : (2 : ResidueField R) = 0) (ht : residue R t' ≠ 0)
+    (hAS : ¬ ∃ z : ResidueField R,
+      residue R t' ^ 2 * (z ^ 2 + z) = residue R n') :
+    ¬ (((E.integralModel R).quadraticTwistOf t' n')⁄K).HasSplitMultiplicativeReduction R := by
+  have hD : residue R (t' ^ 2 - 4 * n') ≠ 0 := by
+    rw [show residue R (t' ^ 2 - 4 * n') = residue R t' ^ 2 from by
+      simp only [map_sub, map_pow, map_mul, map_ofNat, show (4 : ResidueField R) = 2 * 2 by
+        norm_num, h2, zero_mul, sub_zero]]
+    exact pow_ne_zero 2 ht
+  letI hW := hasMultiplicativeReduction_baseChange_quadraticTwistOf E R t' n' hD
+  intro hWsplit
+  have htwist : Polynomial.Splits
+      (((E.integralModel R).quadraticTwistOf t' n').nodePoly.map
+        (algebraMap R (ResidueField R))) := by
+    rw [← integralModel_baseChange (K := K) R
+      ((E.integralModel R).quadraticTwistOf t' n')]
+    exact hWsplit.splitMultiplicativeReduction
+  exact not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_exists_artinSchreier
+    h2 (algebraMap R (ResidueField R)) (E.integralModel R) t' n'
+    (by rw [ResidueField.algebraMap_eq]; exact residue_integralModel_c₄_ne_zero E R)
+    (by rw [ResidueField.algebraMap_eq]; exact residue_integralModel_c₆_ne_zero E R)
+    (by simpa only [ResidueField.algebraMap_eq] using ht)
+    ‹E.HasSplitMultiplicativeReduction R›.splitMultiplicativeReduction
+    (by simpa only [ResidueField.algebraMap_eq] using hAS) htwist
 
 variable [E.IsElliptic]
 
