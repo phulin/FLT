@@ -384,6 +384,145 @@ theorem GaloisRep.genericEtale_lTensor_counit
       ← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleCounit]
   rw [h_left, h_right, GaloisRep.genericEtaleZeroPoints_symm, add_zero]
 
+set_option backward.isDefEq.respectTransparency false in
+private noncomputable abbrev genericEtaleTensorCubeCommRing
+    (E : Type) [CommRing E] [Algebra ℚ E] :
+    CommRing (E ⊗[ℚ] (E ⊗[ℚ] E)) := by
+  infer_instance
+
+set_option backward.isDefEq.respectTransparency false in
+private noncomputable abbrev genericEtaleTensorCubeLeftAlgebra
+    (E : Type) [CommRing E] [Algebra ℚ E] :
+    Algebra E (E ⊗[ℚ] (E ⊗[ℚ] E)) :=
+  Algebra.TensorProduct.leftAlgebra
+
+set_option backward.isDefEq.respectTransparency false in
+private noncomputable abbrev genericEtaleTensorCubeRatAlgebra
+    (E : Type) [CommRing E] [Algebra ℚ E] :
+    Algebra ℚ (E ⊗[ℚ] (E ⊗[ℚ] E)) := by
+  infer_instance
+
+set_option maxHeartbeats 1000000 in
+-- Normalizing the three nested tensor-product algebra structures needs extra elaboration time.
+set_option backward.isDefEq.respectTransparency false in
+/-- The comultiplication obtained from addition on geometric points is coassociative. -/
+theorem GaloisRep.genericEtale_coassoc
+    {R W : Type} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [DiscreteTopology R] [AddCommGroup W] [Module R W] [Finite W]
+    (rho : GaloisRep ℚ R W) :
+    (Algebra.TensorProduct.assoc ℚ ℚ ℚ
+      (GaloisRep.GenericEtaleAlgebra rho)
+      (GaloisRep.GenericEtaleAlgebra rho)
+      (GaloisRep.GenericEtaleAlgebra rho)).toAlgHom.comp
+        ((Algebra.TensorProduct.map (GaloisRep.genericEtaleComul rho)
+          (.id ℚ (GaloisRep.GenericEtaleAlgebra rho))).comp
+            (GaloisRep.genericEtaleComul rho)) =
+      (Algebra.TensorProduct.map
+        (.id ℚ (GaloisRep.GenericEtaleAlgebra rho))
+        (GaloisRep.genericEtaleComul rho)).comp
+          (GaloisRep.genericEtaleComul rho) := by
+  let E := GaloisRep.GenericEtaleAlgebra rho
+  let lhs :=
+    (Algebra.TensorProduct.assoc ℚ ℚ ℚ E E E).toAlgHom.comp
+      ((Algebra.TensorProduct.map (GaloisRep.genericEtaleComul rho) (.id ℚ E)).comp
+        (GaloisRep.genericEtaleComul rho))
+  let rhs :=
+    (Algebra.TensorProduct.map (.id ℚ E) (GaloisRep.genericEtaleComul rho)).comp
+      (GaloisRep.genericEtaleComul rho)
+  change lhs = rhs
+  suffices H : ∀ q : _ →ₐ[ℚ] AlgebraicClosure ℚ,
+      q.comp lhs = q.comp rhs by
+    let T := E ⊗[ℚ] (E ⊗[ℚ] E)
+    letI : CommRing T := genericEtaleTensorCubeCommRing E
+    letI : Algebra.Etale ℚ E := GaloisRep.genericEtaleAlgebra_isEtale rho
+    letI : Algebra.Etale ℚ (E ⊗[ℚ] E) :=
+      GaloisRep.genericEtaleTensorSquare_isEtale rho
+    letI : Algebra ℚ T := genericEtaleTensorCubeRatAlgebra E
+    letI : Algebra E T := genericEtaleTensorCubeLeftAlgebra E
+    letI : Algebra.Etale E T := Algebra.Etale.baseChange ℚ (E ⊗[ℚ] E) E
+    letI : Algebra.Etale ℚ T := Algebra.Etale.comp ℚ E T
+    exact InfiniteGalois.algHom_ext_of_comp_eq ℚ (AlgebraicClosure ℚ) E H
+  intro q
+  let assoc := (Algebra.TensorProduct.assoc ℚ ℚ ℚ E E E).toAlgHom
+  let qAssocParts :=
+    (Algebra.TensorProduct.liftEquiv (R := ℚ) (S := ℚ)
+      (A := E ⊗[ℚ] E) (B := E) (C := AlgebraicClosure ℚ)).symm (q.comp assoc)
+  let qParts :=
+    (Algebra.TensorProduct.liftEquiv (R := ℚ) (S := ℚ)
+      (A := E) (B := E ⊗[ℚ] E) (C := AlgebraicClosure ℚ)).symm q
+  let q12 : (E ⊗[ℚ] E) →ₐ[ℚ] AlgebraicClosure ℚ :=
+    qAssocParts.val.1
+  let q23 : (E ⊗[ℚ] E) →ₐ[ℚ] AlgebraicClosure ℚ :=
+    qParts.val.2
+  have hq12 : q12 = (q.comp assoc).comp Algebra.TensorProduct.includeLeft := by
+    rfl
+  have hq23 : q23 = q.comp Algebra.TensorProduct.includeRight := by
+    rfl
+  let qL : (E ⊗[ℚ] E) →ₐ[ℚ] AlgebraicClosure ℚ :=
+    (q.comp assoc).comp
+      (Algebra.TensorProduct.map (GaloisRep.genericEtaleComul rho) (.id ℚ E))
+  let qR : (E ⊗[ℚ] E) →ₐ[ℚ] AlgebraicClosure ℚ :=
+    q.comp (Algebra.TensorProduct.map (.id ℚ E) (GaloisRep.genericEtaleComul rho))
+  change qL.comp (GaloisRep.genericEtaleComul rho) =
+    qR.comp (GaloisRep.genericEtaleComul rho)
+  rw [GaloisRep.comp_genericEtaleComul, GaloisRep.comp_genericEtaleComul]
+  apply (GaloisRep.genericEtalePointsEquiv rho).symm.injective
+  rw [GaloisRep.genericEtaleAddPoints_symm,
+    GaloisRep.genericEtaleAddPoints_symm]
+  have hL_left : qL.comp Algebra.TensorProduct.includeLeft =
+      GaloisRep.genericEtaleAddPoints rho q12 := by
+    rw [hq12]
+    dsimp only [qL]
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.map_comp_includeLeft,
+      ← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleComul]
+  have hL_right : qL.comp Algebra.TensorProduct.includeRight =
+      q23.comp Algebra.TensorProduct.includeRight := by
+    rw [hq23]
+    ext x
+    simp only [qL, AlgHom.comp_apply, Algebra.TensorProduct.includeRight_apply,
+      Algebra.TensorProduct.map_tmul, map_one, AlgHom.id_apply]
+    change q (assoc ((1 ⊗ₜ[ℚ] 1) ⊗ₜ[ℚ] x)) =
+      q (1 ⊗ₜ[ℚ] (1 ⊗ₜ[ℚ] x))
+    dsimp only [assoc]
+    rfl
+  have hR_left : qR.comp Algebra.TensorProduct.includeLeft =
+      q12.comp Algebra.TensorProduct.includeLeft := by
+    rw [hq12]
+    ext x
+    simp only [qR, AlgHom.comp_apply, Algebra.TensorProduct.includeLeft_apply,
+      Algebra.TensorProduct.map_tmul, map_one, AlgHom.id_apply]
+    change q (x ⊗ₜ[ℚ] (1 ⊗ₜ[ℚ] 1)) =
+      q (assoc ((x ⊗ₜ[ℚ] 1) ⊗ₜ[ℚ] 1))
+    dsimp only [assoc]
+    rfl
+  have hR_right : qR.comp Algebra.TensorProduct.includeRight =
+      GaloisRep.genericEtaleAddPoints rho q23 := by
+    rw [hq23]
+    dsimp only [qR]
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.map_comp_includeRight,
+      ← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleComul]
+  rw [hL_left, hL_right, hR_left, hR_right,
+    GaloisRep.genericEtaleAddPoints_symm,
+    GaloisRep.genericEtaleAddPoints_symm]
+  have h12_right : q12.comp Algebra.TensorProduct.includeRight =
+      q23.comp Algebra.TensorProduct.includeLeft := by
+    rw [hq12, hq23]
+    ext x
+    simp only [AlgHom.comp_apply, Algebra.TensorProduct.includeRight_apply,
+      Algebra.TensorProduct.includeLeft_apply]
+    change q (assoc ((1 ⊗ₜ[ℚ] x) ⊗ₜ[ℚ] 1)) =
+      q (1 ⊗ₜ[ℚ] (x ⊗ₜ[ℚ] 1))
+    dsimp only [assoc]
+    rfl
+  exact (add_assoc _ _ _).trans
+    (congrArg
+      (fun z =>
+        (GaloisRep.genericEtalePointsEquiv rho).symm
+            (q12.comp Algebra.TensorProduct.includeLeft) +
+          (z + (GaloisRep.genericEtalePointsEquiv rho).symm
+            (q23.comp Algebra.TensorProduct.includeRight)))
+      (congrArg (GaloisRep.genericEtalePointsEquiv rho).symm h12_right))
+
 /-- The generic-fiber conditions satisfied by an object of Schoof's `(2, 3)` category.
 
 The last field states tameness in the finite Galois extension cut out by the representation:
