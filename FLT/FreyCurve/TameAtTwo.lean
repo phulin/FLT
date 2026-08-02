@@ -237,4 +237,85 @@ theorem twoAdicTorsion_hasTameQuadraticQuotient_of_split
       intro x
       rfl
 
+/-- In the nonsplit-multiplicative branch, the unramified quadratic twist supplied by
+reduction theory makes the curve split. Its Tate component map descends to a quotient
+carrying the associated unramified quadratic character. -/
+theorem twoAdicTorsion_hasTameQuadraticQuotient_of_nonsplit
+    (N : ℕ) [NeZero N] [NeZero (N : ℚ)] (hN : 0 < N)
+    [(E.baseChange ℚ_[2]).HasMultiplicativeReduction 𝒪[ℚ_[2]]]
+    (hnsplit : ¬(E.baseChange ℚ_[2]).HasSplitMultiplicativeReduction 𝒪[ℚ_[2]]) :
+    GaloisRepresentation.GaloisRep.HasTameQuadraticQuotientAtTwo
+      (E.galoisRep N hN) := by
+  let Ω := AlgebraicClosure ℚ_[2]
+  let Elocal := E.baseChange ℚ_[2]
+  have hd : Elocal.UnramifiedQuadraticTwistData 𝒪[ℚ_[2]] :=
+    Elocal.exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction
+      𝒪[ℚ_[2]] hnsplit
+  unfold WeierstrassCurve.UnramifiedQuadraticTwistData at hd
+  obtain ⟨L, hfield, halgebra, hquadratic, hseparable, halgebraR, htower,
+      θ, t, n, _hθint, hθbase, htrace, hnorm, hdisc, hsplit⟩ := hd
+  let ι : L →ₐ[ℚ_[2]] Ω := IsAlgClosed.lift
+  letI : Algebra L Ω := ι.toRingHom.toAlgebra
+  have halgι : algebraMap L Ω = ι := RingHom.algebraMap_toAlgebra _
+  letI : IsScalarTower ℚ_[2] L Ω := IsScalarTower.of_algebraMap_eq fun x => by
+    rw [halgι]
+    exact (ι.commutes x).symm
+  let Et := Elocal.quadraticTwist L
+  let C := (Et.exists_isMinimal 𝒪[ℚ_[2]]).choose
+  letI : (C • Et).HasSplitMultiplicativeReduction 𝒪[ℚ_[2]] := by
+    exact hsplit
+  letI : NeZero (N : Ω) := ⟨by exact_mod_cast NeZero.ne N⟩
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E⁄(AlgebraicClosure ℚ)).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (Elocal⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  let e := E.twoAdicLocalTorsionLinearEquiv N
+  let q := quadraticTwistTateComponentLinearMap (L := L) Ω Elocal C N
+  let π : AddSubgroup.torsionBy (E⁄(AlgebraicClosure ℚ)).Point (N : ℤ) →ₗ[ZMod N]
+      ZMod N := q.comp e.toLinearMap
+  let δ := quadraticCharacterGaloisRep ℚ_[2] L N
+  refine ⟨π, ?_, δ, ?_⟩
+  · exact (quadraticTwistTateComponentLinearMap_surjective
+      (L := L) Ω Elocal C N).comp e.surjective
+  · intro σ P
+    refine ⟨?_, ?_, ?_⟩
+    · change q (e (E.nTorsionMap N
+          (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) σ).toAlgHom P)) =
+        δ σ (q (e P))
+      rw [E.twoAdicLocalTorsionLinearEquiv_galois N σ P]
+      simpa [q, δ, quadraticCharacterGaloisRep_apply] using
+        (quadraticTwistTateComponentLinearMap_nTorsionMap
+          (L := L) Ω Elocal C N σ (e P))
+    · intro τ hτ
+      change δ τ = 1
+      exact GaloisRepresentation.quadraticCharacterGaloisRep_eq_one_on_inertia
+        N L θ t n hθbase htrace hnorm hdisc τ hτ
+    · exact quadraticCharacterGaloisRep_mul_self ℚ_[2] L N
+
 end WeierstrassCurve
+
+namespace FreyCurve
+
+/-- The `p`-torsion representation of a Frey curve has the required tame quadratic quotient
+at `2`. The split branch uses the trivial character; the nonsplit branch uses the unramified
+quadratic character supplied by the node polynomial. -/
+theorem torsion_hasTameQuadraticQuotientAtTwo (P : FreyPackage) :
+    haveI : Fact P.p.Prime := ⟨P.pp⟩
+    GaloisRepresentation.GaloisRep.HasTameQuadraticQuotientAtTwo
+      (P.freyCurve.galoisRep P.p P.hppos) := by
+  letI : Fact P.p.Prime := ⟨P.pp⟩
+  letI : NeZero P.p := ⟨P.pp.ne_zero⟩
+  letI : NeZero (P.p : ℚ) := ⟨by exact_mod_cast P.pp.ne_zero⟩
+  letI hmult : (P.freyCurve.baseChange ℚ_[2]).HasMultiplicativeReduction 𝒪[ℚ_[2]] :=
+    hasMultiplicativeReduction_at_two_padic P
+  by_cases hsplit :
+      (P.freyCurve.baseChange ℚ_[2]).HasSplitMultiplicativeReduction 𝒪[ℚ_[2]]
+  · letI : (P.freyCurve.baseChange ℚ_[2]).HasSplitMultiplicativeReduction 𝒪[ℚ_[2]] :=
+      hsplit
+    exact P.freyCurve.twoAdicTorsion_hasTameQuadraticQuotient_of_split P.p P.hppos
+  · exact P.freyCurve.twoAdicTorsion_hasTameQuadraticQuotient_of_nonsplit
+      P.p P.hppos hsplit
+
+end FreyCurve
