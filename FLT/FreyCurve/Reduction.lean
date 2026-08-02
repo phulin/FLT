@@ -24,6 +24,12 @@ namespace FreyCurve
 
 open FreyPackage WeierstrassCurve WithZero
 
+/-- In the normalization of a Frey package, the even parameter makes `abc` divisible by `2`. -/
+lemma two_dvd_abc (P : FreyPackage) : (2 : ℤ) ∣ P.a * P.b * P.c := by
+  have h2b : (2 : ℤ) ∣ P.b :=
+    (ZMod.intCast_zmod_eq_zero_iff_dvd P.b 2).1 P.hb2
+  exact dvd_mul_of_dvd_left (dvd_mul_of_dvd_right h2b P.a) P.c
+
 /-- The integral Frey equation supplies an integral model over every intermediate ring between
 `ℤ` and `ℚ`. -/
 instance freyCurve_isIntegral (P : FreyPackage) (R : Type*) [CommRing R]
@@ -81,6 +87,49 @@ lemma padicValuation_Δ_lt_one_of_dvd (P : FreyPackage) {q : ℕ}
   simp only [P.freyCurve.isUnit_Δ.ne_zero, ↓reduceIte, ← exp_zero, exp_lt_exp]
   omega
 
+/-- At `2`, the denominator in the normalized Frey discriminant contributes exactly eight
+to the additive valuation. -/
+lemma padicValRat_Δ_at_two (P : FreyPackage) :
+    padicValRat 2 P.freyCurve.Δ =
+      (2 * P.p : ℤ) * (padicValInt 2 (P.a * P.b * P.c) : ℤ) - 8 := by
+  letI : Fact (Nat.Prime 2) := ⟨by decide⟩
+  rw [FreyCurve.Δ]
+  rw [padicValRat.div
+    (pow_ne_zero _ (by norm_cast; exact mul_ne_zero (mul_ne_zero P.ha0 P.hb0) P.hc0))
+    (pow_ne_zero _ (by norm_num : (2 : ℚ) ≠ 0))]
+  rw [padicValRat.pow, padicValRat.pow]
+  have habcCast : (P.a * P.b * P.c : ℚ) = ((P.a * P.b * P.c : ℤ) : ℚ) := by
+    norm_num
+  rw [habcCast, padicValRat.of_int]
+  have htwo : padicValRat 2 (2 : ℚ) = 1 := padicValRat.self (by omega)
+  rw [htwo]
+  norm_num
+
+/-- The normalized integral Frey equation has nonunit discriminant at `2`. -/
+lemma padicValuation_Δ_lt_one_at_two (P : FreyPackage) :
+    let _ : Fact (Nat.Prime 2) := ⟨by decide⟩
+    Rat.padicValuation 2 P.freyCurve.Δ < 1 := by
+  letI : Fact (Nat.Prime 2) := ⟨by decide⟩
+  have h2abc : (2 : ℤ) ∣ P.a * P.b * P.c := two_dvd_abc P
+  have habc0 : P.a * P.b * P.c ≠ 0 := mul_ne_zero (mul_ne_zero P.ha0 P.hb0) P.hc0
+  have hvalpos : 0 < padicValInt 2 (P.a * P.b * P.c) := by
+    rw [← Nat.ne_zero_iff_zero_lt]
+    intro hzero
+    rw [padicValInt.eq_zero_iff] at hzero
+    rcases hzero with h | h | h
+    · norm_num at h
+    · exact habc0 h
+    · exact h h2abc
+  have hΔvalpos : 0 < padicValRat 2 P.freyCurve.Δ := by
+    rw [padicValRat_Δ_at_two]
+    have hp5 := P.hp5
+    have hvz : (0 : ℤ) < padicValInt 2 (P.a * P.b * P.c) := by exact_mod_cast hvalpos
+    have hp5z : (5 : ℤ) ≤ P.p := by exact_mod_cast hp5
+    nlinarith
+  change (if P.freyCurve.Δ = 0 then 0 else exp (-padicValRat 2 P.freyCurve.Δ)) < 1
+  simp only [P.freyCurve.isUnit_Δ.ne_zero, ↓reduceIte, ← exp_zero, exp_lt_exp]
+  omega
+
 /-- The Frey curve has good reduction at every odd prime not dividing `abc`. -/
 theorem hasGoodReduction_of_not_dvd_abc (P : FreyPackage) {q : ℕ}
     (hqPrime : q.Prime) (hqodd : 2 < q) (hqgood : ¬(q : ℤ) ∣ P.a * P.b * P.c) :
@@ -104,6 +153,20 @@ theorem hasMultiplicativeReduction_of_dvd_abc (P : FreyPackage) {q : ℕ}
   have hΔ := Rat.adicValuation_lt_one_of_padicValuation_lt_one
     (padicValuation_Δ_lt_one_of_dvd P hqPrime hqodd hqbad)
   let _ : IsMinimal (Rat.padicValuation q).valuationSubring P.freyCurve :=
+    isMinimal_of_valuation_c₄_eq_one _ _ hc₄
+  exact { badReduction := hΔ, multiplicativeReduction := hc₄ }
+
+/-- The normalized Frey curve has multiplicative reduction at `2`. -/
+theorem hasMultiplicativeReduction_at_two (P : FreyPackage) :
+    let _ : Fact (Nat.Prime 2) := ⟨by decide⟩
+    P.freyCurve.HasMultiplicativeReduction
+      (Rat.padicValuation 2).valuationSubring := by
+  let _ : Fact (Nat.Prime 2) := ⟨by decide⟩
+  have hc₄ := Rat.adicValuation_eq_one_of_padicValuation_eq_one
+    (padicValuation_c₄_eq_one_of_dvd P (by decide) (two_dvd_abc P))
+  have hΔ := Rat.adicValuation_lt_one_of_padicValuation_lt_one
+    (padicValuation_Δ_lt_one_at_two P)
+  let _ : IsMinimal (Rat.padicValuation 2).valuationSubring P.freyCurve :=
     isMinimal_of_valuation_c₄_eq_one _ _ hc₄
   exact { badReduction := hΔ, multiplicativeReduction := hc₄ }
 
@@ -181,6 +244,49 @@ theorem hasMultiplicativeReduction_at_completion_of_dvd_abc (P : FreyPackage) {q
       Rat.HeightOneSpectrum.valuation_apply_eq_padicValuation,
       Rat.HeightOneSpectrum.primesEquiv_toHeightOneSpectrumRingOfIntegersRat hq]
     exact padicValuation_Δ_lt_one_of_dvd P hq hqodd hqbad
+  have hc₄adic :
+      (IsDiscreteValuationRing.maximalIdeal R).valuation K E.c₄ = 1 := by
+    rw [← integralModel_c₄_eq R E] at hc₄canonical ⊢
+    apply IsDedekindDomain.HeightOneSpectrum.adicCompletion.adicValuation_eq_one_of_valued_eq_one
+    exact hc₄canonical
+  have hΔadic :
+      (IsDiscreteValuationRing.maximalIdeal R).valuation K E.Δ < 1 := by
+    rw [← integralModel_Δ_eq R E] at hΔcanonical ⊢
+    apply IsDedekindDomain.HeightOneSpectrum.adicCompletion.adicValuation_lt_one_of_valued_lt_one
+    exact hΔcanonical
+  let _ : E.IsMinimal R := isMinimal_of_valuation_c₄_eq_one R E hc₄adic
+  exact { badReduction := hΔadic, multiplicativeReduction := hc₄adic }
+
+/-- The Frey curve has multiplicative reduction over the completed rational local field at `2`. -/
+theorem hasMultiplicativeReduction_at_two_completion (P : FreyPackage) :
+    let hq : Nat.Prime 2 := by decide
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    (P.freyCurve.baseChange (v.adicCompletion ℚ)).HasMultiplicativeReduction
+      (v.adicCompletionIntegers ℚ) := by
+  let hq : Nat.Prime 2 := by decide
+  let _ : Fact (Nat.Prime 2) := ⟨hq⟩
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.IsIntegral R := freyCurve_baseChange_isIntegral P hq
+  have hc₄canonical : Valued.v E.c₄ = 1 := by
+    rw [show E.c₄ = algebraMap ℚ K P.freyCurve.c₄ from P.freyCurve.map_c₄ _]
+    rw [IsDedekindDomain.HeightOneSpectrum.algebraMap_adicCompletion,
+      Function.comp_apply]
+    rw [IsDedekindDomain.HeightOneSpectrum.valuedAdicCompletion_eq_valuation',
+      Rat.HeightOneSpectrum.valuation_apply_eq_padicValuation,
+      Rat.HeightOneSpectrum.primesEquiv_toHeightOneSpectrumRingOfIntegersRat hq]
+    exact padicValuation_c₄_eq_one_of_dvd P hq (two_dvd_abc P)
+  have hΔcanonical : Valued.v E.Δ < 1 := by
+    rw [show E.Δ = algebraMap ℚ K P.freyCurve.Δ from P.freyCurve.map_Δ _]
+    rw [IsDedekindDomain.HeightOneSpectrum.algebraMap_adicCompletion,
+      Function.comp_apply]
+    rw [IsDedekindDomain.HeightOneSpectrum.valuedAdicCompletion_eq_valuation',
+      Rat.HeightOneSpectrum.valuation_apply_eq_padicValuation,
+      Rat.HeightOneSpectrum.primesEquiv_toHeightOneSpectrumRingOfIntegersRat hq]
+    exact padicValuation_Δ_lt_one_at_two P
   have hc₄adic :
       (IsDiscreteValuationRing.maximalIdeal R).valuation K E.c₄ = 1 := by
     rw [← integralModel_c₄_eq R E] at hc₄canonical ⊢
