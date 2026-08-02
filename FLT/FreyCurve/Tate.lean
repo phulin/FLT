@@ -29,6 +29,42 @@ namespace FreyCurve
 
 noncomputable section
 
+/-- Split multiplicative reduction over the concrete integer ring of a completed number
+field is the same reduction structure required by the canonical `ValuativeRel` API. -/
+theorem hasSplitMultiplicativeReduction_valuativeRel_of_adicCompletion
+    {F : Type*} [Field F] [NumberField F]
+    (v : HeightOneSpectrum (𝓞 F))
+    (E : WeierstrassCurve (v.adicCompletion F)) [E.IsElliptic]
+    [E.HasSplitMultiplicativeReduction (v.adicCompletionIntegers F)] :
+    E.HasSplitMultiplicativeReduction
+      (ValuativeRel.valuation (v.adicCompletion F)).integer := by
+  let B : Subring (v.adicCompletion F) := (v.adicCompletionIntegers F).toSubring
+  have hB : (ValuativeRel.valuation (v.adicCompletion F)).integer = B := by
+    exact HeightOneSpectrum.adicCompletion.integer_eq_adicCompletionIntegers v
+  let e :
+      (ValuativeRel.valuation (v.adicCompletion F)).integer ≃+* B :=
+    RingEquiv.subringCongr hB
+  let _ : IsDiscreteValuationRing B :=
+    IsDiscreteValuationRing.RingEquivClass.isDiscreteValuationRing e
+  have hBint :
+      (Valued.v : Valuation (v.adicCompletion F) (WithZero (Multiplicative ℤ))).Integers B := by
+    constructor
+    · exact Subtype.coe_injective
+    · exact fun x ↦ x.2
+    · exact fun {_} hx ↦ ⟨⟨_, hx⟩, rfl⟩
+  let _ : IsFractionRing B (v.adicCompletion F) := hBint.isFractionRing
+  have hsplitB : E.HasSplitMultiplicativeReduction B := by
+    exact (inferInstance : E.HasSplitMultiplicativeReduction (v.adicCompletionIntegers F))
+  convert hsplitB using 1
+  · exact congrArg (fun A : Subring (v.adicCompletion F) ↦ ↥A) hB
+  · have hs := congrArg (fun A : Subring (v.adicCompletion F) ↦
+        (⟨A, A.toCommRing⟩ : Σ A : Subring (v.adicCompletion F), CommRing (↥A))) hB
+    exact (Sigma.mk.inj_iff.mp hs).2
+  · have hs := congrArg (fun A : Subring (v.adicCompletion F) ↦
+        (⟨A, inferInstanceAs (Algebra (↥A) (v.adicCompletion F))⟩ :
+          Σ A : Subring (v.adicCompletion F), Algebra (↥A) (v.adicCompletion F))) hB
+    exact (Sigma.mk.inj_iff.mp hs).2
+
 /-- For split multiplicative reduction at `q`, the multiplicative valuation of the Tate
 parameter is the exponential of the additive `q`-adic valuation of the rational
 `j`-invariant.  The sign changes because the Tate parameter has the valuation of `j⁻¹`. -/
