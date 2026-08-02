@@ -306,6 +306,115 @@ lemma valuation_discrim_mul_variableChange_u_sq_eq_one
     exact inv_mul_cancel₀ (pow_ne_zero 4 hu0)
   exact (pow_eq_one_iff_of_nonneg zero_le (by norm_num)).mp hsq
 
+open IsLocalRing in
+/-- Away from residue characteristic `2`, the normalized-discriminant argument reduces an
+arbitrary quadratic twist to the nonsquare-unit obstruction over the residue field. -/
+theorem not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_residue_ne_zero
+    (W : WeierstrassCurve k) [W.IsElliptic] [W.HasSplitMultiplicativeReduction 𝒪[k]]
+    (L : Type u) [Field L] [Algebra k L] [Algebra.IsQuadraticExtension k L]
+    [Algebra.IsSeparable k L] (W' : WeierstrassCurve k) [W'.IsElliptic]
+    (C : VariableChange k) (hC : C • W' = W.quadraticTwist L)
+    (h2 : (2 : ResidueField 𝒪[k]) ≠ 0) :
+    ¬ W'.HasSplitMultiplicativeReduction 𝒪[k] := by
+  intro hW'split
+  letI : W'.HasSplitMultiplicativeReduction 𝒪[k] := hW'split
+  let θ : L := (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose
+  have hθ : θ ∉ Set.range (algebraMap k L) :=
+    (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose_spec
+  let t : k := Algebra.trace k L θ
+  let n : k := Algebra.norm k θ
+  change C • W' = W.quadraticTwistOf t n at hC
+  have h2k : (2 : k) ≠ 0 := by
+    intro h2k
+    apply h2
+    have h2O : (2 : 𝒪[k]) = 0 := by
+      exact Subtype.ext (by change (2 : k) = 0; exact h2k)
+    simpa only [map_ofNat, map_zero] using congrArg (residue 𝒪[k]) h2O
+  letI : NeZero (2 : k) := ⟨h2k⟩
+  let a : k := C.u
+  let d : k := (t ^ 2 - 4 * n) * a ^ 2
+  have ha : a ≠ 0 := C.u.ne_zero
+  have hdval : valuation k d = 1 :=
+    valuation_discrim_mul_variableChange_u_sq_eq_one W W' t n C hC
+  have hDnsq : ¬ IsSquare (t ^ 2 - 4 * n) := by
+    exact Algebra.IsQuadraticExtension.not_isSquare_discrim k L hθ
+  have hdnsq : ¬ IsSquare d := by
+    rintro ⟨z, hz⟩
+    apply hDnsq
+    refine ⟨z / a, ?_⟩
+    rw [div_mul_div_comm]
+    apply (eq_div_iff (mul_ne_zero ha ha)).mpr
+    rw [← hz]
+    simp only [d, pow_two]
+  have hu2 : IsUnit (2 : 𝒪[k]) :=
+    (IsLocalRing.residue_ne_zero_iff_isUnit (2 : 𝒪[k])).mp h2
+  have hval2 : valuation k (2 : k) = 1 := by
+    have hv := (Valuation.integer.integers (valuation k)).isUnit_iff_valuation_eq_one.mp hu2
+    change valuation k (algebraMap 𝒪[k] k (2 : 𝒪[k])) = 1
+    exact hv
+  have hval4 : valuation k (4 : k) = 1 := by
+    rw [show (4 : k) = 2 * 2 by norm_num, map_mul, hval2, one_mul]
+  have h4k : (4 : k) ≠ 0 := by
+    rw [show (4 : k) = 2 ^ 2 by norm_num]
+    exact pow_ne_zero 2 h2k
+  have hnval : valuation k (-d / 4) = 1 := by
+    rw [map_div₀, Valuation.map_neg, hdval, hval4, one_div, inv_one]
+  let nR : 𝒪[k] :=
+    ⟨-d / 4, (Valuation.mem_integer_iff _ _).mpr hnval.le⟩
+  have hdisc_cast :
+      algebraMap 𝒪[k] k ((0 : 𝒪[k]) ^ 2 - 4 * nR) = d := by
+    rw [map_sub, map_pow, map_zero, map_mul, map_ofNat]
+    change 0 ^ 2 - 4 * (-d / 4) = d
+    field_simp
+    ring
+  have hdisc_val :
+      valuation k (algebraMap 𝒪[k] k ((0 : 𝒪[k]) ^ 2 - 4 * nR)) = 1 := by
+    rw [hdisc_cast, hdval]
+  have hDres : residue 𝒪[k] ((0 : 𝒪[k]) ^ 2 - 4 * nR) ≠ 0 := by
+    apply (IsLocalRing.residue_ne_zero_iff_isUnit _).mpr
+    exact (Valuation.integer.integers (valuation k)).isUnit_iff_valuation_eq_one.mpr hdisc_val
+  have hDresnsq : ¬ IsSquare (residue 𝒪[k] ((0 : 𝒪[k]) ^ 2 - 4 * nR)) := by
+    intro hs
+    letI : UniformSpace k := IsTopologicalAddGroup.rightUniformSpace k
+    letI : IsUniformAddGroup k := isUniformAddGroup_of_addCommGroup
+    have hsR := isSquare_of_isSquare_residue 𝒪[k] h2 hDres hs
+    obtain ⟨z, hz⟩ := hsR
+    apply hdnsq
+    refine ⟨algebraMap 𝒪[k] k z, ?_⟩
+    rw [← map_mul, ← hz, hdisc_cast]
+  let b : k := -(a * t) / 2
+  obtain ⟨C₁, hC₁⟩ := W.exists_smul_quadraticTwistOf_eq t n b ha
+  have ht' : a * t + 2 * b = 0 := by
+    dsimp [b]
+    field_simp
+    ring
+  have hn' : b ^ 2 + a * b * t + a ^ 2 * n = -d / 4 := by
+    dsimp [b, d]
+    field_simp
+    ring
+  rw [ht', hn'] at hC₁
+  have hCnorm : (C₁ * C) • W' = W.quadraticTwistOf 0 (-d / 4) := by
+    rw [mul_smul, hC, hC₁]
+  have hbase : ((W.integralModel 𝒪[k]).quadraticTwistOf 0 nR).baseChange k
+      = W.quadraticTwistOf 0 (-d / 4) := by
+    have hbase₀ := W.baseChange_integralModel_quadraticTwistOf 𝒪[k] (0 : 𝒪[k]) nR
+    have hnR : algebraMap 𝒪[k] k nR = -d / 4 := by
+      change (nR : k) = -d / 4
+      rfl
+    rw [map_zero, hnR] at hbase₀
+    exact hbase₀
+  have hchange : (C₁ * C) • W' =
+      ((W.integralModel 𝒪[k]).quadraticTwistOf 0 nR).baseChange k :=
+    hCnorm.trans hbase.symm
+  letI := hasMultiplicativeReduction_baseChange_quadraticTwistOf
+    W 𝒪[k] (0 : 𝒪[k]) nR hDres
+  have hexplicitSplit :
+      HasSplitMultiplicativeReduction 𝒪[k]
+        (((W.integralModel 𝒪[k]).quadraticTwistOf 0 nR).baseChange k) :=
+    HasSplitMultiplicativeReduction.of_isMinimal_smul 𝒪[k] (C₁ * C) hchange hW'split
+  exact not_hasSplitMultiplicativeReduction_baseChange_quadraticTwistOf_of_not_isSquare
+    W 𝒪[k] (0 : 𝒪[k]) nR hDres hDresnsq hexplicitSplit
+
 theorem not_hasSplitMultiplicativeReduction_quadraticTwist (W : WeierstrassCurve k)
     [W.IsElliptic] [W.HasSplitMultiplicativeReduction 𝒪[k]] (L : Type u) [Field L] [Algebra k L]
     [Algebra.IsQuadraticExtension k L] [Algebra.IsSeparable k L] (W' : WeierstrassCurve k)
