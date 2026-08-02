@@ -738,11 +738,13 @@ def GaloisRep.HasFiniteFlatModelAwayTwo
   ∃ (G : Type) (_ : CommRing G) (_ : HopfAlgebra SchoofThreeBase G)
     (_ : Module.Flat SchoofThreeBase G) (_ : Module.Finite SchoofThreeBase G)
     (_ : Algebra.Etale ℚ (ℚ ⊗[SchoofThreeBase] G))
-    (e : Additive (ℚ ⊗[SchoofThreeBase] G →ₐ[ℚ] AlgebraicClosure ℚ) →+ W),
+    (e : Additive (WithConv
+      (ℚ ⊗[SchoofThreeBase] G →ₐ[ℚ] AlgebraicClosure ℚ)) →+ W),
     Function.Bijective e ∧
-      ∀ (sigma : Γ ℚ) (x : Additive
-        (ℚ ⊗[SchoofThreeBase] G →ₐ[ℚ] AlgebraicClosure ℚ)),
-        e (Additive.ofMul (sigma.toAlgHom.comp x.toMul)) = rho sigma (e x)
+      ∀ (sigma : Γ ℚ) (x : Additive (WithConv
+        (ℚ ⊗[SchoofThreeBase] G →ₐ[ℚ] AlgebraicClosure ℚ))),
+        e (Additive.ofMul (WithConv.toConv
+          (sigma.toAlgHom.comp x.toMul.ofConv))) = rho sigma (e x)
 
 /-- A represented object of Schoof's `(2, 3)` category: the four arithmetic generic-fiber
 conditions together with an actual global finite-flat model over `ℤ[1/2]`. -/
