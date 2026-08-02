@@ -1666,6 +1666,301 @@ lemma leftCounit_comp_comulAlgHom
     (comulAlgHom R N u t n h2 hdisc z) = z
   exact leftCounitContraction_comulAlgHom R N u t n h2 hdisc z
 
+/-! ## Coassociativity -/
+
+section Coassociativity
+
+noncomputable local instance fixedTensorCommSemiring :
+    CommSemiring (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :=
+  inferInstance
+
+noncomputable local instance fixedTensorAlgebra :
+    Algebra R (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :=
+  inferInstance
+
+noncomputable local instance coverTensorCommSemiring :
+    CommSemiring (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n) :=
+  inferInstance
+
+noncomputable local instance coverTensorAlgebra :
+    Algebra (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n) :=
+  inferInstance
+
+noncomputable local instance fixedTripleCommSemiring :
+    CommSemiring (fixedSubalgebra R N u t n ⊗[R]
+      (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) :=
+  inferInstance
+
+noncomputable local instance fixedTripleAlgebra :
+    Algebra R (fixedSubalgebra R N u t n ⊗[R]
+      (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) :=
+  inferInstance
+
+noncomputable local instance coverTripleCommSemiring :
+    CommSemiring (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+      (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n)) :=
+  inferInstance
+
+/-- Scalar extension of the right-associated tensor cube of the fixed algebra is the
+right-associated tensor cube of the cover algebra. -/
+noncomputable def baseChangeTripleCoverEquiv (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R]
+          (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) ≃ₐ[
+      QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+          CoverCoordinateAlgebra R N u t n) :=
+  (Algebra.TensorProduct.distribBaseChangeAlgEquiv R
+    (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+    (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)).trans
+      (Algebra.TensorProduct.congr
+        (baseChangeEquiv R N u t n h2 hdisc)
+        (baseChangeTensorCoverEquiv R N u t n h2 hdisc))
+
+@[simp]
+lemma baseChangeTripleCoverEquiv_tmul (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (a : QuadraticDescent.Algebra R t n)
+    (x : fixedSubalgebra R N u t n)
+    (q : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeTripleCoverEquiv R N u t n h2 hdisc
+        (a ⊗ₜ[R] (x ⊗ₜ[R] q)) =
+      baseChangeEquiv R N u t n h2 hdisc (a ⊗ₜ[R] x) ⊗ₜ[
+        QuadraticDescent.Algebra R t n]
+        baseChangeTensorCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q) := by
+  rfl
+
+/-- Comultiply the second tensor factor after comultiplying once. -/
+noncomputable def rightIteratedComulAlgHom (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    fixedSubalgebra R N u t n →ₐ[R]
+      fixedSubalgebra R N u t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :=
+  (Algebra.TensorProduct.map (AlgHom.id R (fixedSubalgebra R N u t n))
+    (comulAlgHom R N u t n h2 hdisc)).comp
+      (comulAlgHom R N u t n h2 hdisc)
+
+/-- The right-iterated cover comultiplication. -/
+noncomputable def coverRightIteratedComulAlgHom :
+    CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+          CoverCoordinateAlgebra R N u t n) :=
+  (Algebra.TensorProduct.map
+    (AlgHom.id (QuadraticDescent.Algebra R t n) (CoverCoordinateAlgebra R N u t n))
+    (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n))).comp
+        (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n))
+
+/-- Base change intertwines comultiplication of the second tensor factor. -/
+lemma baseChangeTripleCoverEquiv_map_id_comul
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeTripleCoverEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          Algebra.TensorProduct.map (AlgHom.id R (fixedSubalgebra R N u t n))
+            (comulAlgHom R N u t n h2 hdisc) q) =
+      Algebra.TensorProduct.map
+          (AlgHom.id (QuadraticDescent.Algebra R t n)
+            (CoverCoordinateAlgebra R N u t n))
+          (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+            (CoverCoordinateAlgebra R N u t n))
+        (baseChangeTensorCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q)) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [Algebra.TensorProduct.map_tmul, AlgHom.id_apply,
+        baseChangeTripleCoverEquiv_tmul,
+        baseChangeTensorCoverEquiv_tmul,
+        Algebra.TensorProduct.map_tmul, AlgHom.id_apply]
+      simp only [baseChangeEquiv_apply]
+      rw [baseChangeToCover_tmul, map_one, one_mul,
+        baseChangeTensorCoverEquiv_one_tmul_comulAlgHom]
+  | add x y hx hy => simp only [map_add, TensorProduct.tmul_add, hx, hy]
+
+/-- Comultiply the first tensor factor after comultiplying once, then reassociate. -/
+noncomputable def leftIteratedComulAlgHom (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    fixedSubalgebra R N u t n →ₐ[R]
+      fixedSubalgebra R N u t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :=
+  (Algebra.TensorProduct.assoc R R R
+    (fixedSubalgebra R N u t n) (fixedSubalgebra R N u t n)
+      (fixedSubalgebra R N u t n)).toAlgHom.comp
+    ((Algebra.TensorProduct.map (comulAlgHom R N u t n h2 hdisc)
+      (AlgHom.id R (fixedSubalgebra R N u t n))).comp
+        (comulAlgHom R N u t n h2 hdisc))
+
+/-- The left-iterated cover comultiplication, reassociated to the right. -/
+noncomputable def coverLeftIteratedComulAlgHom :
+    CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+          CoverCoordinateAlgebra R N u t n) :=
+  (Algebra.TensorProduct.assoc (QuadraticDescent.Algebra R t n)
+    (QuadraticDescent.Algebra R t n) (QuadraticDescent.Algebra R t n)
+    (CoverCoordinateAlgebra R N u t n) (CoverCoordinateAlgebra R N u t n)
+      (CoverCoordinateAlgebra R N u t n)).toAlgHom.comp
+    ((Algebra.TensorProduct.map
+      (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n))
+      (AlgHom.id (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n))).comp
+          (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+            (CoverCoordinateAlgebra R N u t n)))
+
+/-- Base change intertwines comultiplication of the first tensor factor and the
+associator. -/
+lemma baseChangeTripleCoverEquiv_assoc_map_comul_id
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeTripleCoverEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          (Algebra.TensorProduct.assoc R R R
+            (fixedSubalgebra R N u t n) (fixedSubalgebra R N u t n)
+              (fixedSubalgebra R N u t n))
+            (Algebra.TensorProduct.map (comulAlgHom R N u t n h2 hdisc)
+              (AlgHom.id R (fixedSubalgebra R N u t n)) q)) =
+      (Algebra.TensorProduct.assoc (QuadraticDescent.Algebra R t n)
+        (QuadraticDescent.Algebra R t n) (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n) (CoverCoordinateAlgebra R N u t n)
+          (CoverCoordinateAlgebra R N u t n))
+        (Algebra.TensorProduct.map
+          (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+            (CoverCoordinateAlgebra R N u t n))
+          (AlgHom.id (QuadraticDescent.Algebra R t n)
+            (CoverCoordinateAlgebra R N u t n))
+          (baseChangeTensorCoverEquiv R N u t n h2 hdisc
+            ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q))) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [Algebra.TensorProduct.map_tmul, AlgHom.id_apply,
+        baseChangeTensorCoverEquiv_tmul,
+        Algebra.TensorProduct.map_tmul, AlgHom.id_apply]
+      simp only [baseChangeEquiv_apply]
+      rw [baseChangeToCover_tmul, map_one, one_mul,
+        ← baseChangeTensorCoverEquiv_one_tmul_comulAlgHom R N u t n h2 hdisc x]
+      generalize comulAlgHom R N u t n h2 hdisc x = p
+      induction p using TensorProduct.induction_on with
+      | zero => simp
+      | tmul x₁ x₂ =>
+          rw [Algebra.TensorProduct.assoc_tmul,
+            baseChangeTripleCoverEquiv_tmul,
+            baseChangeTensorCoverEquiv_tmul,
+            Algebra.TensorProduct.assoc_tmul]
+          simp only [baseChangeEquiv_apply]
+          rw [baseChangeToCover_tmul, baseChangeToCover_tmul, map_one, one_mul]
+      | add p q hp hq => simp only [map_add, TensorProduct.add_tmul, hp, hq]
+  | add p q hp hq => simp only [map_add, TensorProduct.tmul_add, hp, hq]
+
+/-- Right-iterated descended comultiplication becomes the cover operation after scalar
+extension. -/
+lemma baseChangeTripleCoverEquiv_one_tmul_rightIterated
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    baseChangeTripleCoverEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          rightIteratedComulAlgHom R N u t n h2 hdisc z) =
+      coverRightIteratedComulAlgHom R N u t n z := by
+  rw [rightIteratedComulAlgHom, AlgHom.comp_apply,
+    baseChangeTripleCoverEquiv_map_id_comul,
+    baseChangeTensorCoverEquiv_one_tmul_comulAlgHom]
+  rfl
+
+/-- Left-iterated descended comultiplication becomes the cover operation after scalar
+extension. -/
+lemma baseChangeTripleCoverEquiv_one_tmul_leftIterated
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    baseChangeTripleCoverEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          leftIteratedComulAlgHom R N u t n h2 hdisc z) =
+      coverLeftIteratedComulAlgHom R N u t n z := by
+  rw [leftIteratedComulAlgHom, AlgHom.comp_apply, AlgHom.comp_apply,
+    baseChangeTripleCoverEquiv_assoc_map_comul_id,
+    baseChangeTensorCoverEquiv_one_tmul_comulAlgHom]
+  rfl
+
+/-- The cover's two iterated comultiplications agree. -/
+lemma coverLeftIteratedComulAlgHom_eq_right
+    (z : CoverCoordinateAlgebra R N u t n) :
+    coverLeftIteratedComulAlgHom R N u t n z =
+      coverRightIteratedComulAlgHom R N u t n z := by
+  change TensorProduct.assoc (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n) (CoverCoordinateAlgebra R N u t n)
+        (CoverCoordinateAlgebra R N u t n)
+      ((Coalgebra.comul (R := QuadraticDescent.Algebra R t n)).rTensor
+        (CoverCoordinateAlgebra R N u t n)
+        (Coalgebra.comul (R := QuadraticDescent.Algebra R t n) z)) =
+    (Coalgebra.comul (R := QuadraticDescent.Algebra R t n)).lTensor
+      (CoverCoordinateAlgebra R N u t n)
+      (Coalgebra.comul (R := QuadraticDescent.Algebra R t n) z)
+  exact Coalgebra.coassoc_apply z
+
+/-- Coassociativity descends from the quadratic cover, since extracting the scalar
+coefficient reflects equality of pure scalar tensors. -/
+lemma leftIteratedComulAlgHom_eq_right_apply
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    leftIteratedComulAlgHom R N u t n h2 hdisc z =
+      rightIteratedComulAlgHom R N u t n h2 hdisc z := by
+  have hcover :
+      baseChangeTripleCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+            leftIteratedComulAlgHom R N u t n h2 hdisc z) =
+        baseChangeTripleCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+            rightIteratedComulAlgHom R N u t n h2 hdisc z) := by
+    rw [baseChangeTripleCoverEquiv_one_tmul_leftIterated,
+      baseChangeTripleCoverEquiv_one_tmul_rightIterated,
+      coverLeftIteratedComulAlgHom_eq_right]
+  have htensor :
+      (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          leftIteratedComulAlgHom R N u t n h2 hdisc z =
+        (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          rightIteratedComulAlgHom R N u t n h2 hdisc z :=
+    (baseChangeTripleCoverEquiv R N u t n h2 hdisc).injective hcover
+  have hcoeff := congrArg
+    (QuadraticDescent.tensorReCoeff R
+      (fixedSubalgebra R N u t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) t n)
+    htensor
+  simpa using hcoeff
+
+/-- The descended comultiplication is coassociative. -/
+lemma coassoc_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (Algebra.TensorProduct.assoc R R R
+      (fixedSubalgebra R N u t n) (fixedSubalgebra R N u t n)
+        (fixedSubalgebra R N u t n)).toAlgHom.comp
+      ((Algebra.TensorProduct.map (comulAlgHom R N u t n h2 hdisc)
+        (AlgHom.id R (fixedSubalgebra R N u t n))).comp
+          (comulAlgHom R N u t n h2 hdisc)) =
+    (Algebra.TensorProduct.map (AlgHom.id R (fixedSubalgebra R N u t n))
+      (comulAlgHom R N u t n h2 hdisc)).comp
+        (comulAlgHom R N u t n h2 hdisc) := by
+  apply AlgHom.ext
+  intro z
+  exact leftIteratedComulAlgHom_eq_right_apply R N u t n h2 hdisc z
+
+end Coassociativity
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
