@@ -9,6 +9,7 @@ public import FLT.FreyCurve.Basic
 public import FLT.Mathlib.AlgebraicGeometry.EllipticCurve.Reduction
 public import FLT.Mathlib.NumberTheory.Padics.PadicNumbers
 public import FLT.Mathlib.NumberTheory.Padics.HeightOneSpectrum
+public import FLT.Mathlib.RingTheory.Valuation.ValuativeRel.Basic
 
 /-!
 # Reduction of the Frey curve
@@ -169,6 +170,50 @@ theorem hasMultiplicativeReduction_at_two (P : FreyPackage) :
   let _ : IsMinimal (Rat.padicValuation 2).valuationSubring P.freyCurve :=
     isMinimal_of_valuation_c₄_eq_one _ _ hc₄
   exact { badReduction := hΔ, multiplicativeReduction := hc₄ }
+
+/-! ### Reduction over the standard rational p-adic field -/
+
+open ValuativeRel in
+/-- The integral Frey equation remains an integral model over the integers of `ℚ₂`. -/
+theorem freyCurve_baseChange_two_padic_isIntegral (P : FreyPackage) :
+    IsIntegral 𝒪[ℚ_[2]] (P.freyCurve.baseChange ℚ_[2]) := by
+  refine ⟨P.freyCurveInt⁄𝒪[ℚ_[2]], ?_⟩
+  rw [← FreyCurve.map P]
+  exact (P.freyCurveInt.map_baseChange
+    (IsScalarTower.toAlgHom ℤ 𝒪[ℚ_[2]] ℚ_[2])).symm
+
+open ValuativeRel in
+/-- The Frey curve has multiplicative reduction over the standard field `ℚ₂`. -/
+theorem hasMultiplicativeReduction_at_two_padic (P : FreyPackage) :
+    (P.freyCurve.baseChange ℚ_[2]).HasMultiplicativeReduction 𝒪[ℚ_[2]] := by
+  letI : Fact (Nat.Prime 2) := ⟨by decide⟩
+  let K := ℚ_[2]
+  let R := 𝒪[K]
+  let E := P.freyCurve.baseChange K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.IsIntegral R := freyCurve_baseChange_two_padic_isIntegral P
+  have hc₄canonical : valuation K E.c₄ = 1 := by
+    rw [show E.c₄ = algebraMap ℚ K P.freyCurve.c₄ from P.freyCurve.map_c₄ _]
+    apply (ValuativeRel.isEquiv (valuation K) Padic.mulValuation).eq_one_iff_eq_one.mpr
+    change (Padic.mulValuation.comap (Rat.castHom ℚ_[2])) P.freyCurve.c₄ = 1
+    rw [Padic.comap_mulValuation_eq_padicValuation]
+    exact padicValuation_c₄_eq_one_of_dvd P (by decide) (two_dvd_abc P)
+  have hΔcanonical : valuation K E.Δ < 1 := by
+    rw [show E.Δ = algebraMap ℚ K P.freyCurve.Δ from P.freyCurve.map_Δ _]
+    apply (ValuativeRel.isEquiv (valuation K) Padic.mulValuation).lt_one_iff_lt_one.mpr
+    change (Padic.mulValuation.comap (Rat.castHom ℚ_[2])) P.freyCurve.Δ < 1
+    rw [Padic.comap_mulValuation_eq_padicValuation]
+    exact padicValuation_Δ_lt_one_at_two P
+  have hc₄adic :
+      (IsDiscreteValuationRing.maximalIdeal R).valuation K E.c₄ = 1 := by
+    rw [← integralModel_c₄_eq R E] at hc₄canonical ⊢
+    exact adicValuation_eq_one_iff.mpr hc₄canonical
+  have hΔadic :
+      (IsDiscreteValuationRing.maximalIdeal R).valuation K E.Δ < 1 := by
+    rw [← integralModel_Δ_eq R E] at hΔcanonical ⊢
+    exact adicValuation_lt_one_iff.mpr hΔcanonical
+  let _ : E.IsMinimal R := isMinimal_of_valuation_c₄_eq_one R E hc₄adic
+  exact { badReduction := hΔadic, multiplicativeReduction := hc₄adic }
 
 /-! ### Reduction over completed rational local fields -/
 
