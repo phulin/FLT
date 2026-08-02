@@ -75,6 +75,7 @@ abbrev GaloisRep.ker (ρ : GaloisRep K A M) : Subgroup (Γ K) :=
   letI := moduleTopology A (Module.End A M)
   ρ.ker
 
+omit [NumberField K] in
 /-- A surjective intertwiner of Galois representations makes the kernel of the source act
 trivially on the target. -/
 theorem GaloisRep.ker_le_ker_of_surjective_intertwiner

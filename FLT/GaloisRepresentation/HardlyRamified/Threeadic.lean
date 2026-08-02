@@ -9,8 +9,11 @@ public import FLT.GaloisRepresentation.HardlyRamified.ModThree
 public import FLT.NumberField.Chebotarev
 
 import FLT.Deformations.CharacteristicZeroPoint
+import FLT.Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
+import FLT.Mathlib.RingTheory.Valuation.ValuationSubring
 import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 import Mathlib.NumberTheory.Padics.ProperSpace
+import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 import Mathlib.Topology.Algebra.Module.Compact
 import Mathlib.Topology.Algebra.Ring.Compact
 import Mathlib.Topology.MetricSpace.Ultra.TotallySeparated
@@ -33,6 +36,105 @@ open scoped TensorProduct
 local notation "Frob" => Field.AbsoluteGaloisGroup.adicArithFrob
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
+
+/-- Powers of `3` are units in the valuation ring of the algebraic closure of `ℚ_[2]`. -/
+private theorem isUnit_three_pow_Z2bar (n : ℕ) : IsUnit ((3 ^ n : ℕ) : Z2bar) := by
+  rw [Nat.cast_pow]
+  apply IsUnit.pow n
+  apply ValuationSubring.isUnit_of_valued_eq_one
+  apply NNReal.coe_injective
+  change spectralNorm ℚ_[2] (AlgebraicClosure ℚ_[2])
+    (algebraMap ℚ_[2] (AlgebraicClosure ℚ_[2]) (3 : ℚ_[2])) = 1
+  rw [spectralNorm_extends]
+  exact Padic.norm_natCast_eq_one_iff.mpr (by decide)
+
+/-- Inertia at `2` fixes every `3`-power root of unity in the chosen algebraic closure. -/
+private theorem inertia_fixes_three_power_root
+    (g : Γ ℚ_[2])
+    (hg : g ∈ AddSubgroup.inertia
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]))
+    (n : ℕ) (z : AlgebraicClosure ℚ_[2]) (hz : z ^ (3 ^ n) = 1) : g z = z := by
+  have hvpow : Valued.v z ^ (3 ^ n) = 1 := by
+    rw [← map_pow, hz, map_one]
+  have hvz : Valued.v z = 1 :=
+    (pow_eq_one_iff_of_nonneg (by positivity) (by positivity : 3 ^ n ≠ 0)).mp hvpow
+  let z0 : Z2bar := ⟨z, hvz.le⟩
+  have hz0pow : z0 ^ (3 ^ n) = 1 := by
+    ext
+    exact hz
+  have hz0unit : IsUnit z0 := ValuationSubring.isUnit_of_valued_eq_one z0 hvz
+  let u : Z2barˣ := hz0unit.unit
+  have hu : (u : Z2bar) = z0 := hz0unit.unit_spec
+  have hgzpow : (g • z0) ^ (3 ^ n) = 1 := by
+    ext
+    change (g z) ^ (3 ^ n) = 1
+    rw [← map_pow, hz, map_one]
+  have hupow : u ^ (3 ^ n) = 1 := by
+    apply Units.ext
+    simpa [hu] using hz0pow
+  have huinvpow : (↑(u⁻¹) : Z2bar) ^ (3 ^ n) = 1 := by
+    rw [← Units.val_pow_eq_pow_val, inv_pow, hupow, inv_one, Units.val_one]
+  let y : Z2bar := (g • z0) * (↑(u⁻¹) : Z2bar)
+  have hypow : y ^ (3 ^ n) = 1 := by
+    rw [show y = (g • z0) * (↑(u⁻¹) : Z2bar) from rfl,
+      mul_pow, hgzpow, huinvpow, mul_one]
+  have hymem : y - 1 ∈ maximalIdeal Z2bar := by
+    have hdiff : g • z0 - z0 ∈ maximalIdeal Z2bar := hg z0
+    have hy : y - 1 = (g • z0 - z0) * (↑(u⁻¹) : Z2bar) := by
+      simp [y, sub_mul, ← hu]
+    rw [hy]
+    exact (maximalIdeal Z2bar).mul_mem_right _ hdiff
+  have hyone : y = 1 :=
+    IsLocalRing.eq_one_of_pow_eq_one_of_sub_one_mem_maximalIdeal
+      (isUnit_three_pow_Z2bar n) hypow hymem
+  have hfix : g • z0 = z0 := calc
+    g • z0 = ((g • z0) * (↑(u⁻¹) : Z2bar)) * (u : Z2bar) := by simp
+    _ = y * (u : Z2bar) := rfl
+    _ = 1 * (u : Z2bar) := by rw [hyone]
+    _ = z0 := by simpa using hu
+  exact congrArg Subtype.val hfix
+
+/-- The `3`-adic cyclotomic character is unramified at `2`. -/
+private theorem cyclotomicCharacter_three_eq_one_on_inertia_at_two
+    (g : Γ ℚ_[2])
+    (hg : g ∈ AddSubgroup.inertia
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])) :
+    cyclotomicCharacter (AlgebraicClosure ℚ) 3
+      (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) g).toRingEquiv = 1 := by
+  let sigma : Γ ℚ := Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) g
+  let F : AlgebraicClosure ℚ →+* AlgebraicClosure ℚ_[2] :=
+    AlgebraicClosure.map (algebraMap ℚ ℚ_[2])
+  have hfix (n : ℕ) (t : (AlgebraicClosure ℚ)ˣ)
+      (ht : t ∈ rootsOfUnity (3 ^ n) (AlgebraicClosure ℚ)) : sigma t = t := by
+    have htroot : (t : AlgebraicClosure ℚ) ^ (3 ^ n) = 1 := by
+      simpa using congrArg (fun u : (AlgebraicClosure ℚ)ˣ ↦
+        (u : AlgebraicClosure ℚ)) ht
+    have hlocalroot : F (t : AlgebraicClosure ℚ) ^ (3 ^ n) = 1 := by
+      rw [← map_pow, htroot, map_one]
+    have hlocalfix := inertia_fixes_three_power_root g hg n
+      (F (t : AlgebraicClosure ℚ)) hlocalroot
+    apply F.injective
+    rw [show F (sigma (t : AlgebraicClosure ℚ)) =
+      g (F (t : AlgebraicClosure ℚ)) from
+        Field.absoluteGaloisGroup.lift_map (algebraMap ℚ ℚ_[2]) g t]
+    exact hlocalfix
+  apply Units.ext
+  apply PadicInt.ext_of_toZModPow.mp
+  intro n
+  cases n with
+  | zero =>
+      letI : Subsingleton (ZMod (3 ^ 0)) := by
+        change Subsingleton (ZMod 1)
+        infer_instance
+      exact Subsingleton.elim _ _
+  | succ n =>
+      rw [cyclotomicCharacter.toZModPow, eq_comm]
+      apply modularCyclotomicCharacter.unique
+      intro t ht
+      simp only [Units.val_one, RingHom.map_one]
+      rw [ZMod.val_one'', pow_one]
+      · exact hfix (n + 1) t ht
+      · exact (one_lt_pow₀ (by norm_num : 1 < 3) (by omega : n + 1 ≠ 0)).ne'
 
 /-- The mod-maximal-ideal base case of the 3-adic character congruence.  Reduce the
 representation to the finite residue field, apply `mod_three_trace_eq_one_add_det`, and pull
@@ -136,8 +238,8 @@ theorem schoof_three_adic_hasFlatProlongationAt_three
       (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (show Nat.Prime 3 by decide)) := by
   letI : τ.IsFlatAt
       (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (show Nat.Prime 3 by decide)) := hτ.isFlat
-  exact τ.hasFlatProlongationAt_of_discrete
-    (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (show Nat.Prime 3 by decide))
+  exact GaloisRep.IsFlatAt.hasFlatProlongationAt_of_discrete
+    (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (show Nat.Prime 3 by decide)) τ
 
 /-- The finite Galois extension cut out by a finite three-adic representation is unramified
 outside `2` and `3`, in the precise Galois-theoretic sense that local inertia acts trivially
@@ -185,6 +287,24 @@ theorem schoof_three_adic_fieldCutOut_tame_quotient_at_two
       (τ.map (algebraMap ℚ ℚ_[2])) δ π hπ hintertwines
   exact ⟨π, hπ, δ, hker, hintertwines, (hπτ 1 0).2.1, (hπτ 1 0).2.2⟩
 
+/-- The determinant of a finite three-adic hardly ramified representation is trivial on
+inertia at `2`, because it is the `3`-adic cyclotomic character. -/
+theorem schoof_three_adic_inertia_det_eq_one_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau)
+    (g : Γ ℚ_[2])
+    (hg : g ∈ AddSubgroup.inertia
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])) :
+    LinearMap.det (tau.map (algebraMap ℚ ℚ_[2]) g) = 1 := by
+  change LinearMap.det (tau (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) g)) = 1
+  have h := htau.det (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) g)
+  change LinearMap.det (tau (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) g)) = _ at h
+  rw [cyclotomicCharacter_three_eq_one_on_inertia_at_two g hg, Units.val_one, map_one] at h
+  exact h
+
 /-- Inertia at `2` has character `1 + det` on a finite three-adic hardly ramified
 representation.  The hard-ramification hypothesis only states that a rank-one quotient is
 unramified; the local-ring version of the rank-two trace lemma upgrades this to a character
@@ -211,9 +331,9 @@ theorem schoof_three_adic_inertia_trace_eq_one_add_det_at_two
   exact LinearMap.trace_eq_one_add_det_of_surjective_invariant_quotient
     hW (tau.map (algebraMap ℚ ℚ_[2]) g) pi hpi hpitriv
 
-/-- If the determinant is trivial on an inertia element at `2`, its action is unipotent of
-index at most two.  Together with the unramifiedness of the `3`-adic cyclotomic determinant,
-this is the linear-algebra input for proving that wild inertia acts trivially. -/
+/-- Every inertia element at `2` acts unipotently of index at most two.  This combines the
+unramified `3`-adic cyclotomic determinant with the unramified rank-one quotient and is the
+linear-algebra input for proving that wild inertia acts trivially. -/
 theorem schoof_three_adic_inertia_unipotent_at_two
     {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
@@ -222,8 +342,7 @@ theorem schoof_three_adic_inertia_unipotent_at_two
     (htau : IsHardlyRamified (show Odd 3 by decide) hW tau)
     (g : Γ ℚ_[2])
     (hg : g ∈ AddSubgroup.inertia
-      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]))
-    (hdet : LinearMap.det (tau.map (algebraMap ℚ ℚ_[2]) g) = 1) :
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2])) :
     let f := tau.map (algebraMap ℚ ℚ_[2]) g
     (f - LinearMap.id).comp (f - LinearMap.id) = 0 := by
   obtain ⟨pi, hpi, delta, hpitau⟩ := htau.isTameAtTwo
@@ -233,6 +352,7 @@ theorem schoof_three_adic_inertia_unipotent_at_two
     intro w
     rw [(hpitau g w).1, show delta g = 1 from hgdelta]
     rfl
+  have hdet := schoof_three_adic_inertia_det_eq_one_at_two W hW htau g hg
   exact LinearMap.sub_id_comp_self_eq_zero_of_surjective_invariant_quotient_det_eq_one
     hW (tau.map (algebraMap ℚ ℚ_[2]) g) pi hpi hpitriv hdet
 
