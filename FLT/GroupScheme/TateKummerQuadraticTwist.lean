@@ -857,6 +857,29 @@ lemma scalarExtendedCoverEquiv_tmul
 
 end ScalarExtendedCover
 
+section QuadraticFieldCover
+
+variable (K L : Type u) [Field K] [Field L]
+  [Algebra R K] [Algebra K L] [Algebra R L] [IsScalarTower R K L]
+  [Algebra.IsQuadraticExtension K L]
+
+/-- Over the quadratic field supplied by a trace--norm generator, the descended
+coordinate algebra is the split Tate--Kummer coordinate algebra. -/
+noncomputable def fieldExtendedCoverEquiv (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    L ⊗[R] fixedSubalgebra R N u t n ≃ₐ[L]
+      L ⊗[R] TateKummer.CoordinateAlgebra (R := R) N u := by
+  let f := QuadraticDescent.integralFieldAlgHom K L R t n θ htrace hnorm
+  letI : Algebra (QuadraticDescent.Algebra R t n) L := f.toRingHom.toAlgebra
+  letI : IsScalarTower R (QuadraticDescent.Algebra R t n) L :=
+    IsScalarTower.of_algebraMap_eq fun r ↦ (f.commutes r).symm
+  exact scalarExtendedCoverEquiv R N u t n L h2 hdisc
+
+end QuadraticFieldCover
+
 /-! ## Tensor-square base change -/
 
 /-- Scalar extension of the descended coordinate algebra. -/

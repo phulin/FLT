@@ -222,6 +222,29 @@ noncomputable def genericFiberFieldEquiv (t n : R) (θ : L)
     (fieldAlgEquiv K L (algebraMap R K t) (algebraMap R K n)
       θ hθ htrace hnorm)
 
+/-- Evaluation of the integral trace--norm algebra in its quadratic generic fiber. -/
+noncomputable def integralFieldAlgHom (t n : R) (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n) :
+    Algebra R t n →ₐ[R] L :=
+  AdjoinRoot.liftAlgHom (polynomial R t n) (Algebra.ofId R L) θ (by
+    rw [eval₂_polynomial]
+    change θ ^ 2 + (-(algebraMap R L t) * θ + algebraMap R L n) = 0
+    have hθ := sq_sub_trace_mul_self_add_norm
+      (Algebra.IsQuadraticExtension.finrank_eq_two K L) θ
+    rw [htrace, hnorm] at hθ
+    rw [IsScalarTower.algebraMap_apply R K L,
+      IsScalarTower.algebraMap_apply R K L]
+    linear_combination hθ)
+
+@[simp]
+lemma integralFieldAlgHom_root (t n : R) (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n) :
+    integralFieldAlgHom K L R t n θ htrace hnorm
+      (AdjoinRoot.root (polynomial R t n)) = θ := by
+  apply AdjoinRoot.liftAlgHom_root
+
 end GenericFiber
 
 end QuadraticField
