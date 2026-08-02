@@ -400,6 +400,139 @@ theorem Δ_baseChange_quadraticTwistOf_ne_zero [E.IsElliptic] [IsIntegral R E] (
 -- From here on, `R` is a discrete valuation ring.
 variable [IsDiscreteValuationRing R]
 
+open IsLocalRing in
+/-- In residue characteristic `2`, multiplicative reduction forces the `a₁` coefficient of the
+integral model to be a unit.  The reduced node-polynomial discriminant identity becomes
+`(a₁c₄)² = -c₄c₆`, and `c₄,c₆` are both nonzero. -/
+lemma isUnit_integralModel_a₁_of_two_residue_eq_zero [E.HasMultiplicativeReduction R]
+    (h2 : (2 : ResidueField R) = 0) : IsUnit (E.integralModel R).a₁ := by
+  let I := E.integralModel R
+  have hc₄ : residue R I.c₄ ≠ 0 := by
+    dsimp only [I]
+    exact residue_integralModel_c₄_ne_zero E R
+  have hc₆ : residue R I.c₆ ≠ 0 := by
+    dsimp only [I]
+    exact residue_integralModel_c₆_ne_zero E R
+  have h4 : (4 : ResidueField R) = 0 := by
+    rw [show (4 : ResidueField R) = 2 * 2 by norm_num, h2, zero_mul]
+  apply (residue_ne_zero_iff_isUnit I.a₁).mp
+  intro ha₁
+  have hdisc := map_splitPolynomial_discrim (residue R) I
+  have hzero : -(residue R I.c₄ * residue R I.c₆) = 0 := by
+    simpa only [map_mul, ha₁, zero_mul, zero_pow (by norm_num : 2 ≠ 0), map_ofNat,
+      h4, map_neg, mul_zero, sub_zero] using hdisc.symm
+  exact (neg_ne_zero.mpr (mul_ne_zero hc₄ hc₆)) hzero
+
+open Polynomial IsLocalRing in
+/-- For split multiplicative reduction in residue characteristic `2`, the discriminant
+`-c₄c₆` of the node polynomial is already a square in the discrete valuation ring.  This is
+stronger than merely being a square after reduction: a tangent direction lifts by Hensel's lemma. -/
+lemma isSquare_neg_c₄_mul_c₆_integralModel_of_two_residue_eq_zero
+    [HenselianRing R (maximalIdeal R)] [E.HasSplitMultiplicativeReduction R]
+    (h2 : (2 : ResidueField R) = 0) :
+    IsSquare (-((E.integralModel R).c₄ * (E.integralModel R).c₆)) := by
+  let I := E.integralModel R
+  let κ := 54 * I.b₆ - 3 * I.b₂ * I.b₄ + I.a₂ * I.c₄
+  have hc₄ : IsUnit I.c₄ := by
+    apply (residue_ne_zero_iff_isUnit I.c₄).mp
+    dsimp only [I]
+    exact residue_integralModel_c₄_ne_zero E R
+  have ha₁ : IsUnit I.a₁ := by
+    dsimp only [I]
+    exact isUnit_integralModel_a₁_of_two_residue_eq_zero E R h2
+  have hs : ((C I.c₄ * X ^ 2 + C (I.a₁ * I.c₄) * X + C (-κ)).map (residue R)).Splits := by
+    simpa only [I, κ, C_neg, sub_eq_add_neg, ResidueField.algebraMap_eq] using
+      (HasSplitMultiplicativeReduction.splitMultiplicativeReduction (R := R) (W := E))
+  have hsq := isSquare_discrim_of_splits_residue_of_two_eq_zero
+    I.c₄ (I.a₁ * I.c₄) (-κ) hc₄ (ha₁.mul hc₄) (by
+      simpa only [map_ofNat] using h2) hs
+  convert hsq using 1
+  dsimp only [κ]
+  rw [show (I.a₁ * I.c₄) ^ 2 - 4 * I.c₄ *
+      (-(54 * I.b₆ - 3 * I.b₂ * I.b₄ + I.a₂ * I.c₄)) =
+      (I.a₁ * I.c₄) ^ 2 + 4 * I.c₄ *
+        (54 * I.b₆ - 3 * I.b₂ * I.b₄ + I.a₂ * I.c₄) by ring]
+  exact I.splitPolynomial_discrim.symm
+
+open Polynomial IsLocalRing in
+/-- In residue characteristic `2`, `c₄` of a multiplicative integral model is a square.  Write
+`c₄ = b₂² - 24b₄`; the polynomial `Y² + b₂Y + 6b₄` has the simple reduced root `0`
+because `b₂ ≡ a₁²` is a unit.  If `y` is its Hensel lift, then `(b₂ + 2y)² = c₄`. -/
+lemma isSquare_c₄_integralModel_of_two_residue_eq_zero
+    [HenselianRing R (maximalIdeal R)] [E.HasMultiplicativeReduction R]
+    (h2 : (2 : ResidueField R) = 0) : IsSquare (E.integralModel R).c₄ := by
+  let I := E.integralModel R
+  have ha₁ : IsUnit I.a₁ := by
+    dsimp only [I]
+    exact isUnit_integralModel_a₁_of_two_residue_eq_zero E R h2
+  have h4 : (4 : ResidueField R) = 0 := by
+    rw [show (4 : ResidueField R) = 2 * 2 by norm_num, h2, zero_mul]
+  have hb₂ : IsUnit I.b₂ := by
+    apply (residue_ne_zero_iff_isUnit I.b₂).mp
+    simp only [b₂, map_add, map_pow, map_mul, map_ofNat, h4, zero_mul, add_zero]
+    exact pow_ne_zero 2 ((residue_ne_zero_iff_isUnit I.a₁).mpr ha₁)
+  let f : R[X] := X ^ 2 + C I.b₂ * X + C (6 * I.b₄)
+  have hf : f.Monic := by
+    dsimp only [f]
+    rw [show X ^ 2 + C I.b₂ * X + C (6 * I.b₄) =
+      X ^ 2 + (C I.b₂ * X + C (6 * I.b₄)) by ring]
+    exact monic_X_pow_add (by compute_degree!)
+  have h6 : (6 : ResidueField R) = 0 := by
+    rw [show (6 : ResidueField R) = 2 * 3 by norm_num, h2, zero_mul]
+  have hroot : f.eval 0 ∈ maximalIdeal R := by
+    have heval : f.eval 0 = 6 * I.b₄ := by
+      simp only [f, eval_add, eval_mul, eval_pow, eval_X, eval_C,
+        zero_pow (by norm_num : 2 ≠ 0), mul_zero, zero_add]
+    rw [heval]
+    rw [← residue_eq_zero_iff]
+    rw [map_mul, map_ofNat, h6, zero_mul]
+  have hderiv : IsUnit (Ideal.Quotient.mk (maximalIdeal R) (f.derivative.eval 0)) := by
+    apply IsUnit.map
+    simpa only [f, derivative_add, derivative_pow, derivative_X, derivative_mul, derivative_C,
+      Nat.cast_ofNat, C_0, zero_mul, add_zero, eval_add, eval_mul, eval_C, eval_X,
+      Nat.reduceSub, pow_one, eval_zero, mul_zero, zero_add, eval_one, mul_one] using hb₂
+  obtain ⟨y, hy, -⟩ := HenselianRing.is_henselian f hf 0 hroot hderiv
+  have hfy : y ^ 2 + I.b₂ * y + 6 * I.b₄ = 0 := by
+    rw [IsRoot.def] at hy
+    simpa only [f, eval_add, eval_mul, eval_pow, eval_X, eval_C] using hy
+  refine ⟨I.b₂ + 2 * y, ?_⟩
+  change I.b₂ ^ 2 - 24 * I.b₄ = (I.b₂ + 2 * y) * (I.b₂ + 2 * y)
+  linear_combination -4 * hfy
+
+open IsLocalRing in
+/-- **Split-multiplicative square criterion, dyadic case.**  If the residue characteristic is
+`2`, split multiplicative reduction still implies that `-c₆` is a square in the fraction field.
+The lifted node discriminant is `-c₄c₆`, while `c₄` itself is a nonzero square. -/
+theorem isSquare_neg_c₆_of_hasSplitMultiplicativeReduction_of_two_residue_eq_zero
+    [HenselianRing R (maximalIdeal R)] [E.HasSplitMultiplicativeReduction R]
+    (h2 : (2 : ResidueField R) = 0) : IsSquare (-E.c₆) := by
+  obtain ⟨z, hz⟩ :=
+    isSquare_neg_c₄_mul_c₆_integralModel_of_two_residue_eq_zero E R h2
+  obtain ⟨s, hs⟩ := isSquare_c₄_integralModel_of_two_residue_eq_zero E R h2
+  have hc₄unit : IsUnit (E.integralModel R).c₄ :=
+    (residue_ne_zero_iff_isUnit (E.integralModel R).c₄).mp
+      (residue_integralModel_c₄_ne_zero E R)
+  have hc₄ : (E.integralModel R).c₄ ≠ 0 := hc₄unit.ne_zero
+  have hs0 : s ≠ 0 := by
+    intro h
+    apply hc₄
+    rw [hs, h, zero_mul]
+  refine ⟨algebraMap R K z / algebraMap R K s, ?_⟩
+  have hzK := congrArg (algebraMap R K) hz
+  have hsK := congrArg (algebraMap R K) hs
+  simp only [map_neg, map_mul] at hzK
+  simp only [map_mul] at hsK
+  rw [integralModel_c₆_eq R E, integralModel_c₄_eq R E] at hzK
+  rw [integralModel_c₄_eq R E] at hsK
+  have hsK0 : algebraMap R K s ≠ 0 := by
+    intro h
+    apply hs0
+    apply IsFractionRing.injective R K
+    simpa only [map_zero] using h
+  field_simp
+  rw [pow_two, ← hsK]
+  simpa only [mul_comm, pow_two] using hzK
+
 open IsLocalRing IsDedekindDomain.HeightOneSpectrum in
 /-- **The twist by a unit discriminant keeps multiplicative reduction.** If `E` has multiplicative
 reduction and `D = t² - 4n` is a unit of `R` (residue `≠ 0`), then the base change of the `R`-model
