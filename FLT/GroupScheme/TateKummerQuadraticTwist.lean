@@ -1362,6 +1362,55 @@ lemma comulAlgHom_apply (h2 : IsUnit (2 : R))
         (baseChangedComulAlgHom R N u t n h2 hdisc z) :=
   rfl
 
+/-- The base-changed descended comultiplication is a pure scalar tensor. -/
+lemma baseChangedComulAlgHom_eq_one_tmul_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    baseChangedComulAlgHom R N u t n h2 hdisc z =
+      (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+        comulAlgHom R N u t n h2 hdisc z := by
+  rw [baseChangedComulAlgHom_eq_one_tmul]
+  rfl
+
+/-- After applying the tensor-square base-change equivalence, descended comultiplication
+is exactly comultiplication on the cover. -/
+lemma baseChangeTensorCoverEquiv_one_tmul_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    baseChangeTensorCoverEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          comulAlgHom R N u t n h2 hdisc z) =
+      Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n) z := by
+  rw [← baseChangedComulAlgHom_eq_one_tmul_comulAlgHom]
+  change baseChangeTensorCoverEquiv R N u t n h2 hdisc
+      (transportedCoverComulAlgHom R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] z)) = _
+  simp only [transportedCoverComulAlgHom, AlgHom.comp_apply,
+    AlgEquiv.coe_toAlgHom, AlgEquiv.apply_symm_apply]
+  change Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n)
+      (baseChangeEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] z)) = _
+  rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul]
+
+/-- The descended counit recovers the cover counit after applying the scalar map. -/
+lemma coverCounitAlgHom_eq_algebraMap_counitAlgHom
+    (h2 : IsUnit (2 : R)) (z : fixedSubalgebra R N u t n) :
+    coverCounitAlgHom R N u t n z =
+      algebraMap R (QuadraticDescent.Algebra R t n)
+        (counitAlgHom R N u t n h2 z) := by
+  rw [coverCounitAlgHom_eq_algebraMap_reCoeff R N u t n h2 z]
+  rfl
+
+/-- The descended antipode is the restriction of the cover antipode. -/
+lemma coverAntipodeAlgHom_coe (z : fixedSubalgebra R N u t n) :
+    coverAntipodeAlgHom R N u t n z =
+      (antipodeAlgHom R N u t n z : CoverCoordinateAlgebra R N u t n) := by
+  rfl
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
