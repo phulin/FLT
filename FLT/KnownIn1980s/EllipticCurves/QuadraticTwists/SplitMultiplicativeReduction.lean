@@ -62,16 +62,15 @@ models (`WeierstrassCurve.HasSplitMultiplicativeReduction.of_isMinimal_smul`) �
 @[expose] public section
 
 open Polynomial IsLocalRing in
-/-- In residue characteristic `2`, a quadratic with unit leading and linear coefficients has
-square discriminant if it splits after reduction.  A reduced root is simple because the linear
-coefficient is a unit, so Hensel lifting gives an actual root `x`; the identity
-`B² - 4Aq = (2Ax + B)²` then proves the claim. -/
-lemma isSquare_discrim_of_splits_residue_of_two_eq_zero
+/-- In residue characteristic `2`, a quadratic with unit leading and linear coefficients has an
+actual root if it splits after reduction.  A reduced root is simple because the linear coefficient
+is a unit, so Hensel's lemma lifts it. -/
+lemma exists_root_quadratic_of_splits_residue_of_two_eq_zero
     {R : Type*} [CommRing R] [IsLocalRing R]
     [HenselianRing R (maximalIdeal R)] (A B q : R)
     (hA : IsUnit A) (hB : IsUnit B) (h2 : residue R (2 : R) = 0)
     (hs : ((C A * X ^ 2 + C B * X + C q).map (residue R)).Splits) :
-    IsSquare (B ^ 2 - 4 * A * q) := by
+    ∃ x : R, A * x ^ 2 + B * x + q = 0 := by
   let Au : Rˣ := hA.unit
   have hAu : (Au : R) = A := hA.unit_spec
   let g : R[X] := C A * X ^ 2 + C B * X + C q
@@ -142,7 +141,6 @@ lemma isSquare_discrim_of_splits_residue_of_two_eq_zero
       ((residue_ne_zero_iff_isUnit (↑(Au⁻¹) : R)).mpr (Au⁻¹).isUnit) hBres
   obtain ⟨x, hx, -⟩ := HenselianRing.is_henselian f hf z₀ hfroot hderiv
   have hfx : f.eval x = 0 := by rwa [IsRoot.def] at hx
-  refine ⟨2 * A * x + B, ?_⟩
   have hrel : A * x ^ 2 + B * x + q = 0 := by
     simp only [f, eval_add, eval_mul, eval_pow, eval_X, eval_C] at hfx
     have hcancel : (Au : R) * (↑(Au⁻¹) : R) = 1 := by
@@ -158,6 +156,21 @@ lemma isSquare_discrim_of_splits_residue_of_two_eq_zero
           = (Au : R) * (x ^ 2 + (↑(Au⁻¹) : R) * B * x
               + (↑(Au⁻¹) : R) * q) := by rw [mul_add, mul_add, hBcancel, hqcancel]
       _ = 0 := by rw [hfx, mul_zero]
+  exact ⟨x, hrel⟩
+
+open Polynomial IsLocalRing in
+/-- In residue characteristic `2`, a quadratic with unit leading and linear coefficients has
+square discriminant if it splits after reduction.  Lift a root `x` and use
+`B² - 4Aq = (2Ax + B)²`. -/
+lemma isSquare_discrim_of_splits_residue_of_two_eq_zero
+    {R : Type*} [CommRing R] [IsLocalRing R]
+    [HenselianRing R (maximalIdeal R)] (A B q : R)
+    (hA : IsUnit A) (hB : IsUnit B) (h2 : residue R (2 : R) = 0)
+    (hs : ((C A * X ^ 2 + C B * X + C q).map (residue R)).Splits) :
+    IsSquare (B ^ 2 - 4 * A * q) := by
+  obtain ⟨x, hrel⟩ := exists_root_quadratic_of_splits_residue_of_two_eq_zero
+    A B q hA hB h2 hs
+  refine ⟨2 * A * x + B, ?_⟩
   have hq : q = -(A * x ^ 2 + B * x) := by linear_combination hrel
   rw [hq]
   ring
@@ -532,6 +545,48 @@ theorem isSquare_neg_c₆_of_hasSplitMultiplicativeReduction_of_two_residue_eq_z
   field_simp
   rw [pow_two, ← hsK]
   simpa only [mul_comm, pow_two] using hzK
+
+open Polynomial IsLocalRing in
+/-- In residue characteristic `2`, the node polynomial of a split-multiplicative curve already
+splits over the fraction field, not merely after reduction.  Its reduced tangent direction is a
+simple root and hence Hensel-lifts. -/
+theorem nodePoly_splits_of_hasSplitMultiplicativeReduction_of_two_residue_eq_zero
+    [HenselianRing R (maximalIdeal R)] [E.HasSplitMultiplicativeReduction R]
+    (h2 : (2 : ResidueField R) = 0) : E.nodePoly.Splits := by
+  let I := E.integralModel R
+  let κ := 54 * I.b₆ - 3 * I.b₂ * I.b₄ + I.a₂ * I.c₄
+  have hc₄ : IsUnit I.c₄ := by
+    apply (residue_ne_zero_iff_isUnit I.c₄).mp
+    dsimp only [I]
+    exact residue_integralModel_c₄_ne_zero E R
+  have ha₁ : IsUnit I.a₁ := by
+    dsimp only [I]
+    exact isUnit_integralModel_a₁_of_two_residue_eq_zero E R h2
+  have hs : ((C I.c₄ * X ^ 2 + C (I.a₁ * I.c₄) * X + C (-κ)).map (residue R)).Splits := by
+    simpa only [I, κ, C_neg, sub_eq_add_neg, ResidueField.algebraMap_eq] using
+      (HasSplitMultiplicativeReduction.splitMultiplicativeReduction (R := R) (W := E))
+  obtain ⟨x, hx⟩ := exists_root_quadratic_of_splits_residue_of_two_eq_zero
+    I.c₄ (I.a₁ * I.c₄) (-κ) hc₄ (ha₁.mul hc₄)
+      (by simpa only [map_ofNat] using h2) hs
+  have hrootI : I.nodePoly.eval x = 0 := by
+    simpa only [nodePoly, κ, eval_add, eval_sub, eval_neg, eval_mul, eval_pow, eval_C, eval_X,
+      sub_eq_add_neg] using hx
+  have hroot : E.nodePoly.eval (algebraMap R K x) = 0 := by
+    have hmap := map_nodePoly (algebraMap R K) I
+    have hmodel : I.map (algebraMap R K) = E := by
+      dsimp only [I]
+      exact baseChange_integralModel_eq R E
+    rw [hmodel] at hmap
+    rw [hmap, eval_map, eval₂_at_apply, hrootI, map_zero]
+  apply Splits.of_natDegree_eq_two (x := algebraMap R K x)
+  · rw [nodePoly, sub_eq_add_neg, ← C_neg]
+    apply natDegree_quadratic
+    rw [← integralModel_c₄_eq R E]
+    intro hzero
+    apply hc₄.ne_zero
+    apply IsFractionRing.injective R K
+    simpa only [map_zero] using hzero
+  · exact hroot
 
 open IsLocalRing IsDedekindDomain.HeightOneSpectrum in
 /-- **The twist by a unit discriminant keeps multiplicative reduction.** If `E` has multiplicative
