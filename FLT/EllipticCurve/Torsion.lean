@@ -712,3 +712,75 @@ noncomputable def WeierstrassCurve.galoisRep {K : Type u} [Field K]
   change (act g P = f P) ↔ _
   rw [Subtype.ext_iff]
   rfl
+
+
+open NumberField
+
+local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
+local notation3 K:max "ᵃˡᵍ" => AlgebraicClosure K
+
+namespace WeierstrassCurve
+
+variable {K : Type*} [Field K] [NumberField K]
+variable (E : WeierstrassCurve K) [E.IsElliptic] [DecidableEq K] [DecidableEq (Kᵃˡᵍ)]
+
+set_option backward.isDefEq.respectTransparency false in
+/-- To prove that the global torsion representation is unramified at a finite place, it suffices
+to prove that local inertia fixes all torsion points after embedding the global algebraic closure
+in the algebraic closure of the completion. Injectivity of that embedding then reflects the fixed
+point equality back to the global torsion module. -/
+theorem galoisRep_isUnramifiedAt_of_local_torsion_fixed
+    (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K))
+    [DecidableEq (AlgebraicClosure (v.adicCompletion K))]
+    (n : ℕ) [NeZero (n : K)] (hn : 0 < n)
+    (hfixed : ∀ σ ∈ localInertiaGroup v,
+      ∀ P : AddSubgroup.torsionBy (E⁄(AlgebraicClosure (v.adicCompletion K))).Point (n : ℤ),
+        E.nTorsionMap n ((σ : Γ (v.adicCompletion K)).restrictScalars K).toAlgHom P = P) :
+    (E.galoisRep n hn).IsUnramifiedAt v := by
+  let F : Kᵃˡᵍ →ₐ[K] AlgebraicClosure (v.adicCompletion K) :=
+    { toRingHom := AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v)
+      commutes' := fun x => by
+        change AlgebraicClosure.map (Field.AbsoluteGaloisGroup.adicEmbedding v)
+            (algebraMap K (Kᵃˡᵍ) x) =
+          algebraMap K (AlgebraicClosure (v.adicCompletion K)) x
+        calc
+          _ = algebraMap (v.adicCompletion K) (AlgebraicClosure (v.adicCompletion K))
+              (Field.AbsoluteGaloisGroup.adicEmbedding v x) :=
+            AlgebraicClosure.map_algebraMap
+              (Field.AbsoluteGaloisGroup.adicEmbedding v) x
+          _ = _ := (IsScalarTower.algebraMap_apply K (v.adicCompletion K)
+            (AlgebraicClosure (v.adicCompletion K)) x).symm }
+  refine ⟨?_⟩
+  intro σ hσ
+  change E.galoisRep n hn
+    (Field.absoluteGaloisGroup.map (Field.AbsoluteGaloisGroup.adicEmbedding v) σ) = 1
+  apply LinearMap.ext
+  intro P
+  change E.nTorsionMap n
+    ((Field.absoluteGaloisGroup.map (Field.AbsoluteGaloisGroup.adicEmbedding v) σ).toAlgHom) P = P
+  apply Subtype.ext
+  apply WeierstrassCurve.Affine.Point.map_injective (f := F)
+  have hcomp : F.comp
+      (Field.absoluteGaloisGroup.map (Field.AbsoluteGaloisGroup.adicEmbedding v) σ).toAlgHom =
+      ((σ : Γ (v.adicCompletion K)).restrictScalars K).toAlgHom.comp F := by
+    ext x
+    exact Field.absoluteGaloisGroup.lift_map
+      (Field.AbsoluteGaloisGroup.adicEmbedding v) σ x
+  have hmap : E.nTorsionMap n F
+        (E.nTorsionMap n
+          ((Field.absoluteGaloisGroup.map (Field.AbsoluteGaloisGroup.adicEmbedding v) σ).toAlgHom)
+            P) =
+      E.nTorsionMap n ((σ : Γ (v.adicCompletion K)).restrictScalars K).toAlgHom
+        (E.nTorsionMap n F P) := by
+    apply Subtype.ext
+    change WeierstrassCurve.Affine.Point.map F
+        (WeierstrassCurve.Affine.Point.map
+          (Field.absoluteGaloisGroup.map
+            (Field.AbsoluteGaloisGroup.adicEmbedding v) σ).toAlgHom P.1) =
+      WeierstrassCurve.Affine.Point.map
+        ((σ : Γ (v.adicCompletion K)).restrictScalars K).toAlgHom
+          (WeierstrassCurve.Affine.Point.map F P.1)
+    rw [WeierstrassCurve.Affine.Point.map_map, WeierstrassCurve.Affine.Point.map_map, hcomp]
+  exact congrArg Subtype.val (hmap.trans (hfixed σ hσ (E.nTorsionMap n F P)))
+
+end WeierstrassCurve
