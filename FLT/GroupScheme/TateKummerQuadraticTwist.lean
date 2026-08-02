@@ -25,6 +25,75 @@ open scoped TensorProduct
 
 universe u
 
+namespace HopfAlgebra
+
+open Coalgebra WithConv
+open scoped RingTheory.LinearMap
+
+/-- On a commutative, cocommutative Hopf algebra, the antipode commutes with
+comultiplication.  This is the usual uniqueness-of-convolution-inverses proof. -/
+lemma comul_comp_antipode_of_isCocomm
+    {R A : Type*} [CommSemiring R] [CommSemiring A]
+    [HopfAlgebra R A] [Coalgebra.IsCocomm R A] :
+    (Coalgebra.comul (R := R) (A := A)).comp (HopfAlgebra.antipode R) =
+      (TensorProduct.map (HopfAlgebra.antipode R) (HopfAlgebra.antipode R)).comp
+        (Coalgebra.comul (R := R) (A := A)) := by
+  let S : A →ₗ[R] A := HopfAlgebra.antipode R
+  let comulMap : A →ₗ[R] A ⊗[R] A := Coalgebra.comul
+  let comulHom : A →ₗc[R] A ⊗[R] A := Coalgebra.comulCoalgHom R A
+  let sTensor : A ⊗[R] A →ₗ[R] A ⊗[R] A := TensorProduct.map S S
+  let idTensor : A ⊗[R] A →ₗ[R] A ⊗[R] A :=
+    TensorProduct.map LinearMap.id LinearMap.id
+  have hcomul : comulHom.toLinearMap = comulMap := rfl
+  have htensor :
+      toConv sTensor * toConv idTensor =
+        (1 : WithConv ((A ⊗[R] A) →ₗ[R] (A ⊗[R] A))) := by
+    rw [TensorProduct.map_convMul_map]
+    simp only [LinearMap.antipode_mul_id]
+    ext x y
+    simp [Algebra.algebraMap_eq_smul_one]
+    change
+      ((Coalgebra.counit (R := R) y) •
+          ((Coalgebra.counit (R := R) x) • (1 : A))) ⊗ₜ[R] (1 : A) =
+        (Coalgebra.counit (R := R) y * Coalgebra.counit (R := R) x) •
+          ((1 : A) ⊗ₜ[R] (1 : A))
+    calc
+      ((Coalgebra.counit (R := R) y) •
+            ((Coalgebra.counit (R := R) x) • (1 : A))) ⊗ₜ[R] (1 : A) =
+          ((Coalgebra.counit (R := R) y * Coalgebra.counit (R := R) x) •
+            (1 : A)) ⊗ₜ[R] (1 : A) := by rw [smul_smul]
+      _ = (Coalgebra.counit (R := R) y * Coalgebra.counit (R := R) x) •
+          ((1 : A) ⊗ₜ[R] (1 : A)) :=
+        (TensorProduct.smul_tmul' _ _ _).symm
+  have hid : idTensor.comp comulHom.toLinearMap = comulMap := by
+    rw [hcomul]
+    simp [idTensor]
+  have hleft :
+      toConv (sTensor.comp comulHom.toLinearMap) *
+          toConv (idTensor.comp comulHom.toLinearMap) =
+        (1 : WithConv (A →ₗ[R] (A ⊗[R] A))) := by
+    apply WithConv.ofConv_injective
+    rw [← LinearMap.convMul_comp_coalgHom_distrib]
+    rw [htensor]
+    ext x
+    simp [comulHom]
+  rw [hid] at hleft
+  have hright :
+      toConv comulMap * toConv (comulMap.comp S) =
+        (1 : WithConv (A →ₗ[R] (A ⊗[R] A))) := by
+    simpa only [S, comulMap] using
+      (LinearMap.comul_right_inv (R := R) (C := A))
+  have hinv := left_inv_eq_right_inv (a := toConv comulMap) hleft hright
+  rw [hcomul] at hinv
+  apply LinearMap.ext
+  intro x
+  have hx := congrArg (fun f : WithConv (A →ₗ[R] A ⊗[R] A) ↦ f.ofConv x) hinv
+  simpa only [S, comulMap, sTensor, idTensor,
+    CoalgHom.toLinearMap_eq_coe,
+    LinearMap.comp_apply, TensorProduct.map_id] using hx.symm
+
+end HopfAlgebra
+
 namespace TateKummer.QuadraticTwist
 
 variable (R : Type u) [CommRing R]
