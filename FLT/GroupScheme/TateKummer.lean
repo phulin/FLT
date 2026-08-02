@@ -462,6 +462,160 @@ lemma tripleCoordinateEquiv_assoc_symm_map_comul_right
   | add x y hx hy =>
       simp only [map_add, Pi.add_apply, hx, hy]
 
+/-! ## Associativity on individual components -/
+
+/-- The left-associated component multiplication map. -/
+noncomputable def componentMulAssocLeft
+    (N : ℕ) [NeZero N] (u : Rˣ) (i j k : Fin N) :
+    Component R N (addIndex N (addIndex N i j) k).1 u →ₐ[R]
+      (Component R N i.1 u ⊗[R] Component R N j.1 u) ⊗[R]
+        Component R N k.1 u :=
+  (Algebra.TensorProduct.map (componentMulAlgHom N u i j)
+    (.id R (Component R N k.1 u))).comp
+      (componentMulAlgHom N u (addIndex N i j) k)
+
+/-- The right-associated component multiplication map, transported to a left-associated
+triple tensor product. -/
+noncomputable def componentMulAssocRight
+    (N : ℕ) [NeZero N] (u : Rˣ) (i j k : Fin N) :
+    Component R N (addIndex N i (addIndex N j k)).1 u →ₐ[R]
+      (Component R N i.1 u ⊗[R] Component R N j.1 u) ⊗[R]
+        Component R N k.1 u :=
+  (Algebra.TensorProduct.assoc R R R
+      (Component R N i.1 u) (Component R N j.1 u)
+      (Component R N k.1 u)).symm.toAlgHom.comp
+    ((Algebra.TensorProduct.map (.id R (Component R N i.1 u))
+      (componentMulAlgHom N u j k)).comp
+        (componentMulAlgHom N u i (addIndex N j k)))
+
+/-- Component multiplication is associative. Its scalar corrections agree by the carry
+cocycle. -/
+lemma componentMulAssoc (N : ℕ) [NeZero N] (u : Rˣ) (i j k : Fin N) :
+    componentMulAssocLeft N u i j k =
+      (componentMulAssocRight N u i j k).comp
+        (componentEquivOfEq N u (addIndex_assoc N i j k)).toAlgHom := by
+  apply AdjoinRoot.algHom_ext
+  simp only [componentMulAssocLeft, componentMulAssocRight, AlgHom.comp_apply]
+  rw [show
+      (componentEquivOfEq N u (addIndex_assoc N i j k)).toAlgHom
+          (AdjoinRoot.root
+            (componentPolynomial R N (addIndex N (addIndex N i j) k).1 u)) =
+        AdjoinRoot.root
+          (componentPolynomial R N (addIndex N i (addIndex N j k)).1 u) from
+    componentEquivOfEq_root (R := R) N u (addIndex_assoc N i j k),
+    componentMulAlgHom_root, componentMulAlgHom_root]
+  simp only [componentMulAlgHom_root, componentMulRoot, map_mul, map_one,
+    Algebra.TensorProduct.includeLeft_apply,
+    Algebra.TensorProduct.includeRight_apply,
+    Algebra.TensorProduct.map_tmul,
+    AlgHom.id_apply, AlgHom.commutes]
+  simp only [Algebra.TensorProduct.algebraMap_apply,
+    Algebra.TensorProduct.one_def, Algebra.TensorProduct.tmul_mul_tmul,
+    one_mul, mul_one]
+  have assoc_symm_apply
+      (x : Component R N i.1 u) (y : Component R N j.1 u)
+      (z : Component R N k.1 u) :
+      (Algebra.TensorProduct.assoc R R R
+        (Component R N i.1 u) (Component R N j.1 u)
+        (Component R N k.1 u)).symm.toAlgHom (x ⊗ₜ[R] (y ⊗ₜ[R] z)) =
+        (x ⊗ₜ[R] y) ⊗ₜ[R] z := rfl
+  rw [assoc_symm_apply, assoc_symm_apply]
+  simp only [Algebra.TensorProduct.tmul_mul_tmul, one_mul, mul_one]
+  apply congrArg (fun x :
+      Component R N i.1 u ⊗[R] Component R N j.1 u =>
+    x ⊗ₜ[R] AdjoinRoot.root (componentPolynomial R N k.1 u))
+  rw [mul_assoc, ← map_mul]
+  have root_mul_algebraMap_i (r : R) (x : Component R N i.1 u) :
+      x * algebraMap R (Component R N i.1 u) r = r • x := by
+    rw [mul_comm, Algebra.smul_def]
+  have root_mul_algebraMap_j (r : R) (x : Component R N j.1 u) :
+      x * algebraMap R (Component R N j.1 u) r = r • x := by
+    rw [mul_comm, Algebra.smul_def]
+  rw [root_mul_algebraMap_i, root_mul_algebraMap_i,
+    root_mul_algebraMap_j]
+  have hscalar :
+      ((((u⁻¹) ^ addCarry N i j : Rˣ) : R) *
+          (((u⁻¹) ^ addCarry N (addIndex N i j) k : Rˣ) : R)) =
+        (((u⁻¹) ^ addCarry N i (addIndex N j k) : Rˣ) : R) *
+          (((u⁻¹) ^ addCarry N j k : Rˣ) : R) := by
+    have hunit :
+        (u⁻¹) ^ addCarry N i j *
+            (u⁻¹) ^ addCarry N (addIndex N i j) k =
+          (u⁻¹) ^ addCarry N i (addIndex N j k) *
+            (u⁻¹) ^ addCarry N j k := by
+      rw [← pow_add, ← pow_add, addCarry_cocycle N i j k, add_comm]
+    exact congrArg Units.val hunit
+  calc
+    _ = (((((u⁻¹) ^ addCarry N i j : Rˣ) : R) *
+          (((u⁻¹) ^ addCarry N (addIndex N i j) k : Rˣ) : R)) •
+        (AdjoinRoot.root (componentPolynomial R N i.1 u) ⊗ₜ[R]
+          AdjoinRoot.root (componentPolynomial R N j.1 u))) := by
+            rw [TensorProduct.smul_tmul']
+    _ = (((((u⁻¹) ^ addCarry N i (addIndex N j k) : Rˣ) : R) *
+          (((u⁻¹) ^ addCarry N j k : Rˣ) : R)) •
+        (AdjoinRoot.root (componentPolynomial R N i.1 u) ⊗ₜ[R]
+          AdjoinRoot.root (componentPolynomial R N j.1 u))) := by rw [hscalar]
+    _ = _ := (TensorProduct.smul_tmul_smul
+      ((((u⁻¹) ^ addCarry N i (addIndex N j k) : Rˣ) : R))
+      ((((u⁻¹) ^ addCarry N j k : Rˣ) : R))
+      (AdjoinRoot.root (componentPolynomial R N i.1 u))
+      (AdjoinRoot.root (componentPolynomial R N j.1 u))).symm
+
+/-- Coassociativity of the Tate--Kummer comultiplication, in the form required by
+`Bialgebra.ofAlgHom`. -/
+lemma comulAlgHom_coassoc (N : ℕ) [NeZero N] (u : Rˣ) :
+    (Algebra.TensorProduct.assoc R R R
+      (CoordinateAlgebra (R := R) N u)
+      (CoordinateAlgebra (R := R) N u)
+      (CoordinateAlgebra (R := R) N u)).toAlgHom.comp
+        ((Algebra.TensorProduct.map (comulAlgHom N u)
+          (.id R (CoordinateAlgebra (R := R) N u))).comp
+            (comulAlgHom N u)) =
+      (Algebra.TensorProduct.map
+        (.id R (CoordinateAlgebra (R := R) N u))
+        (comulAlgHom N u)).comp (comulAlgHom N u) := by
+  apply AlgHom.ext
+  intro f
+  apply (Algebra.TensorProduct.assoc R R R
+    (CoordinateAlgebra (R := R) N u)
+    (CoordinateAlgebra (R := R) N u)
+    (CoordinateAlgebra (R := R) N u)).symm.injective
+  simp only [AlgHom.comp_apply]
+  rw [show
+    (Algebra.TensorProduct.assoc R R R
+      (CoordinateAlgebra (R := R) N u)
+      (CoordinateAlgebra (R := R) N u)
+      (CoordinateAlgebra (R := R) N u)).symm
+        ((Algebra.TensorProduct.assoc R R R
+          (CoordinateAlgebra (R := R) N u)
+          (CoordinateAlgebra (R := R) N u)
+          (CoordinateAlgebra (R := R) N u)).toAlgHom
+            (Algebra.TensorProduct.map (comulAlgHom N u)
+              (.id R (CoordinateAlgebra (R := R) N u))
+                (comulAlgHom N u f))) =
+      Algebra.TensorProduct.map (comulAlgHom N u)
+        (.id R (CoordinateAlgebra (R := R) N u))
+          (comulAlgHom N u f) from
+    (Algebra.TensorProduct.assoc R R R
+      (CoordinateAlgebra (R := R) N u)
+      (CoordinateAlgebra (R := R) N u)
+      (CoordinateAlgebra (R := R) N u)).symm_apply_apply _]
+  apply (tripleCoordinateEquiv N u).injective
+  ext k j i
+  rw [tripleCoordinateEquiv_map_comul_left,
+    tripleCoordinateEquiv_assoc_symm_map_comul_right,
+    tensorCoordinateEquiv_comulAlgHom_apply,
+    tensorCoordinateEquiv_comulAlgHom_apply]
+  change componentMulAssocLeft N u i j k
+      (f (addIndex N (addIndex N i j) k)) =
+    componentMulAssocRight N u i j k
+      (f (addIndex N i (addIndex N j k)))
+  rw [componentMulAssoc, AlgHom.comp_apply,
+    show (componentEquivOfEq N u (addIndex_assoc N i j k)).toAlgHom
+        (f (addIndex N (addIndex N i j) k)) =
+      f (addIndex N i (addIndex N j k)) from
+      componentEquivOfEq_coordinate N u f (addIndex_assoc N i j k)]
+
 /-- Evaluation at the identity point on component zero. -/
 noncomputable def identityComponentAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
     Component R N (0 : Fin N).1 u →ₐ[R] R :=
