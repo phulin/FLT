@@ -7,6 +7,7 @@ module
 
 public import FLT.GroupScheme.QuadraticDescent
 public import FLT.GroupScheme.TateKummer
+public import FLT.GroupScheme.TateKummerPoints
 public import Mathlib.Algebra.Module.Projective
 public import Mathlib.RingTheory.HopfAlgebra.TensorProduct
 public import Mathlib.RingTheory.TensorProduct.Free
@@ -893,6 +894,34 @@ noncomputable def genericFiberFieldExtendedCoverEquiv (θ : L)
     (fieldExtendedCoverEquiv R N u t n K L θ htrace hnorm h2 hdisc)
 
 end QuadraticFieldCover
+
+section QuadraticFieldPoints
+
+variable (K L : Type u) [Field K] [Field L]
+  [Algebra R K] [Algebra K L] [Algebra R L] [IsScalarTower R K L]
+  [Algebra.IsQuadraticExtension K L]
+variable (S : Type v) [CommRing S] [IsDomain S]
+  [Algebra R S] [Algebra K S] [Algebra L S]
+  [IsScalarTower R K S] [IsScalarTower K L S] [IsScalarTower R L S]
+
+/-- Geometric points of the descended generic fiber, after choosing its quadratic splitting
+field inside the value field, are the usual Kummer points. -/
+noncomputable def genericFiberAlgHomUnitEquiv (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (K ⊗[R] fixedSubalgebra R N u t n →ₐ[K] S) ≃
+      TateKummer.KummerUnitPoint R S N u :=
+  (Algebra.TensorProduct.liftEquivRight K L
+      (K ⊗[R] fixedSubalgebra R N u t n) S).trans
+    ((AlgEquiv.arrowCongr
+      (genericFiberFieldExtendedCoverEquiv R N u t n K L θ
+        htrace hnorm h2 hdisc)
+      (AlgEquiv.refl : S ≃ₐ[L] S)).trans
+        (TateKummer.genericFiberAlgHomUnitEquiv R L S N u))
+
+end QuadraticFieldPoints
 
 /-! ## Tensor-square base change -/
 
