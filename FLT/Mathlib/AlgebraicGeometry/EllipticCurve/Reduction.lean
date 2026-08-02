@@ -291,6 +291,20 @@ lemma separable_nodePoly_map [E.HasMultiplicativeReduction R] :
   exact ⟨residue_integralModel_c₄_ne_zero E R, residue_integralModel_c₆_ne_zero E R⟩
 
 open IsDiscreteValuationRing IsDedekindDomain.HeightOneSpectrum in
+/-- **Minimality criterion.** An integral Weierstrass equation whose discriminant is a unit is
+already minimal: every integral change of variables has discriminant valuation at most `1`, so
+none can improve on the valuation of the original equation. -/
+theorem isMinimal_of_valuation_Δ_eq_one (W : WeierstrassCurve K) [IsIntegral R W]
+    (hΔ : valuation K (maximalIdeal R) W.Δ = 1) : IsMinimal R W := by
+  refine ⟨⟨by simpa using ‹IsIntegral R W›, ?_⟩⟩
+  intro C hC _
+  simp only [one_smul, ← Subtype.coe_le_coe, valuation_Δ_aux_eq_of_isIntegral R (C • W),
+    valuation_Δ_aux_eq_of_isIntegral R W]
+  rw [hΔ]
+  simpa [← integralModel_Δ_eq R (C • W)] using
+    valuation_le_one (maximalIdeal R) (integralModel R (C • W)).Δ
+
+open IsDiscreteValuationRing IsDedekindDomain.HeightOneSpectrum in
 /-- **Minimality criterion.** An integral Weierstrass equation over `K` whose `c₄` is a unit of `R`
 (equivalently, `valuation c₄ = 1`) is already minimal: any change of variables `C` keeping the
 equation integral must have `valuation C.u ≥ 1` (else `valuation (C • W).c₄ = valuation C.u⁻⁴ > 1`,
