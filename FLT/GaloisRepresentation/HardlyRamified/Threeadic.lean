@@ -75,11 +75,41 @@ theorem three_adic_trace_sub_one_add_det_mem_maximalIdeal
   rw [← residue_eq_zero_iff]
   exact sub_eq_zero.mpr hk
 
-/-- The arithmetic induction step for the 3-adic classification.  If the character is
-congruent to `1 + det` modulo `𝔪ⁿ⁺¹`, the Schoof--Fontaine devissage of the associated finite
-flat group scheme improves the congruence to `𝔪ⁿ⁺²`.  Concretely, one moves every
-multiplicative Jordan--Hölder factor to the subobject and every constant factor to the quotient;
-the obstruction is the nonexistence of a hardly ramified extension in the opposite order. -/
+/-- Equality after passing to a quotient ring is the same as membership of the character
+difference in the quotient ideal.  This lemma separates the commutative-algebra bookkeeping
+from the finite-flat arithmetic input below. -/
+theorem trace_sub_one_add_det_mem_ideal_iff_quotient_character
+    {R : Type*} [CommRing R] (I : Ideal R) (t d : R) :
+    t - (1 + d) ∈ I ↔
+      algebraMap R (R ⧸ I) t = 1 + algebraMap R (R ⧸ I) d := by
+  simpa only [Ideal.Quotient.algebraMap_eq, map_add, map_one] using
+    (Ideal.Quotient.mk_eq_mk_iff_sub_mem (I := I) t (1 + d)).symm
+
+/-- The higher finite-level arithmetic input for the 3-adic classification.  Applied to the
+finite flat group scheme underlying the representation modulo `𝔪ⁿ⁺²`, Schoof's argument first
+shows that its only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing
+`Ext¹(μ₃, ℤ/3ℤ) = 0` then reorders a composition series into a multiplicative subobject and a
+constant quotient.  Their two characters give the displayed identity.
+
+The simple-object classification is the `(ℓ,p) = (2,3)` case in the proof of Schoof,
+*Abelian varieties over Q with bad reduction in one prime only*, Theorem 1.3; the reordering is
+Proposition 3.2 and the required extension vanishing is Corollary 4.2.  The mod-`𝔪` case is
+proved independently above, so this theorem starts at `𝔪²`. -/
+theorem schoof_three_adic_finite_level_character_succ_succ
+    {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
+    [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [IsModuleTopology ℤ_[3] R]
+    (V : Type*) [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
+    (hV : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
+    (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ) :
+    ∀ g : Γ ℚ,
+      algebraMap R (R ⧸ maximalIdeal R ^ (n + 2)) (LinearMap.trace R V (ρ g)) =
+        1 + algebraMap R (R ⧸ maximalIdeal R ^ (n + 2)) (LinearMap.det (ρ g)) := by
+  sorry
+
+/-- Compatibility form of the finite-level theorem.  The induction hypothesis records the
+interface used by the original proof, but Schoof's classification applies directly to the
+next finite quotient. -/
 theorem three_adic_trace_deformation_step
     {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
     [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
@@ -87,12 +117,15 @@ theorem three_adic_trace_deformation_step
     (V : Type*) [AddCommGroup V] [Module R V] [Module.Finite R V] [Module.Free R V]
     (hV : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
     (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ)
-    (hprev : ∀ g : Γ ℚ,
+    (_hprev : ∀ g : Γ ℚ,
       LinearMap.trace R V (ρ g) - (1 + LinearMap.det (ρ g)) ∈
         maximalIdeal R ^ (n + 1)) :
     ∀ g : Γ ℚ, LinearMap.trace R V (ρ g) - (1 + LinearMap.det (ρ g)) ∈
       maximalIdeal R ^ (n + 2) := by
-  sorry
+  intro g
+  apply (trace_sub_one_add_det_mem_ideal_iff_quotient_character
+    (maximalIdeal R ^ (n + 2)) _ _).mpr
+  exact schoof_three_adic_finite_level_character_succ_succ V hV hρ n g
 
 /-- At every positive maximal-ideal power, the finite-level devissage makes the character
 congruent to `1 + det`. -/
@@ -105,12 +138,13 @@ theorem three_adic_trace_sub_one_add_det_mem_maximalIdeal_pow_succ
     (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) (n : ℕ) (g : Γ ℚ) :
     LinearMap.trace R V (ρ g) - (1 + LinearMap.det (ρ g)) ∈
       maximalIdeal R ^ (n + 1) := by
-  induction n generalizing g with
-  | zero =>
-      simpa using three_adic_trace_sub_one_add_det_mem_maximalIdeal V hV hρ g
-  | succ n ih =>
+  cases n with
+  | zero => simpa using three_adic_trace_sub_one_add_det_mem_maximalIdeal V hV hρ g
+  | succ n =>
+      apply (trace_sub_one_add_det_mem_ideal_iff_quotient_character
+        (maximalIdeal R ^ (n + 2)) _ _).mpr
       simpa only [Nat.succ_eq_add_one, Nat.add_assoc, Nat.reduceAdd] using
-        three_adic_trace_deformation_step V hV hρ n ih g
+        schoof_three_adic_finite_level_character_succ_succ V hV hρ n g
 
 /-- The finite-level character congruence for every maximal-ideal power.  The zeroth power is
 the unit ideal; positive powers are the arithmetic Schoof--Fontaine input. -/
