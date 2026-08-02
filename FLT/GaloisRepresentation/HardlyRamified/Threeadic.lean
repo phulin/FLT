@@ -88,9 +88,20 @@ theorem trace_sub_one_add_det_mem_ideal_iff_quotient_character
   simpa only [Ideal.Quotient.algebraMap_eq, map_add, map_one] using
     (Ideal.Quotient.mk_eq_mk_iff_sub_mem (I := I) t (1 + d)).symm
 
+/-- In a finite free `ℤ_[3]`-algebra with its module topology, every maximal-ideal power is
+open.  The proof passes through compactness, Hausdorffness, and Noetherianity. -/
+theorem isOpen_maximalIdeal_pow_of_finiteFree_moduleTopology
+    {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
+    [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [IsModuleTopology ℤ_[3] R] (n : ℕ) :
+    IsOpen (X := R) (↑(maximalIdeal R ^ n) : Set R) := by
+  letI : IsNoetherianRing R := IsNoetherianRing.of_finite ℤ_[3] R
+  letI : CompactSpace R := Module.Finite.compactSpace ℤ_[3] R
+  letI : T2Space R := IsModuleTopology.t2Space ℤ_[3]
+  exact IsLocalRing.isOpen_maximalIdeal_pow R n
+
 /-- The coefficient map to a maximal-ideal-power quotient is continuous when the quotient is
-given its discrete topology.  Finite freeness over `ℤ_[3]` makes `R` compact Hausdorff and
-Noetherian, so every such power is open. -/
+given its discrete topology. -/
 theorem continuous_algebraMap_quotient_maximalIdeal_pow
     {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
     [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
@@ -98,23 +109,41 @@ theorem continuous_algebraMap_quotient_maximalIdeal_pow
     [TopologicalSpace (R ⧸ maximalIdeal R ^ n)]
     [DiscreteTopology (R ⧸ maximalIdeal R ^ n)] :
     Continuous (algebraMap R (R ⧸ maximalIdeal R ^ n)) := by
-  letI : IsNoetherianRing R := IsNoetherianRing.of_finite ℤ_[3] R
-  letI : CompactSpace R := Module.Finite.compactSpace ℤ_[3] R
-  letI : T2Space R := IsModuleTopology.t2Space ℤ_[3]
   apply RingHom.continuous_iff_isOpen_ker.mpr
-  rw [Ideal.Quotient.algebraMap_eq, Ideal.mk_ker]
-  exact IsLocalRing.isOpen_maximalIdeal_pow R n
+  simpa only [Ideal.Quotient.algebraMap_eq, Ideal.mk_ker] using
+    isOpen_maximalIdeal_pow_of_finiteFree_moduleTopology (R := R) n
 
-/-- The higher finite-level arithmetic input for the 3-adic classification.  Applied to the
-finite flat group scheme underlying the representation modulo `𝔪ⁿ⁺²`, Schoof's argument first
-shows that its only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing
+/-- Maximal-ideal-power quotients of a finite free `ℤ_[3]`-algebra are finite. -/
+theorem finite_quotient_maximalIdeal_pow_of_finiteFree_moduleTopology
+    {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
+    [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [IsModuleTopology ℤ_[3] R] (n : ℕ) :
+    Finite (R ⧸ maximalIdeal R ^ n) := by
+  letI : CompactSpace R := Module.Finite.compactSpace ℤ_[3] R
+  exact AddSubgroup.quotient_finite_of_isOpen _
+    (isOpen_maximalIdeal_pow_of_finiteFree_moduleTopology (R := R) n)
+
+/-- The arithmetic input for a hardly ramified representation over a finite local
+`ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
+the only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing
 `Ext¹(μ₃, ℤ/3ℤ) = 0` then reorders a composition series into a multiplicative subobject and a
 constant quotient.  Their two characters give the displayed identity.
 
 The simple-object classification is the `(ℓ,p) = (2,3)` case in the proof of Schoof,
 *Abelian varieties over Q with bad reduction in one prime only*, Theorem 1.3; the reordering is
-Proposition 3.2 and the required extension vanishing is Corollary 4.2.  The mod-`𝔪` case is
-proved independently above, so this theorem starts at `𝔪²`. -/
+Proposition 3.2 and the required extension vanishing is Corollary 4.2. -/
+theorem schoof_three_adic_finite_character
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
+    ∀ g : Γ ℚ, LinearMap.trace A W (τ g) = 1 + LinearMap.det (τ g) := by
+  sorry
+
+/-- Apply the finite-ring classification to the representation modulo `𝔪ⁿ⁺²`.  All structural
+hypotheses on the quotient and preservation of hard ramification are discharged here; the only
+arithmetic input is `schoof_three_adic_finite_character`. -/
 theorem schoof_three_adic_finite_level_character_succ_succ
     {R : Type*} [CommRing R] [Algebra ℤ_[3] R] [Module.Finite ℤ_[3] R]
     [Module.Free ℤ_[3] R] [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
@@ -130,7 +159,29 @@ theorem schoof_three_adic_finite_level_character_succ_succ
       (continuous_algebraMap_quotient_maximalIdeal_pow (R := R) (n + 2))
     ∀ g : Γ ℚ, LinearMap.trace A (A ⊗[R] V) ((ρ.baseChange A) g) =
       1 + LinearMap.det ((ρ.baseChange A) g) := by
-  sorry
+  let A := R ⧸ maximalIdeal R ^ (n + 2)
+  letI : TopologicalSpace A := ⊥
+  letI : DiscreteTopology A := ⟨rfl⟩
+  letI : IsTopologicalRing A := ⟨⟩
+  letI : ContinuousSMul R A := continuousSMul_of_algebraMap R A
+    (continuous_algebraMap_quotient_maximalIdeal_pow (R := R) (n + 2))
+  letI : Finite A :=
+    finite_quotient_maximalIdeal_pow_of_finiteFree_moduleTopology (R := R) (n + 2)
+  have hpowpos : 0 < n + 2 := by omega
+  letI : Nontrivial A := Ideal.Quotient.nontrivial_iff.mpr
+    ((Ideal.pow_le_self hpowpos.ne').trans_lt
+      (lt_top_iff_ne_top.mpr (maximalIdeal.isMaximal R).ne_top)).ne
+  letI : IsLocalRing A := .of_surjective' _ Ideal.Quotient.mk_surjective
+  letI : IsLocalHom (algebraMap R A) :=
+    .of_surjective _ Ideal.Quotient.mk_surjective
+  letI : IsProartinian R :=
+    Deformation.isProartinian_of_finiteFree_moduleTopology ℤ_[3] R
+  letI : IsArtinianRing A := inferInstance
+  letI : IsProartinian A := inferInstance
+  let hVA : Module.rank A (A ⊗[R] V) = 2 := rank_two_baseChange hV
+  have hρA : IsHardlyRamified (show Odd 3 by decide) hVA (ρ.baseChange A) :=
+    IsHardlyRamified.baseChange (show Odd 3 by decide) hV hVA ρ hρ
+  exact schoof_three_adic_finite_character (A ⊗[R] V) hVA hρA
 
 /-- The scalar form of the finite-quotient character identity, obtained from the actual
 quotient representation by functoriality of trace and determinant. -/
