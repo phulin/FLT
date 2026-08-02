@@ -491,4 +491,91 @@ lemma evalRightIdentity_componentMul (N : ℕ) [NeZero N] (u : Rˣ)
   rw [hg]
   exact componentEquivOfEq_coordinate N u f h
 
+/-! ## The two counit axioms -/
+
+/-- Apply the counit to the left tensor factor and identify `R ⊗ H` with `H`. -/
+noncomputable def applyCounitLeft (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[R]
+      CoordinateAlgebra (R := R) N u :=
+  (Algebra.TensorProduct.lid R (CoordinateAlgebra (R := R) N u)).toAlgHom.comp
+    (Algebra.TensorProduct.map (counitAlgHom N u)
+      (.id R (CoordinateAlgebra (R := R) N u)))
+
+/-- Apply the counit to the right tensor factor and identify `H ⊗ R` with `H`. -/
+noncomputable def applyCounitRight (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[R]
+      CoordinateAlgebra (R := R) N u :=
+  (Algebra.TensorProduct.rid R R (CoordinateAlgebra (R := R) N u)).toAlgHom.comp
+    (Algebra.TensorProduct.map
+      (.id R (CoordinateAlgebra (R := R) N u)) (counitAlgHom N u))
+
+lemma applyCounitLeft_apply (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u)
+    (j : Fin N) :
+    applyCounitLeft N u z j =
+      evalLeftIdentity N u j (tensorCoordinateEquiv N u z j 0) := by
+  induction z using TensorProduct.induction_on with
+  | zero =>
+      exact (map_zero (evalLeftIdentity N u j)).symm
+  | tmul x y =>
+      change counitAlgHom N u x • y j =
+        evalLeftIdentity N u j (x 0 ⊗ₜ[R] y j)
+      rw [evalLeftIdentity_tmul, counitAlgHom_apply]
+  | add x y hx hy =>
+      simp only [map_add, Pi.add_apply, hx, hy]
+
+lemma applyCounitRight_apply (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u)
+    (i : Fin N) :
+    applyCounitRight N u z i =
+      evalRightIdentity N u i (tensorCoordinateEquiv N u z 0 i) := by
+  induction z using TensorProduct.induction_on with
+  | zero =>
+      exact (map_zero (evalRightIdentity N u i)).symm
+  | tmul x y =>
+      change counitAlgHom N u y • x i =
+        evalRightIdentity N u i (x i ⊗ₜ[R] y 0)
+      rw [evalRightIdentity_tmul, counitAlgHom_apply]
+  | add x y hx hy =>
+      simp only [map_add, Pi.add_apply, hx, hy]
+
+/-- Left counitality in the form required by `Bialgebra.ofAlgHom`. -/
+lemma rTensor_counit_comp_comul (N : ℕ) [NeZero N] (u : Rˣ) :
+    (Algebra.TensorProduct.map (counitAlgHom N u)
+        (.id R (CoordinateAlgebra (R := R) N u))).comp (comulAlgHom N u) =
+      (Algebra.TensorProduct.lid R
+        (CoordinateAlgebra (R := R) N u)).symm.toAlgHom := by
+  apply AlgHom.ext
+  intro f
+  apply (Algebra.TensorProduct.lid R
+    (CoordinateAlgebra (R := R) N u)).injective
+  rw [AlgHom.comp_apply]
+  refine Eq.trans ?_
+    ((Algebra.TensorProduct.lid R
+      (CoordinateAlgebra (R := R) N u)).apply_symm_apply f).symm
+  ext j
+  change applyCounitLeft N u (comulAlgHom N u f) j = f j
+  rw [applyCounitLeft_apply, tensorCoordinateEquiv_comulAlgHom_apply]
+  exact evalLeftIdentity_componentMul N u f j
+
+/-- Right counitality in the form required by `Bialgebra.ofAlgHom`. -/
+lemma lTensor_counit_comp_comul (N : ℕ) [NeZero N] (u : Rˣ) :
+    (Algebra.TensorProduct.map
+        (.id R (CoordinateAlgebra (R := R) N u)) (counitAlgHom N u)).comp
+        (comulAlgHom N u) =
+      (Algebra.TensorProduct.rid R R
+        (CoordinateAlgebra (R := R) N u)).symm.toAlgHom := by
+  apply AlgHom.ext
+  intro f
+  apply (Algebra.TensorProduct.rid R R
+    (CoordinateAlgebra (R := R) N u)).injective
+  rw [AlgHom.comp_apply]
+  refine Eq.trans ?_
+    ((Algebra.TensorProduct.rid R R
+      (CoordinateAlgebra (R := R) N u)).apply_symm_apply f).symm
+  ext i
+  change applyCounitRight N u (comulAlgHom N u f) i = f i
+  rw [applyCounitRight_apply, tensorCoordinateEquiv_comulAlgHom_apply]
+  exact evalRightIdentity_componentMul N u f i
+
 end TateKummer
