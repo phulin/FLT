@@ -878,6 +878,20 @@ noncomputable def fieldExtendedCoverEquiv (θ : L)
     IsScalarTower.of_algebraMap_eq fun r ↦ (f.commutes r).symm
   exact scalarExtendedCoverEquiv R N u t n L h2 hdisc
 
+/-- After first forming the generic fiber over `K` and then passing to its quadratic
+splitting field `L`, the descended coordinate algebra becomes the split Tate--Kummer
+coordinate algebra. -/
+noncomputable def genericFiberFieldExtendedCoverEquiv (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    L ⊗[K] (K ⊗[R] fixedSubalgebra R N u t n) ≃ₐ[L]
+      L ⊗[R] TateKummer.CoordinateAlgebra (R := R) N u :=
+  (Algebra.TensorProduct.cancelBaseChange R K L L
+      (fixedSubalgebra R N u t n)).trans
+    (fieldExtendedCoverEquiv R N u t n K L θ htrace hnorm h2 hdisc)
+
 end QuadraticFieldCover
 
 /-! ## Tensor-square base change -/
