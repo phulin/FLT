@@ -108,6 +108,61 @@ lemma isSquare_of_isSquare_residue [IsLocalRing R]
   simp only [f, eval_sub, eval_pow, eval_X, eval_C] at ha
   simpa only [pow_two] using (sub_eq_zero.mp ha).symm
 
+open Polynomial IsLocalRing in
+/-- If an integral generator of a quadratic extension has nonzero reduced trace in residue
+characteristic `2`, then its reduced characteristic polynomial is irreducible.  In
+Artin--Schreier form this says that `n̄ / t̄²` is not of the form `z² + z`.
+
+Indeed, a solution of the reduced Artin--Schreier equation gives a simple root of
+`X² - tX + n` modulo the maximal ideal. Hensel's lemma lifts it to a root in the fraction field;
+the rank-two Cayley--Hamilton identity then forces the given generator to lie in the base field. -/
+lemma not_exists_artinSchreier_residue_of_quadratic_generator [IsLocalRing R]
+    [HenselianRing R (maximalIdeal R)] {L : Type*} [Field L] [Algebra K L]
+    [Algebra.IsQuadraticExtension K L] {θ : L} (hθ : θ ∉ Set.range (algebraMap K L))
+    (t n : R) (htr : Algebra.trace K L θ = algebraMap R K t)
+    (hnr : Algebra.norm K θ = algebraMap R K n)
+    (h2 : (2 : ResidueField R) = 0) (ht : residue R t ≠ 0) :
+    ¬ ∃ z : ResidueField R, residue R t ^ 2 * (z ^ 2 + z) = residue R n := by
+  rintro ⟨z, hz⟩
+  obtain ⟨a₀, ha₀⟩ := residue_surjective (residue R t * z)
+  let f : R[X] := X ^ 2 - C t * X + C n
+  have hf : f.Monic := by
+    dsimp [f]
+    rw [show X ^ 2 - C t * X + C n = X ^ 2 + (-C t * X + C n) by ring]
+    exact monic_X_pow_add (by compute_degree!)
+  have hroot : f.eval a₀ ∈ maximalIdeal R := by
+    rw [← residue_eq_zero_iff]
+    simp only [f, eval_add, eval_sub, eval_mul, eval_pow, eval_X, eval_C, map_add,
+      map_sub, map_mul, map_pow, ha₀]
+    linear_combination hz + (residue R n - residue R t ^ 2 * z) * h2
+  have hderiv : IsUnit (Ideal.Quotient.mk (maximalIdeal R) (f.derivative.eval a₀)) := by
+    have hderivEval : f.derivative.eval a₀ = 2 * a₀ - t := by
+      simp [f]
+      ring
+    have hderivRes : residue R (f.derivative.eval a₀) ≠ 0 := by
+      rw [hderivEval, map_sub, map_mul, map_ofNat, h2, zero_mul, zero_sub]
+      exact neg_ne_zero.mpr ht
+    exact ((residue_ne_zero_iff_isUnit _).mp hderivRes).map
+      (Ideal.Quotient.mk (maximalIdeal R))
+  obtain ⟨a, ha, -⟩ := HenselianRing.is_henselian f hf a₀ hroot hderiv
+  rw [IsRoot.def] at ha
+  simp only [f, eval_add, eval_sub, eval_mul, eval_pow, eval_X, eval_C] at ha
+  have haK := congrArg (algebraMap R K) ha
+  simp only [map_add, map_sub, map_mul, map_pow, map_zero] at haK
+  have hθpoly := sq_sub_trace_mul_self_add_norm
+    (Algebra.IsQuadraticExtension.finrank_eq_two K L) θ
+  rw [htr, hnr] at hθpoly
+  have haL := congrArg (algebraMap K L) haK
+  simp only [map_add, map_sub, map_mul, map_pow, map_zero] at haL
+  have hfac :
+      (θ - algebraMap K L (algebraMap R K a)) *
+        (θ - algebraMap K L (algebraMap R K t - algebraMap R K a)) = 0 := by
+    simp only [map_sub]
+    linear_combination hθpoly - haL
+  rcases mul_eq_zero.mp hfac with haθ | haθ
+  · exact hθ ⟨algebraMap R K a, (sub_eq_zero.mp haθ).symm⟩
+  · exact hθ ⟨algebraMap R K t - algebraMap R K a, (sub_eq_zero.mp haθ).symm⟩
+
 open Polynomial in
 /-- **Twisting flips the square class (residue characteristic ≠ 2).** Combining the split criterion
 `nodePoly_map_splits_iff_isSquare` with the coefficient scaling of the quadratic twist

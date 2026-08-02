@@ -419,8 +419,8 @@ open IsLocalRing in
 /-- **Wild quadratic-twist normalization.** In residue characteristic `2`, if a quadratic twist
 of a multiplicative elliptic curve again has multiplicative reduction, then the quadratic
 extension is unramified.  Equivalently, it has an integral generator whose reduced trace is
-nonzero and whose reduced characteristic polynomial is irreducible, expressed here by the
-failure of the corresponding Artin--Schreier equation.
+nonzero. Its reduced characteristic polynomial is then automatically irreducible by
+`not_exists_artinSchreier_residue_of_quadratic_generator`.
 
 This is the exact remaining local arithmetic input in the characteristic-`2` branch.  A ramified
 quadratic twist has additive (not multiplicative) reduction; after excluding it, an integral
@@ -434,9 +434,7 @@ theorem exists_integral_generator_of_quadraticTwist_hasMultiplicativeReduction
     ∃ (θ : L), θ ∉ Set.range (algebraMap k L) ∧ ∃ (t' n' : 𝒪[k]),
       Algebra.trace k L θ = algebraMap 𝒪[k] k t' ∧
       Algebra.norm k θ = algebraMap 𝒪[k] k n' ∧
-      residue 𝒪[k] t' ≠ 0 ∧
-      ¬ ∃ z : ResidueField 𝒪[k],
-        residue 𝒪[k] t' ^ 2 * (z ^ 2 + z) = residue 𝒪[k] n' := by
+      residue 𝒪[k] t' ≠ 0 := by
   sorry
 
 theorem not_hasSplitMultiplicativeReduction_quadraticTwist (W : WeierstrassCurve k)
@@ -447,9 +445,13 @@ theorem not_hasSplitMultiplicativeReduction_quadraticTwist (W : WeierstrassCurve
   rcases eq_or_ne (2 : IsLocalRing.ResidueField 𝒪[k]) 0 with h2 | h2
   · intro hW'split
     letI : W'.HasSplitMultiplicativeReduction 𝒪[k] := hW'split
-    obtain ⟨θ, hθ, t', n', htr, hnr, ht, hAS⟩ :=
+    obtain ⟨θ, hθ, t', n', htr, hnr, ht⟩ :=
       exists_integral_generator_of_quadraticTwist_hasMultiplicativeReduction
         W L W' C hC h2
+    letI : UniformSpace k := IsTopologicalAddGroup.rightUniformSpace k
+    letI : IsUniformAddGroup k := isUniformAddGroup_of_addCommGroup
+    have hAS := not_exists_artinSchreier_residue_of_quadratic_generator
+      𝒪[k] hθ t' n' htr hnr h2 ht
     obtain ⟨C₁, hC₁⟩ := W.exists_smul_quadraticTwist_eq_quadraticTwistBy L hθ
     rw [quadraticTwistBy, htr, hnr,
       ← baseChange_integralModel_quadraticTwistOf W 𝒪[k] t' n'] at hC₁
