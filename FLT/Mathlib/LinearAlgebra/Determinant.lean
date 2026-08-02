@@ -8,7 +8,9 @@ module
 public import FLT.Mathlib.Algebra.Algebra.Bilinear
 public import Mathlib.Algebra.Central.Defs
 public import Mathlib.CategoryTheory.Category.Basic
+public import Mathlib.LinearAlgebra.BilinearForm.Properties
 public import Mathlib.LinearAlgebra.Determinant
+public import Mathlib.LinearAlgebra.Matrix.BilinearForm
 import FLT.Mathlib.RingTheory.SimpleRing.TensorProduct
 import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
 import Mathlib.LinearAlgebra.Charpoly.BaseChange
@@ -129,3 +131,67 @@ lemma LinearEquiv.det_toLinearEquiv
   simp [Matrix.toLinearEquiv_toLinearMap]
 
 end LinearEquiv
+
+/-!
+### Alternating similitudes in dimension two
+
+The determinant of an endomorphism of a two-dimensional vector space is the factor by
+which it scales a nondegenerate alternating form.  This is the linear-algebra step used
+to pass from Galois equivariance of the Weil pairing to the cyclotomic determinant of
+the torsion representation.
+-/
+
+section AlternatingSimilitude
+
+universe u v
+
+variable {F : Type u} [Field F]
+variable {V : Type v} [AddCommGroup V] [Module F V]
+
+/-- In an ordered basis of a two-dimensional vector space, an alternating form applied
+to the two images of the basis vectors is scaled by the determinant. -/
+theorem LinearMap.BilinForm.map_basis_fin_two_eq_det_mul
+    (B : LinearMap.BilinForm F V) (hB : B.IsAlt) (b : Module.Basis (Fin 2) F V)
+    (f : V →ₗ[F] V) :
+    B (f (b 0)) (f (b 1)) = LinearMap.det f * B (b 0) (b 1) := by
+  let M := LinearMap.toMatrix b b f
+  have hf (i : Fin 2) : f (b i) = M 0 i • b 0 + M 1 i • b 1 := by
+    rw [← b.sum_repr (f (b i)), Fin.sum_univ_two]
+    simp only [M, LinearMap.toMatrix_apply]
+  rw [hf 0, hf 1]
+  simp only [map_add, map_smul, LinearMap.add_apply, LinearMap.smul_apply]
+  rw [hB.self_eq_zero, hB.self_eq_zero, ← hB.neg_eq (b 0) (b 1)]
+  rw [← LinearMap.det_toMatrix b, Matrix.det_fin_two]
+  dsimp only [M]
+  ring
+
+/-- An endomorphism which scales a nonzero alternating coordinate by `c` has
+determinant `c`. -/
+theorem LinearMap.det_eq_of_alternating_similitude_basis
+    (B : LinearMap.BilinForm F V) (hB : B.IsAlt) (b : Module.Basis (Fin 2) F V)
+    (f : V →ₗ[F] V) (c : F) (hpair : B (b 0) (b 1) ≠ 0)
+    (hsim : ∀ x y, B (f x) (f y) = c * B x y) :
+    LinearMap.det f = c := by
+  apply mul_right_cancel₀ hpair
+  rw [← B.map_basis_fin_two_eq_det_mul hB b f]
+  exact hsim (b 0) (b 1)
+
+/-- A similitude of a nondegenerate alternating form on a rank-two vector space has
+determinant equal to its similitude factor. -/
+theorem LinearMap.det_eq_of_nondegenerate_alternating_similitude
+    [Module.Finite F V] (hV : Module.rank F V = 2)
+    (B : LinearMap.BilinForm F V) (hB : B.IsAlt) (f : V →ₗ[F] V) (c : F)
+    (hBnd : B.Nondegenerate) (hsim : ∀ x y, B (f x) (f y) = c * B x y) :
+    LinearMap.det f = c := by
+  have hfin : Module.finrank F V = 2 := Module.finrank_eq_of_rank_eq hV
+  let b : Module.Basis (Fin 2) F V := Module.finBasisOfFinrankEq F V hfin
+  apply LinearMap.det_eq_of_alternating_similitude_basis B hB b f c
+  · intro hpair
+    have hzero : ∀ y, B (b 0) y = 0 := by
+      intro y
+      rw [← b.sum_repr y, Fin.sum_univ_two]
+      simp [hB.self_eq_zero, hpair]
+    exact b.ne_zero 0 (hBnd.1 (b 0) hzero)
+  · exact hsim
+
+end AlternatingSimilitude
