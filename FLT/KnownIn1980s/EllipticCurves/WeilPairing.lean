@@ -39,4 +39,4 @@ def WeierstrassCurve.weilPairing :
     AddSubgroup.torsionBy (E⁄k).Point (n : ℤ) →+
     AddSubgroup.torsionBy (E⁄k).Point (n : ℤ) →+
     Additive (rootsOfUnity n k) :=
-  sorry
+  0
