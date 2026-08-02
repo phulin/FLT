@@ -9,6 +9,7 @@ public import FLT.GaloisRepresentation.HardlyRamified.Defs
 public import FLT.GaloisRepresentation.QuadraticCharacter
 public import FLT.KnownIn1980s.EllipticCurves.LocalInertia
 public import Mathlib.NumberTheory.Padics.Complex
+public import Mathlib.NumberTheory.Padics.ValuativeRel
 
 /-!
 # Unramified quadratic characters at two
@@ -30,13 +31,25 @@ noncomputable section
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 local notation3 "K" => ℚ_[2]
 local notation3 "Ω" => AlgebraicClosure K
-local notation3 "R" => ℤ_[2]
+local notation3 "R" => Valuation.integer (valuation K)
 
 /-- Elements integral in `ℚ₂` remain in the valuation ring of its algebraic closure. -/
 lemma norm_algebraMap_integer_to_padicAlgCl_le_one (x : R) :
     ‖algebraMap K Ω (x : K)‖ ≤ 1 := by
-  rw [PadicAlgCl.norm_extends]
-  exact_mod_cast x.2
+  classical
+  rw [PadicAlgCl.norm_extends, Padic.norm_le_one_iff_val_nonneg]
+  have hx := x.2
+  rw [Valuation.mem_integer_iff] at hx
+  have hxmul : Padic.mulValuation (x : K) ≤ 1 :=
+    (ValuativeRel.isEquiv (valuation K) Padic.mulValuation).le_one_iff_le_one.mp hx
+  by_cases hx0 : (x : K) = 0
+  · simp [hx0]
+  · change (if (x : K) = 0 then 0 else WithZero.exp (-(x : K).valuation)) ≤ 1 at hxmul
+    rw [if_neg hx0] at hxmul
+    have hneg : -(x : K).valuation ≤ 0 := by
+      rw [← WithZero.exp_le_exp]
+      simpa only [WithZero.exp_zero] using hxmul
+    omega
 
 /-- The canonical inclusion of the integers of `ℚ₂` into `Z2bar`. -/
 def integerToZ2bar : R →+* Z2bar where
