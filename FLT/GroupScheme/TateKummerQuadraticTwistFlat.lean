@@ -591,6 +591,100 @@ noncomputable def quadraticTwistTateKummerTorsionAddEquiv
   exact (quadraticTateKummerTorsionAddEquiv R K L S
     (C • E.quadraticTwist L) N u₀ t n θ htrace hnorm h2 hdisc a hq).trans eAdd
 
+/-! ## Galois equivariance on curve torsion -/
+
+omit [IsDomain R] in
+/-- Tate uniformization transports the quadratic-character action on the descended
+generic fiber to the same signed action on the split quadratic twist. -/
+lemma quadraticTateKummerTorsionAddEquiv_comp
+    (W : WeierstrassCurve K) [W.IsElliptic]
+    [W.HasSplitMultiplicativeReduction 𝒪[K]]
+    (N : ℕ) [NeZero N] (u₀ : Rˣ) (t n : R)
+    (θ : L) (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u₀ = W.qUnitSepClosure S)
+    (haσ : ∀ σ : S ≃ₐ[K] S,
+      Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (σ : S ≃ₐ[K] S)
+    (φ : K ⊗[R] TateKummer.QuadraticTwist.fixedSubalgebra
+      R N u₀ t n →ₐ[K] S) :
+    letI := TateKummer.QuadraticTwist.coordinateBialgebra
+      R N u₀ t n h2 hdisc
+    quadraticTateKummerTorsionAddEquiv R K L S W N u₀ t n θ
+        htrace hnorm h2 hdisc a hq
+        (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) =
+      (quadraticCharacter K L S σ : ℤ) •
+        W.nTorsionMap N σ.toAlgHom
+          (quadraticTateKummerTorsionAddEquiv R K L S W N u₀ t n θ
+            htrace hnorm h2 hdisc a hq
+            (Additive.ofMul (WithConv.toConv φ))) := by
+  letI := TateKummer.QuadraticTwist.coordinateBialgebra
+    R N u₀ t n h2 hdisc
+  let e := W.tateTorsionLinearEquiv S N
+  let g := TateKummer.QuadraticTwist.genericFiberTorsionAddEquiv
+    R N u₀ t n K L S θ htrace hnorm h2 hdisc
+      (W.qUnitSepClosure S) a hq (W.qUnitSepClosure_zpow_injective S)
+  change e (g (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ)))) =
+    (quadraticCharacter K L S σ : ℤ) •
+      W.nTorsionMap N σ.toAlgHom
+        (e (g (Additive.ofMul (WithConv.toConv φ))))
+  apply e.symm.injective
+  rw [e.symm_apply_apply, map_zsmul,
+    W.tateTorsionLinearEquiv_symm_nTorsionMap,
+    e.symm_apply_apply]
+  exact TateKummer.QuadraticTwist.genericFiberTorsionAddEquiv_comp
+    R N u₀ t n K L S θ hθ htrace hnorm h2 hdisc
+      (W.qUnitSepClosure S) a hq (W.qUnitSepClosure_zpow_injective S)
+      σ (W.unitsMap_qUnitSepClosure S σ) (haσ σ) φ
+
+omit [IsDomain R] in
+/-- The quadratic character introduced by descent is exactly canceled by transporting
+from the split quadratic twist back to the original curve.  Thus the descended model
+has the ordinary Galois action on the original curve's torsion. -/
+lemma quadraticTwistTateKummerTorsionAddEquiv_comp
+    (N : ℕ) [NeZero N] (u₀ : Rˣ) (t n : R)
+    (θ : L) (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u₀ =
+      (C • E.quadraticTwist L).qUnitSepClosure S)
+    (haσ : ∀ σ : S ≃ₐ[K] S,
+      Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (σ : S ≃ₐ[K] S)
+    (φ : K ⊗[R] TateKummer.QuadraticTwist.fixedSubalgebra
+      R N u₀ t n →ₐ[K] S) :
+    letI := TateKummer.QuadraticTwist.coordinateBialgebra
+      R N u₀ t n h2 hdisc
+    quadraticTwistTateKummerTorsionAddEquiv R K L S E C N u₀ t n θ
+        htrace hnorm h2 hdisc a hq
+        (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) =
+      E.nTorsionMap N σ.toAlgHom
+        (quadraticTwistTateKummerTorsionAddEquiv R K L S E C N u₀ t n θ
+          htrace hnorm h2 hdisc a hq
+          (Additive.ofMul (WithConv.toConv φ))) := by
+  letI := TateKummer.QuadraticTwist.coordinateBialgebra
+    R N u₀ t n h2 hdisc
+  let W := C • E.quadraticTwist L
+  let e := quadraticTwistTateTorsionLinearEquiv (L := L) S E C N
+  let g := quadraticTateKummerTorsionAddEquiv R K L S W N u₀ t n θ
+    htrace hnorm h2 hdisc a hq
+  change e (g (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ)))) =
+    E.nTorsionMap N σ.toAlgHom
+      (e (g (Additive.ofMul (WithConv.toConv φ))))
+  apply e.symm.injective
+  rw [e.symm_apply_apply,
+    quadraticTwistTateTorsionLinearEquiv_symm_nTorsionMap,
+    e.symm_apply_apply]
+  exact quadraticTateKummerTorsionAddEquiv_comp R K L S W N u₀ t n
+    θ hθ htrace hnorm h2 hdisc a hq haσ σ φ
+
 end CurveTorsion
 
 end WeierstrassCurve
