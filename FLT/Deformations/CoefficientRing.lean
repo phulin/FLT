@@ -57,7 +57,7 @@ topology.  The construction first lifts `k / 𝔽_p` to an unramified DVR and
 then universe-lifts that DVR so that it can serve as coefficients for a
 representation on a `Type u` module. -/
 theorem exists_unramified_coefficientRing :
-    ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsLocalRing R)
+    ∃ (R : Type u) (_ : CommRing R) (_ : IsDomain R) (_ : IsDiscreteValuationRing R)
       (_ : TopologicalSpace R) (_ : IsTopologicalRing R)
       (_ : Algebra ℤ_[p] R) (_ : IsLocalHom (algebraMap ℤ_[p] R))
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
@@ -101,6 +101,9 @@ theorem exists_unramified_coefficientRing :
   let R := ULift.{u} S
   letI : CommRing R := inferInstance
   letI : IsDomain R := (ULift.ringEquiv : R ≃+* S).isDomain
+  letI : IsDiscreteValuationRing R :=
+    IsDiscreteValuationRing.RingEquivClass.isDiscreteValuationRing
+      (ULift.ringEquiv : R ≃+* S).symm
   letI : IsLocalRing R := (ULift.ringEquiv : R ≃+* S).symm.isLocalRing
   letI : Algebra ℤ_[p] R := inferInstance
   letI : Module.Finite ℤ_[p] R := inferInstance

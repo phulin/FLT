@@ -150,7 +150,7 @@ The coefficient-ring construction, the exceptional characteristic-three case, an
 of a chosen residual basis are all handled separately below.
 -/
 theorem exists_minimalLift_over_coefficientRing [CharP k p] (hp : 3 < p)
-    (R : Type u) [CommRing R] [IsDomain R] [IsLocalRing R]
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
     [TopologicalSpace R] [IsTopologicalRing R]
     [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
     [Module.Finite ℤ_[p] R] [Module.Free ℤ_[p] R]
@@ -197,13 +197,13 @@ theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p]
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
-  obtain ⟨R, hRcomm, hRdomain, hRlocal, hRtop, hRtopRing, hRpAlg, hRlocalHom,
+  obtain ⟨R, hRcomm, hRdomain, hRdvr, hRtop, hRtopRing, hRpAlg, hRlocalHom,
       hRfinite, hRfree, hRmoduleTopology, hRkAlg, hRkTower, hRkContinuous,
       hRkLocalHom, residueEquiv, hresidueEquiv⟩ :=
     Deformation.exists_unramified_coefficientRing (k := k) (p := p)
   letI : CommRing R := hRcomm
   letI : IsDomain R := hRdomain
-  letI : IsLocalRing R := hRlocal
+  letI : IsDiscreteValuationRing R := hRdvr
   letI : TopologicalSpace R := hRtop
   letI : IsTopologicalRing R := hRtopRing
   letI : Algebra ℤ_[p] R := hRpAlg
