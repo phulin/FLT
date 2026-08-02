@@ -113,6 +113,42 @@ lemma primesEquiv_toHeightOneSpectrumRingOfIntegersRat {q : ℕ} (hq : q.Prime) 
     (I := Ideal.span {(q : ℤ)})
     (f := (Rat.IsIntegralClosure.intEquiv (𝓞 ℚ)).symm) (y := x)
 
+/-- A natural number not divisible by `q` remains nonzero in the residue field of the
+completion of `ℚ` at `q`. -/
+lemma neZero_residueField_of_not_dvd {p q : ℕ} (hq : q.Prime) (hqp : ¬q ∣ p) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    NeZero (p : IsLocalRing.ResidueField (v.adicCompletionIntegers ℚ)) := by
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Fact q.Prime := ⟨hq⟩
+  let _ : Field (v.adicCompletion ℚ) :=
+    IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (IsDedekindDomain.HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    IsDedekindDomain.HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  constructor
+  intro hpzero
+  let A := v.adicCompletionIntegers ℚ
+  have hmem : (p : A) ∈ IsLocalRing.maximalIdeal A := by
+    rw [← IsLocalRing.residue_eq_zero_iff]
+    simpa using hpzero
+  have hnonunit : ¬IsUnit (p : A) :=
+    mem_nonunits_iff.mp ((IsLocalRing.mem_maximalIdeal _).mp hmem)
+  have hvalued : Valued.v ((p : A) : v.adicCompletion ℚ) < 1 :=
+    Valuation.Integer.not_isUnit_iff_valuation_lt_one.mp hnonunit
+  have hcast : ((p : A) : v.adicCompletion ℚ) =
+      algebraMap ℚ (v.adicCompletion ℚ) (p : ℚ) := by norm_num
+  rw [hcast, HeightOneSpectrum.algebraMap_adicCompletion, Function.comp_apply,
+    HeightOneSpectrum.valuedAdicCompletion_eq_valuation'] at hvalued
+  apply hqp
+  rw [valuation_apply_eq_padicValuation,
+    primesEquiv_toHeightOneSpectrumRingOfIntegersRat hq] at hvalued
+  have hint : Int.padicValuation q (p : ℤ) < 1 := by
+    rw [← Rat.padicValuation_cast]
+    norm_num
+    exact hvalued
+  exact_mod_cast Int.padicValuation_lt_one_iff.mp hint
+
 theorem adicCompletion.padicEquiv_cast
     (v : IsDedekindDomain.HeightOneSpectrum R) (x : WithVal (v.valuation ℚ)) :
     (padicEquiv v) x = Padic.withValRingEquiv (mapEquiv (withValEquiv v) x) := by
