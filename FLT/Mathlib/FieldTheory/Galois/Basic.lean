@@ -6,7 +6,10 @@ Authors: Kevin Buzzard, Claude
 module
 
 public import Mathlib.FieldTheory.Galois.Basic
+public import Mathlib.FieldTheory.KrullTopology
+public import Mathlib.Topology.Algebra.ContinuousMonoidHom
 public import FLT.Mathlib.LinearAlgebra.Dimension.IsQuadraticExtension
+public import FLT.Mathlib.Topology.Algebra.Group.Basic
 
 import Mathlib.RingTheory.Norm.Transitivity
 
@@ -138,6 +141,31 @@ theorem quadraticCharacter_eq_one_iff (σ : M ≃ₐ[K] M) :
   split_ifs with h
   · exact iff_of_true rfl h
   · exact iff_of_false (fun hc ↦ by simpa using congrArg Units.val hc) h
+
+/-- The quadratic character attached to a finite quadratic subextension is continuous for
+the Krull topology.  Its kernel contains the open subgroup fixing the embedded copy of the
+quadratic field. -/
+theorem quadraticCharacter_continuous :
+    Continuous (quadraticCharacter K L M) := by
+  apply MonoidHom.continuous_of_isOpen_ker
+  let f : L →ₐ[K] M := IsScalarTower.toAlgHom K L M
+  let E : IntermediateField K M := f.fieldRange
+  letI : FiniteDimensional K E := f.toLinearMap.finiteDimensional_range
+  apply Subgroup.isOpen_mono _ E.fixingSubgroup_isOpen
+  intro σ hσ
+  rw [MonoidHom.mem_ker, quadraticCharacter_eq_one_iff]
+  intro x
+  exact hσ ⟨f x, ⟨x, rfl⟩⟩
+
+/-- The continuous quadratic character associated to a separable quadratic subextension. -/
+noncomputable def continuousQuadraticCharacter : (M ≃ₐ[K] M) →ₜ* ℤˣ :=
+  ContinuousMonoidHom.mk (quadraticCharacter K L M)
+    (quadraticCharacter_continuous K L M)
+
+@[simp]
+theorem continuousQuadraticCharacter_apply (σ : M ≃ₐ[K] M) :
+    continuousQuadraticCharacter K L M σ = quadraticCharacter K L M σ :=
+  rfl
 
 /-- If `M/K` is normal (for example `M = L`, or `M` a separable closure of `K`) then the
 nontrivial element of `Gal(L/K)` extends to an automorphism of `M`, so the quadratic character
