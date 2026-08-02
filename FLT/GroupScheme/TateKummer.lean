@@ -1013,6 +1013,78 @@ lemma evalAntipodeRight_componentMul
     componentEquivOfEq_coordinate N u f h]
   rw [Algebra.ofId_apply]
 
+/-! ## The two antipode axioms -/
+
+/-- Apply the antipode to the left tensor factor and multiply the two factors. -/
+noncomputable def applyAntipodeLeft (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[R]
+      CoordinateAlgebra (R := R) N u :=
+  Algebra.TensorProduct.lift (antipodeAlgHom N u)
+    (.id R (CoordinateAlgebra (R := R) N u)) fun _ _ => Commute.all _ _
+
+/-- Apply the antipode to the right tensor factor and multiply the two factors. -/
+noncomputable def applyAntipodeRight (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[R]
+      CoordinateAlgebra (R := R) N u :=
+  Algebra.TensorProduct.lift (.id R (CoordinateAlgebra (R := R) N u))
+    (antipodeAlgHom N u) fun _ _ => Commute.all _ _
+
+lemma applyAntipodeLeft_apply (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R]
+      CoordinateAlgebra (R := R) N u) (i : Fin N) :
+    applyAntipodeLeft N u z i =
+      evalAntipodeLeft N u i
+        (tensorCoordinateEquiv N u z i (negIndex N i)) := by
+  induction z using TensorProduct.induction_on with
+  | zero => exact (map_zero (evalAntipodeLeft N u i)).symm
+  | tmul x y =>
+      change componentInvAlgHom N u i (x (negIndex N i)) * y i =
+        evalAntipodeLeft N u i (x (negIndex N i) ⊗ₜ[R] y i)
+      rw [evalAntipodeLeft_tmul]
+  | add x y hx hy =>
+      simp only [map_add, Pi.add_apply, hx, hy]
+
+lemma applyAntipodeRight_apply (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R]
+      CoordinateAlgebra (R := R) N u) (i : Fin N) :
+    applyAntipodeRight N u z i =
+      evalAntipodeRight N u i
+        (tensorCoordinateEquiv N u z (negIndex N i) i) := by
+  induction z using TensorProduct.induction_on with
+  | zero => exact (map_zero (evalAntipodeRight N u i)).symm
+  | tmul x y =>
+      change x i * componentInvAlgHom N u i (y (negIndex N i)) =
+        evalAntipodeRight N u i (x i ⊗ₜ[R] y (negIndex N i))
+      rw [evalAntipodeRight_tmul]
+  | add x y hx hy =>
+      simp only [map_add, Pi.add_apply, hx, hy]
+
+/-- Left antipode cancellation in the form required by `HopfAlgebra.ofAlgHom`. -/
+lemma mul_antipode_rTensor_comul (N : ℕ) [NeZero N] (u : Rˣ) :
+    (applyAntipodeLeft N u).comp (comulAlgHom N u) =
+      (Algebra.ofId R (CoordinateAlgebra (R := R) N u)).comp
+        (counitAlgHom N u) := by
+  apply AlgHom.ext
+  intro f
+  ext i
+  simp only [AlgHom.comp_apply]
+  rw [applyAntipodeLeft_apply, tensorCoordinateEquiv_comulAlgHom_apply,
+    evalAntipodeLeft_componentMul]
+  rfl
+
+/-- Right antipode cancellation in the form required by `HopfAlgebra.ofAlgHom`. -/
+lemma mul_antipode_lTensor_comul (N : ℕ) [NeZero N] (u : Rˣ) :
+    (applyAntipodeRight N u).comp (comulAlgHom N u) =
+      (Algebra.ofId R (CoordinateAlgebra (R := R) N u)).comp
+        (counitAlgHom N u) := by
+  apply AlgHom.ext
+  intro f
+  ext i
+  simp only [AlgHom.comp_apply]
+  rw [applyAntipodeRight_apply, tensorCoordinateEquiv_comulAlgHom_apply,
+    evalAntipodeRight_componentMul]
+  rfl
+
 @[simp]
 lemma evalLeftIdentity_includeLeft (N : ℕ) [NeZero N] (u : Rˣ) (j : Fin N)
     (x : Component R N (0 : Fin N).1 u) :
@@ -1209,5 +1281,12 @@ noncomputable instance coordinateBialgebra (N : ℕ) [NeZero N] (u : Rˣ) :
   Bialgebra.ofAlgHom (comulAlgHom N u) (counitAlgHom N u)
     (comulAlgHom_coassoc N u) (rTensor_counit_comp_comul N u)
       (lTensor_counit_comp_comul N u)
+
+/-- The Tate--Kummer bialgebra is a Hopf algebra, hence represents a finite flat affine
+group scheme over `R`. -/
+noncomputable instance coordinateHopfAlgebra (N : ℕ) [NeZero N] (u : Rˣ) :
+    HopfAlgebra R (CoordinateAlgebra (R := R) N u) :=
+  HopfAlgebra.ofAlgHom (antipodeAlgHom N u)
+    (mul_antipode_rTensor_comul N u) (mul_antipode_lTensor_comul N u)
 
 end TateKummer
