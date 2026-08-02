@@ -95,6 +95,51 @@ lemma comul_comp_antipode_of_isCocomm
 
 end HopfAlgebra
 
+namespace Algebra.TensorProduct
+
+variable (R A B C : Type*) [CommRing R] [CommRing A] [Algebra R A]
+  [CommRing B] [Algebra R B] [CommRing C] [Algebra R C]
+
+/-- Algebraic form of the standard linear equivalence distributing scalar extension over a
+tensor product. -/
+noncomputable def distribBaseChangeAlgEquiv :
+    A ⊗[R] (B ⊗[R] C) ≃ₐ[A] (A ⊗[R] B) ⊗[A] (A ⊗[R] C) :=
+  AlgEquiv.ofLinearEquiv
+    (TensorProduct.AlgebraTensorModule.distribBaseChange R A B C)
+    (by
+      simp [Algebra.TensorProduct.one_def,
+        TensorProduct.AlgebraTensorModule.distribBaseChange_tmul])
+    (by
+      intro x y
+      induction x using TensorProduct.induction_on with
+      | zero => simp
+      | add x₁ x₂ hx₁ hx₂ => simp only [add_mul, map_add, hx₁, hx₂]
+      | tmul a p =>
+          induction p using TensorProduct.induction_on with
+          | zero => simp
+          | add p₁ p₂ hp₁ hp₂ =>
+              simp only [TensorProduct.tmul_add, add_mul, map_add, hp₁, hp₂]
+          | tmul b c =>
+              induction y using TensorProduct.induction_on with
+              | zero => simp
+              | add y₁ y₂ hy₁ hy₂ => simp only [mul_add, map_add, hy₁, hy₂]
+              | tmul a' q =>
+                  induction q using TensorProduct.induction_on with
+                  | zero => simp
+                  | add q₁ q₂ hq₁ hq₂ =>
+                      simp only [TensorProduct.tmul_add, mul_add, map_add, hq₁, hq₂]
+                  | tmul b' c' =>
+                      simp [Algebra.TensorProduct.tmul_mul_tmul,
+                        TensorProduct.AlgebraTensorModule.distribBaseChange_tmul])
+
+@[simp]
+lemma distribBaseChangeAlgEquiv_tmul (a : A) (b : B) (c : C) :
+    distribBaseChangeAlgEquiv R A B C (a ⊗ₜ[R] (b ⊗ₜ[R] c)) =
+      (a ⊗ₜ[R] b) ⊗ₜ[A] ((1 : A) ⊗ₜ[R] c) := by
+  rfl
+
+end Algebra.TensorProduct
+
 namespace TateKummer.QuadraticTwist
 
 variable (R : Type u) [CommRing R]
