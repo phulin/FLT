@@ -139,4 +139,42 @@ theorem localInertia_fixed_of_pow_eq_algebraMap_unit
       hnS hz0unit hσzpow (hσ z0)
   exact congrArg Subtype.val hfix
 
+/-- A Kummer generator is fixed by inertia when the exponent of its uniformizer factor is
+divisible by `n`.
+
+Writing `q = π ^ (n * t) * u`, choose an `n`-th root `z` of the unit `u`.  The preceding
+unit-root theorem fixes `z`, while `π ^ t` already belongs to the base field.  Their product is
+therefore an inertia-fixed `n`-th root of `q`. -/
+theorem exists_localInertia_fixed_pow_eq_of_eq_pow_mul_unit
+    (v : HeightOneSpectrum (𝓞 K)) (n : ℕ)
+    [NeZero (n : IsLocalRing.ResidueField (v.adicCompletionIntegers K))]
+    (σ : Γ(v.adicCompletion K)) (hσ : σ ∈ localInertiaGroup v)
+    (q π : v.adicCompletionIntegers K) (m t : ℕ)
+    (u : (v.adicCompletionIntegers K)ˣ)
+    (hq : q = π ^ m * (u : v.adicCompletionIntegers K)) (hm : m = n * t) :
+    ∃ r : AlgebraicClosure (v.adicCompletion K),
+      r ^ n = algebraMap (v.adicCompletionIntegers K)
+        (AlgebraicClosure (v.adicCompletion K)) q ∧ σ r = r := by
+  let k := v.adicCompletion K
+  let R := v.adicCompletionIntegers K
+  let Ω := AlgebraicClosure k
+  have hn0 : n ≠ 0 := by
+    intro hn
+    apply NeZero.ne (n : IsLocalRing.ResidueField R)
+    simp [hn]
+  obtain ⟨z, hz⟩ := IsAlgClosed.exists_pow_nat_eq
+    (algebraMap R Ω (u : R)) (Nat.pos_of_ne_zero hn0)
+  have hσz : σ z = z :=
+    localInertia_fixed_of_pow_eq_algebraMap_unit v n σ hσ u z hz
+  let r : Ω := algebraMap R Ω (π ^ t) * z
+  refine ⟨r, ?_, ?_⟩
+  · rw [show r = algebraMap R Ω (π ^ t) * z from rfl, mul_pow, hz, ← map_pow,
+      ← map_mul, hq, hm]
+    congr 2
+    exact (pow_mul π t n).symm.trans <|
+      congrArg (fun e : ℕ ↦ π ^ e) (Nat.mul_comm t n)
+  · rw [show r = algebraMap R Ω (π ^ t) * z from rfl, map_mul, hσz]
+    change σ (algebraMap R Ω (π ^ t)) * z = _
+    rw [IsScalarTower.algebraMap_apply R k Ω, σ.commutes]
+
 end IsDedekindDomain.HeightOneSpectrum
