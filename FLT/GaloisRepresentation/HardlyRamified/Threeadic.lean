@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import FLT.GaloisRepresentation.HardlyRamified.ModThree
+public import FLT.GaloisRepresentation.HardlyRamified.Schoof
 public import FLT.NumberField.Chebotarev
 
 import FLT.Deformations.CharacteristicZeroPoint
@@ -532,6 +533,26 @@ theorem schoof_three_adic_fieldCutOut_inertia_image_card_odd_at_two
     (schoof_three_adic_fieldCutOut_inertia_image_isPGroup_at_two W hW htau)
   rw [hn]
   exact (show Odd 3 by decide).pow
+
+/-- A finite hardly ramified `3`-adic representation satisfies all four generic-fiber
+conditions for Schoof's `(2, 3)` finite-flat category. -/
+theorem schoof_three_adic_isSchoofThreeGenericFiber
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau) :
+    GaloisRep.IsSchoofThreeGenericFiber tau where
+  threePrimary := by
+    obtain ⟨n, hchar⟩ := finite_local_padic_three_ringChar_eq_pow A
+    refine ⟨n, fun x ↦ ?_⟩
+    rw [← Nat.cast_smul_eq_nsmul A, ← hchar,
+      CharP.cast_eq_zero A (ringChar A), zero_smul]
+  finiteFlatAtThree := schoof_three_adic_hasFlatProlongationAt_three W hW htau
+  unramifiedOutsideTwoThree :=
+    schoof_three_adic_fieldCutOut_unramified_outside_two_three W hW htau
+  tameAtTwo :=
+    schoof_three_adic_fieldCutOut_inertia_image_card_odd_at_two W hW htau
 
 /-- A subgroup of inertia whose finite linear image has `2`-power exponent acts trivially.
 This packages the final coprime-orders step separately from the local-field theorem that wild
