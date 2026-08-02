@@ -473,15 +473,29 @@ not a nonarchimedean local field, so this is not literally `(E.baseChange Ω).qU
 noncomputable def WeierstrassCurve.qUnitSepClosure : Ωˣ :=
   Units.map (algebraMap k Ω).toMonoidHom E.qUnit
 
--- `DecidableEq Ω` is needed for the group law on `(E⁄Ω).Point`
-variable [DecidableEq Ω]
+-- Decidable equality is needed for the group laws on affine points over `k` and `Ω`.
+variable [DecidableEq k] [DecidableEq Ω]
+
+/-- The gluing input for Tate uniformization over a separable closure. There is a single
+uniformization which both extends the chosen uniformization over `k` and is Galois equivariant.
+Packaging these compatibilities with the equivalence makes the later base-change and Galois
+theorems formal projections rather than independent arithmetic assumptions. -/
+theorem WeierstrassCurve.exists_tateEquivSepClosure :
+    ∃ f : Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω)) ≃+ (E⁄Ω).Point,
+      (∀ u : kˣ,
+        Affine.Point.baseChange (W' := E) k Ω (E.tateEquiv (Additive.ofMul ↑u)) =
+          f (Additive.ofMul ↑(Units.map (algebraMap k Ω).toMonoidHom u))) ∧
+      (∀ (σ : Ω ≃ₐ[k] Ω) (u : Ωˣ),
+        Affine.Point.map (W' := E) σ.toAlgHom (f (Additive.ofMul ↑u)) =
+          f (Additive.ofMul ↑(Units.map σ.toAlgHom.toRingHom.toMonoidHom u))) := by
+  sorry
 
 /-- Tate's uniformisation over a separable closure `Ω` of `k`: the union of the
 uniformisations of the `E(l)` over the finite subextensions `l/k` of `Ω`. Its sign is
 pinned to that of `tateEquiv` by `tatePoint_baseChange`. -/
 noncomputable def WeierstrassCurve.tateEquivSepClosure :
     Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω)) ≃+ (E⁄Ω).Point :=
-  sorry
+  Classical.choose (E.exists_tateEquivSepClosure Ω)
 
 /-- The point of `E(Ω)` corresponding to a unit `x ∈ Ωˣ` under Tate's uniformisation. -/
 noncomputable def WeierstrassCurve.tatePoint (x : Ωˣ) : (E⁄Ω).Point :=
@@ -491,18 +505,17 @@ noncomputable def WeierstrassCurve.tatePoint (x : Ωˣ) : (E⁄Ω).Point :=
 -- the inclusion `k → Ω` is a `k`-algebra map, so this is an instance of the same
 -- phenomenon as `tateEquiv_galois`, not of `tateEquiv_baseChange`. This statement is what
 -- pins the sign of `tateEquivSepClosure` to the sign of `tateEquiv`.
-variable [DecidableEq k] in
 theorem WeierstrassCurve.tatePoint_baseChange (u : kˣ) :
     Affine.Point.baseChange (W' := E) k Ω (E.tateEquiv (Additive.ofMul ↑u)) =
       E.tatePoint Ω (Units.map (algebraMap k Ω).toMonoidHom u) :=
-  sorry
+  (Classical.choose_spec (E.exists_tateEquivSepClosure Ω)).1 u
 
 -- Galois equivariance of the uniformisation over `Ω`: no continuity hypothesis is needed
 -- this time, since `Ω/k` is algebraic.
 theorem WeierstrassCurve.tatePoint_galois (σ : Ω ≃ₐ[k] Ω) (u : Ωˣ) :
     Affine.Point.map (W' := E) σ.toAlgHom (E.tatePoint Ω u) =
       E.tatePoint Ω (Units.map σ.toAlgHom.toRingHom.toMonoidHom u) :=
-  sorry
+  (Classical.choose_spec (E.exists_tateEquivSepClosure Ω)).2 σ u
 
 /-- `N`-th roots of unity give `N`-torsion points of `E` under Tate's uniformisation. -/
 theorem WeierstrassCurve.tatePoint_mem_torsionBy_of_mem_rootsOfUnity {N : ℕ} {ζ : Ωˣ}
