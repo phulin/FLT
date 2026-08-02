@@ -9,6 +9,7 @@ public import FLT.Deformations.RepresentationTheory.AbsoluteGaloisGroup
 public import FLT.Deformations.RepresentationTheory.Etale
 public import FLT.Deformations.IsProartinian
 public import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
+public import FLT.Mathlib.LinearAlgebra.Determinant
 public import Mathlib.LinearAlgebra.Charpoly.Basic
 public import Mathlib.LinearAlgebra.Matrix.Unique
 public import FLT.Mathlib.Order.JordanHolder
@@ -391,6 +392,21 @@ noncomputable
 def GaloisRep.det (ρ : GaloisRep K A M) : Γ K →ₜ* A :=
   letI := moduleTopology A (Module.End A M)
   .comp ⟨LinearMap.det, IsModuleTopology.continuous_det⟩ ρ
+
+omit [NumberField K] in
+/-- If a rank-two Galois representation acts by similitudes of a nondegenerate
+alternating form, its determinant is the similitude character.  This is the abstract
+linear-algebra bridge used with the Weil pairing. -/
+theorem GaloisRep.det_eq_of_nondegenerate_alternating_pairing
+    {F : Type*} [Field F] [TopologicalSpace F] [IsTopologicalRing F]
+    {V : Type*} [AddCommGroup V] [Module F V] [Module.Finite F V]
+    (ρ : GaloisRep K F V) (hV : Module.rank F V = 2)
+    (B : LinearMap.BilinForm F V) (hB : B.IsAlt) (hBnd : B.Nondegenerate)
+    (c : Γ K → F) (hsim : ∀ g x y, B (ρ g x) (ρ g y) = c g * B x y) :
+    ∀ g, ρ.det g = c g := by
+  intro g
+  exact LinearMap.det_eq_of_nondegenerate_alternating_similitude hV B hB (ρ g) (c g)
+    hBnd (hsim g)
 
 open TensorProduct in
 variable (B) in
