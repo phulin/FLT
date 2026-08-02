@@ -68,6 +68,21 @@ noncomputable def kummerUnitPointMul
     (x y : KummerUnitPoint R S N u) : KummerUnitPoint R S N u :=
   ⟨addIndex N x.1 y.1, kummerUnitRootMul R S N u x.1 y.1 x.2 y.2⟩
 
+/-- Apply an automorphism of the value algebra to the root coordinate of a Kummer
+point. -/
+noncomputable def kummerUnitPointMap
+    (R S : Type*) [CommRing R] [CommRing S] [Algebra R S]
+    (N : ℕ) (u : Rˣ) (σ : S ≃ₐ[R] S)
+    (x : KummerUnitPoint R S N u) : KummerUnitPoint R S N u := by
+  refine ⟨x.1, ⟨Units.map σ.toRingEquiv.toMonoidHom x.2.1, ?_⟩⟩
+  apply Units.ext
+  simp only [Units.val_pow_eq_pow_val, Units.coe_map]
+  rw [← map_pow]
+  have hx : (x.2.1 : S) ^ N = algebraMap R S ((u : R) ^ x.1.1) := by
+    simpa using congrArg Units.val x.2.2
+  rw [hx]
+  exact σ.commutes ((u : R) ^ x.1.1)
+
 section Component
 
 variable (R : Type u) [CommRing R]
@@ -257,6 +272,49 @@ lemma coordinateAlgHomUnitEquiv_convMul [IsDomain S]
         exact (e.symm_apply_apply ψ).symm]
   exact componentPointAlgHom_convMul R S N u x.1 y.1 x.2 y.2
 
+/-- Postcomposition by an automorphism applies that automorphism to the Kummer root and
+leaves the component index unchanged. -/
+lemma coordinateAlgHomUnitEquiv_comp [IsDomain S]
+    (N : ℕ) [NeZero N] (u : Rˣ) (σ : S ≃ₐ[R] S)
+    (φ : CoordinateAlgebra (R := R) N u →ₐ[R] S) :
+    coordinateAlgHomUnitEquiv R S N u (σ.toAlgHom.comp φ) =
+      kummerUnitPointMap R S N u σ
+        (coordinateAlgHomUnitEquiv R S N u φ) := by
+  let e := coordinateAlgHomUnitEquiv R S N u
+  let x := e φ
+  let α := (componentAlgHomUnitEquiv R S N x.1 u).symm x.2
+  let xσ := (kummerUnitPointMap R S N u σ x).2
+  let β := (componentAlgHomUnitEquiv R S N x.1 u).symm xσ
+  have hαroot :
+      α (AdjoinRoot.root (componentPolynomial R N x.1 u)) = (x.2.1 : S) := by
+    calc
+      _ = ((componentAlgHomUnitEquiv R S N x.1 u α).1 : S) :=
+        (componentAlgHomUnitEquiv_apply_val R S N x.1 u α).symm
+      _ = _ := congrArg
+        (fun z : KummerUnitRoot R S N x.1 u ↦ (z.1 : S))
+        ((componentAlgHomUnitEquiv R S N x.1 u).apply_symm_apply x.2)
+  have hβroot :
+      β (AdjoinRoot.root (componentPolynomial R N x.1 u)) = (xσ.1 : S) := by
+    calc
+      _ = ((componentAlgHomUnitEquiv R S N x.1 u β).1 : S) :=
+        (componentAlgHomUnitEquiv_apply_val R S N x.1 u β).symm
+      _ = _ := congrArg
+        (fun z : KummerUnitRoot R S N x.1 u ↦ (z.1 : S))
+        ((componentAlgHomUnitEquiv R S N x.1 u).apply_symm_apply xσ)
+  have hcomponent : σ.toAlgHom.comp α = β := by
+    apply AdjoinRoot.algHom_ext
+    rw [AlgHom.comp_apply, hαroot, hβroot]
+    rfl
+  apply e.symm.injective
+  rw [e.symm_apply_apply]
+  change σ.toAlgHom.comp φ = componentPointAlgHom R S N u x.1 xσ
+  rw [show φ = componentPointAlgHom R S N u x.1 x.2 by
+    exact (e.symm_apply_apply φ).symm]
+  change σ.toAlgHom.comp (α.comp
+      (Pi.evalAlgHom R (Components (R := R) N u) x.1)) =
+    β.comp (Pi.evalAlgHom R (Components (R := R) N u) x.1)
+  rw [← AlgHom.comp_assoc, hcomponent]
+
 end Component
 
 section GenericFiber
@@ -367,6 +425,27 @@ lemma genericFiberAlgHomUnitEquiv_convMul
           (CoordinateAlgebra (R := R) N u) S).symm ψ))
   rw [liftEquivRight_symm_convMul R K S N u,
     coordinateAlgHomUnitEquiv_convMul]
+
+/-- The generic-fiber point classification is natural under automorphisms of the value
+field over the generic-fiber base. -/
+lemma genericFiberAlgHomUnitEquiv_comp
+    (N : ℕ) [NeZero N] (u : Rˣ) (σ : S ≃ₐ[K] S)
+    (φ : K ⊗[R] CoordinateAlgebra (R := R) N u →ₐ[K] S) :
+    genericFiberAlgHomUnitEquiv R K S N u (σ.toAlgHom.comp φ) =
+      kummerUnitPointMap R S N u (σ.restrictScalars R)
+        (genericFiberAlgHomUnitEquiv R K S N u φ) := by
+  let e := Algebra.TensorProduct.liftEquivRight R K
+    (CoordinateAlgebra (R := R) N u) S
+  have hrestrict : e.symm (σ.toAlgHom.comp φ) =
+      (σ.restrictScalars R).toAlgHom.comp (e.symm φ) := by
+    apply AlgHom.ext
+    intro f
+    rfl
+  change coordinateAlgHomUnitEquiv R S N u (e.symm (σ.toAlgHom.comp φ)) =
+    kummerUnitPointMap R S N u (σ.restrictScalars R)
+      (coordinateAlgHomUnitEquiv R S N u (e.symm φ))
+  rw [hrestrict]
+  exact coordinateAlgHomUnitEquiv_comp R S N u (σ.restrictScalars R) (e.symm φ)
 
 end GenericFiber
 
