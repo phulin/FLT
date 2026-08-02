@@ -254,6 +254,37 @@ noncomputable def componentMulRoot (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) 
       (AdjoinRoot.root (componentPolynomial R N j.1 u)) *
     algebraMap R _ ((((u⁻¹) ^ addCarry N i j : Rˣ) : R))
 
+/-- Swapping the two tensor factors swaps the two inputs to component multiplication. -/
+lemma comm_componentMulRoot (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
+    Algebra.TensorProduct.comm R
+        (Component R N i.1 u) (Component R N j.1 u)
+        (componentMulRoot N u i j) =
+      componentMulRoot N u j i := by
+  unfold componentMulRoot
+  rw [map_mul, map_mul]
+  have hleft :
+      Algebra.TensorProduct.comm R
+          (Component R N i.1 u) (Component R N j.1 u)
+          (Algebra.TensorProduct.includeLeft
+            (R := R) (S := R) (B := Component R N j.1 u)
+            (AdjoinRoot.root (componentPolynomial R N i.1 u))) =
+        Algebra.TensorProduct.includeRight
+          (R := R) (A := Component R N j.1 u)
+          (AdjoinRoot.root (componentPolynomial R N i.1 u)) := by
+    rfl
+  have hright :
+      Algebra.TensorProduct.comm R
+          (Component R N i.1 u) (Component R N j.1 u)
+          (Algebra.TensorProduct.includeRight
+            (R := R) (A := Component R N i.1 u)
+            (AdjoinRoot.root (componentPolynomial R N j.1 u))) =
+        Algebra.TensorProduct.includeLeft
+          (R := R) (S := R) (B := Component R N i.1 u)
+          (AdjoinRoot.root (componentPolynomial R N j.1 u)) := by
+    rfl
+  rw [hleft, hright, AlgEquiv.commutes, addCarry_comm]
+  ring
+
 /-- The component multiplication coordinate satisfies the equation of the sum component. -/
 lemma componentMulRoot_pow (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
     (componentMulRoot N u i j) ^ N =
@@ -407,6 +438,32 @@ lemma componentEquivOfEq_coordinate
   subst j
   rfl
 
+/-- Component multiplication is symmetric after swapping the two tensor factors. -/
+lemma comm_comp_componentMulAlgHom
+    (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
+    (Algebra.TensorProduct.comm R
+        (Component R N i.1 u) (Component R N j.1 u)).toAlgHom.comp
+        (componentMulAlgHom N u i j) =
+      (componentMulAlgHom N u j i).comp
+        (componentEquivOfEq N u (addIndex_comm N i j)) := by
+  apply AdjoinRoot.algHom_ext
+  rw [AlgHom.comp_apply, AlgHom.comp_apply, componentMulAlgHom_root]
+  have hroot := componentEquivOfEq_root (R := R) N u (addIndex_comm N i j)
+  calc
+    Algebra.TensorProduct.comm R
+          (Component R N i.1 u) (Component R N j.1 u)
+          (componentMulRoot N u i j) =
+        componentMulRoot N u j i := comm_componentMulRoot N u i j
+    _ = componentMulAlgHom N u j i
+          (AdjoinRoot.root
+            (componentPolynomial R N (addIndex N j i).1 u)) :=
+      (componentMulAlgHom_root N u j i).symm
+    _ = componentMulAlgHom N u j i
+          (componentEquivOfEq N u (addIndex_comm N i j)
+            (AdjoinRoot.root
+              (componentPolynomial R N (addIndex N i j).1 u))) :=
+      (congrArg (componentMulAlgHom N u j i) hroot).symm
+
 /-- Decompose the tensor product of the two finite products into the product of all
 componentwise tensor products. The outer index is the right component. -/
 noncomputable def tensorCoordinateEquiv (N : ℕ) [NeZero N] (u : Rˣ) :
@@ -429,6 +486,22 @@ lemma tensorCoordinateEquiv_tmul (N : ℕ) [NeZero N] (u : Rˣ)
     (x y : CoordinateAlgebra (R := R) N u) (j i : Fin N) :
     tensorCoordinateEquiv N u (x ⊗ₜ[R] y) j i = x i ⊗ₜ[R] y j := by
   rfl
+
+/-- Swapping the global tensor factors swaps each pair of component factors. -/
+lemma tensorCoordinateEquiv_comm (N : ℕ) [NeZero N] (u : Rˣ)
+    (z : CoordinateAlgebra (R := R) N u ⊗[R]
+      CoordinateAlgebra (R := R) N u) (j i : Fin N) :
+    tensorCoordinateEquiv N u
+        (Algebra.TensorProduct.comm R
+          (CoordinateAlgebra (R := R) N u)
+          (CoordinateAlgebra (R := R) N u) z) j i =
+      Algebra.TensorProduct.comm R
+        (Component R N j.1 u) (Component R N i.1 u)
+        (tensorCoordinateEquiv N u z i j) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y => rfl
+  | add x y hx hy => simp only [map_add, Pi.add_apply, hx, hy]
 
 /-- Tensoring a finite product on the left distributes over its factors. -/
 noncomputable def piTensorLeftEquiv
@@ -1284,6 +1357,30 @@ noncomputable instance coordinateBialgebra (N : ℕ) [NeZero N] (u : Rˣ) :
   Bialgebra.ofAlgHom (comulAlgHom N u) (counitAlgHom N u)
     (comulAlgHom_coassoc N u) (rTensor_counit_comp_comul N u)
       (lTensor_counit_comp_comul N u)
+
+/-- The Tate--Kummer group law is commutative, so its coordinate coalgebra is
+cocommutative. -/
+noncomputable instance coordinateIsCocomm (N : ℕ) [NeZero N] (u : Rˣ) :
+    Coalgebra.IsCocomm R (CoordinateAlgebra (R := R) N u) where
+  comm_comp_comul := by
+    apply LinearMap.ext
+    intro f
+    change Algebra.TensorProduct.comm R
+        (CoordinateAlgebra (R := R) N u)
+        (CoordinateAlgebra (R := R) N u) (comulAlgHom N u f) =
+      comulAlgHom N u f
+    apply (tensorCoordinateEquiv N u).injective
+    ext j i
+    rw [tensorCoordinateEquiv_comm,
+      tensorCoordinateEquiv_comulAlgHom_apply,
+      tensorCoordinateEquiv_comulAlgHom_apply]
+    have h := DFunLike.congr_fun
+      (comm_comp_componentMulAlgHom (R := R) N u j i)
+      (f (addIndex N j i))
+    simp only [AlgHom.comp_apply] at h
+    have hc := componentEquivOfEq_coordinate (R := R) N u f
+      (addIndex_comm N j i)
+    exact h.trans (congrArg (componentMulAlgHom N u i j) hc)
 
 /-- The Tate--Kummer bialgebra is a Hopf algebra, hence represents a finite flat affine
 group scheme over `R`. -/
