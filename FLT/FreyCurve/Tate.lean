@@ -65,10 +65,10 @@ theorem hasSplitMultiplicativeReduction_valuativeRel_of_adicCompletion
           Σ A : Subring (v.adicCompletion F), Algebra (↥A) (v.adicCompletion F))) hB
     exact (Sigma.mk.inj_iff.mp hs).2
 
-/-- For split multiplicative reduction at `q`, the multiplicative valuation of the Tate
-parameter is the exponential of the additive `q`-adic valuation of the rational
-`j`-invariant.  The sign changes because the Tate parameter has the valuation of `j⁻¹`. -/
-theorem valued_tateParameter_at_bad_prime (P : FreyPackage) {q : ℕ}
+/-- Any split multiplicative curve over the completion whose `j`-invariant is that of the Frey
+curve has Tate parameter valuation equal to the exponential of the rational `q`-adic valuation.
+The sign changes because the Tate parameter has the valuation of `j⁻¹`. -/
+theorem valued_tateParameter_at_bad_prime_of_j_eq (P : FreyPackage) {q : ℕ}
     (hq : q.Prime) (_hqodd : 2 < q) (_hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
     let v := hq.toHeightOneSpectrumRingOfIntegersRat
     let _ : Field (v.adicCompletion ℚ) :=
@@ -78,12 +78,13 @@ theorem valued_tateParameter_at_bad_prime (P : FreyPackage) {q : ℕ}
     let _ : Algebra ℚ (v.adicCompletion ℚ) :=
       HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
     let K := v.adicCompletion ℚ
-    let E := P.freyCurve.baseChange K
-    ∀ [E.HasSplitMultiplicativeReduction (v.adicCompletionIntegers ℚ)],
+    ∀ (E : WeierstrassCurve K) [E.IsElliptic]
+      [E.HasSplitMultiplicativeReduction (v.adicCompletionIntegers ℚ)],
+      E.j = algebraMap ℚ K P.freyCurve.j →
       Valued.v E.q = exp (padicValRat q P.freyCurve.j) := by
   let _ : Fact q.Prime := ⟨hq⟩
   dsimp only
-  intro hsplit
+  intro E hell hsplit hjmap
   let v := hq.toHeightOneSpectrumRingOfIntegersRat
   -- Pin the completion structures used by the concrete valuation API.  Transitive imports
   -- provide propositionally equal alternatives, but the algebra map lemmas below require
@@ -95,10 +96,9 @@ theorem valued_tateParameter_at_bad_prime (P : FreyPackage) {q : ℕ}
   let _ : Algebra ℚ (v.adicCompletion ℚ) :=
     HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
   let K := v.adicCompletion ℚ
-  let E := P.freyCurve.baseChange K
-  let _ : E.IsElliptic := inferInstance
+  let _ : E.IsElliptic := hell
   let _ : E.HasSplitMultiplicativeReduction (v.adicCompletionIntegers ℚ) := by
-    simpa [E, K, v] using hsplit
+    simpa [K, v] using hsplit
   have hj : 1 < ValuativeRel.valuation K E.j :=
     E.one_lt_valuation_j_of_compatible
       (Valued.v : Valuation K (WithZero (Multiplicative ℤ)))
@@ -108,13 +108,13 @@ theorem valued_tateParameter_at_bad_prime (P : FreyPackage) {q : ℕ}
   have hj0 : P.freyCurve.j ≠ 0 := by
     intro hj0
     have hjbase : E.j = 0 := by
-      rw [show E.j = algebraMap ℚ K P.freyCurve.j from P.freyCurve.map_j _, hj0, map_zero]
+      rw [hjmap, hj0, map_zero]
     rw [hjbase, map_zero] at hj
     exact (not_lt_of_ge bot_le) hj
   rw [show E.q = WeierstrassCurve.tateParameter E.j from rfl,
     WeierstrassCurve.valuation_tateParameter_eq_of_compatible
       (Valued.v : Valuation K (WithZero (Multiplicative ℤ))) hj]
-  rw [show E.j = algebraMap ℚ K P.freyCurve.j from P.freyCurve.map_j _]
+  rw [hjmap]
   change (Valued.v (algebraMap ℚ (v.adicCompletion ℚ) P.freyCurve.j))⁻¹ =
     exp (padicValRat q P.freyCurve.j)
   let jwith : WithVal (v.valuation ℚ) :=
@@ -139,11 +139,30 @@ theorem valued_tateParameter_at_bad_prime (P : FreyPackage) {q : ℕ}
     exp (padicValRat q P.freyCurve.j)
   rw [if_neg hj0, inv_inv]
 
-/-- At a bad odd prime where the Frey curve has split multiplicative reduction, its Tate
-parameter has a uniformizer-unit factorization whose uniformizer exponent is divisible by
-the Frey exponent.  The extra integral element `q0` records the Tate parameter inside the
-concrete completion ring of integers, avoiding any dependence on a chosen membership proof. -/
-theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : ℕ}
+/-- The Tate-parameter valuation formula for the completed Frey curve itself. -/
+theorem valued_tateParameter_at_bad_prime (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasSplitMultiplicativeReduction (v.adicCompletionIntegers ℚ)],
+      Valued.v E.q = exp (padicValRat q P.freyCurve.j) := by
+  dsimp only
+  intro hsplit
+  exact valued_tateParameter_at_bad_prime_of_j_eq P hq hqodd hqbad _
+    (P.freyCurve.map_j _)
+
+/-- A split multiplicative curve with the Frey `j`-invariant has a Tate-parameter
+uniformizer-unit factorization whose uniformizer exponent is divisible by the Frey exponent.
+The extra integral element `q0` records the parameter inside the concrete completion ring. -/
+theorem exists_tateParameter_uniformizer_factorization_of_j_eq
+    (P : FreyPackage) {q : ℕ}
     (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
     let v := hq.toHeightOneSpectrumRingOfIntegersRat
     let _ : Field (v.adicCompletion ℚ) :=
@@ -154,15 +173,16 @@ theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : �
       HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
     let K := v.adicCompletion ℚ
     let R := v.adicCompletionIntegers ℚ
-    let E := P.freyCurve.baseChange K
-    ∀ [E.HasSplitMultiplicativeReduction R],
+    ∀ (E : WeierstrassCurve K) [E.IsElliptic]
+      [E.HasSplitMultiplicativeReduction R],
+      E.j = algebraMap ℚ K P.freyCurve.j →
       ∃ (q0 π : R) (m t : ℕ) (u : Rˣ),
         q0.1 = E.q ∧
         Valued.v π.1 = Multiplicative.ofAdd (-1 : ℤ) ∧
         q0 = π ^ m * (u : R) ∧ m = P.p * t := by
   let _ : Fact q.Prime := ⟨hq⟩
   dsimp only
-  intro hsplit
+  intro E hell hsplit hjmap
   let v := hq.toHeightOneSpectrumRingOfIntegersRat
   let _ : Field (v.adicCompletion ℚ) :=
     HeightOneSpectrum.adicCompletion.instField ℚ v
@@ -172,8 +192,7 @@ theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : �
     HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
   let K := v.adicCompletion ℚ
   let R := v.adicCompletionIntegers ℚ
-  let E := P.freyCurve.baseChange K
-  let _ : E.IsElliptic := inferInstance
+  let _ : E.IsElliptic := hell
   let _ : E.HasSplitMultiplicativeReduction R := hsplit
   have hj : 1 < ValuativeRel.valuation K E.j :=
     E.one_lt_valuation_j_of_compatible
@@ -194,7 +213,7 @@ theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : �
     exact WeierstrassCurve.tateParameter_ne_zero hj hqzero
   have hqval : Valued.v q0.1 = WithZero.exp (padicValRat q P.freyCurve.j) := by
     change Valued.v E.q = WithZero.exp (padicValRat q P.freyCurve.j)
-    exact valued_tateParameter_at_bad_prime P hq hqodd hqbad
+    exact valued_tateParameter_at_bad_prime_of_j_eq P hq hqodd hqbad E hjmap
   have hpval : (P.p : ℤ) ∣ padicValRat q P.freyCurve.j :=
     j_valuation_of_bad_prime P hq hqbad hqodd
   obtain ⟨π, m, t, u, hπ, hfac, hm⟩ :=
@@ -202,10 +221,81 @@ theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : �
       (K := ℚ) v hq0 hqval hpval
   exact ⟨q0, π, m, t, u, rfl, hπ, hfac, hm⟩
 
-/-- Every local inertia element fixes a `p`-th root of the Frey curve's Tate parameter at a
-bad odd split-multiplicative prime.  This is the Kummer conclusion of the preceding
-factorization: inertia fixes the root of the unit factor, while the remaining uniformizer
-power already lies in the base field. -/
+/-- The Tate-parameter factorization for the completed Frey curve itself. -/
+theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    ∀ [E.HasSplitMultiplicativeReduction R],
+      ∃ (q0 π : R) (m t : ℕ) (u : Rˣ),
+        q0.1 = E.q ∧
+        Valued.v π.1 = Multiplicative.ofAdd (-1 : ℤ) ∧
+        q0 = π ^ m * (u : R) ∧ m = P.p * t := by
+  dsimp only
+  intro hsplit
+  exact exists_tateParameter_uniformizer_factorization_of_j_eq
+    P hq hqodd hqbad _ (P.freyCurve.map_j _)
+
+/-- Every local inertia element fixes a `p`-th root of the Tate parameter of a split
+multiplicative curve with the Frey `j`-invariant.  Inertia fixes the root of the unit factor,
+while the remaining uniformizer power already lies in the base field. -/
+theorem exists_localInertia_fixed_pow_eq_tateParameter_of_j_eq
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let Ω := AlgebraicClosure K
+    let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+    ∀ (E : WeierstrassCurve K) [E.IsElliptic]
+      [E.HasSplitMultiplicativeReduction R]
+      [NeZero (P.p : IsLocalRing.ResidueField R)]
+      (_hj : E.j = algebraMap ℚ K P.freyCurve.j)
+      (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
+      ∃ r : Ω, r ^ P.p = algebraMap K Ω E.q ∧ σ r = r := by
+  let _ : Fact q.Prime := ⟨hq⟩
+  dsimp only
+  intro E hell hsplit hp hjmap σ hσ
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let Ω := AlgebraicClosure K
+  let _ : E.IsElliptic := hell
+  let _ : E.HasSplitMultiplicativeReduction R := hsplit
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := hp
+  let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+  obtain ⟨q0, π, m, t, u, hq0, _hπ, hfac, hm⟩ :=
+    exists_tateParameter_uniformizer_factorization_of_j_eq
+      P hq hqodd hqbad E hjmap
+  obtain ⟨r, hr, hfix⟩ :=
+    v.exists_localInertia_fixed_pow_eq_of_eq_pow_mul_unit
+      P.p σ hσ q0 π m t u hfac hm
+  refine ⟨r, hr.trans ?_, hfix⟩
+  rw [IsScalarTower.algebraMap_apply R K Ω]
+  change algebraMap K Ω q0.1 = algebraMap K Ω E.q
+  rw [hq0]
+
+/-- The inertia-fixed Tate root for the completed Frey curve itself. -/
 theorem exists_localInertia_fixed_pow_eq_tateParameter (P : FreyPackage) {q : ℕ}
     (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
     let v := hq.toHeightOneSpectrumRingOfIntegersRat
@@ -224,7 +314,6 @@ theorem exists_localInertia_fixed_pow_eq_tateParameter (P : FreyPackage) {q : �
       [NeZero (P.p : IsLocalRing.ResidueField R)]
       (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
       ∃ r : Ω, r ^ P.p = algebraMap K Ω E.q ∧ σ r = r := by
-  let _ : Fact q.Prime := ⟨hq⟩
   dsimp only
   intro hsplit hp σ hσ
   let v := hq.toHeightOneSpectrumRingOfIntegersRat
@@ -237,26 +326,18 @@ theorem exists_localInertia_fixed_pow_eq_tateParameter (P : FreyPackage) {q : �
   let K := v.adicCompletion ℚ
   let R := v.adicCompletionIntegers ℚ
   let E := P.freyCurve.baseChange K
-  let Ω := AlgebraicClosure K
   let _ : E.IsElliptic := inferInstance
-  let _ : E.HasSplitMultiplicativeReduction R := hsplit
-  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := hp
-  let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
-  obtain ⟨q0, π, m, t, u, hq0, _hπ, hfac, hm⟩ :=
-    exists_tateParameter_uniformizer_factorization P hq hqodd hqbad
-  obtain ⟨r, hr, hfix⟩ :=
-    v.exists_localInertia_fixed_pow_eq_of_eq_pow_mul_unit
-      P.p σ hσ q0 π m t u hfac hm
-  refine ⟨r, hr.trans ?_, hfix⟩
-  rw [IsScalarTower.algebraMap_apply R K Ω]
-  change algebraMap K Ω q0.1 = algebraMap K Ω E.q
-  rw [hq0]
+  let _ : E.HasSplitMultiplicativeReduction R := by
+    simpa [E, R, K, v] using hsplit
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := by
+    simpa [R, v] using hp
+  exact exists_localInertia_fixed_pow_eq_tateParameter_of_j_eq
+    P hq hqodd hqbad E (P.freyCurve.map_j _) σ hσ
 
-/-- At a bad odd split-multiplicative prime distinct from the Frey exponent, local inertia
-fixes every `p`-torsion point of the Frey curve.  The proof pulls a torsion point back through
-Tate uniformization, represents its quotient class by a unit, and applies the fixed-root
-Kummer calculation above. -/
-theorem torsion_fixed_by_localInertia_of_split_multiplicative
+/-- At a bad odd prime, inertia fixes the `p`-torsion of every split multiplicative curve with
+the Frey `j`-invariant.  The proof pulls a torsion point back through Tate uniformization,
+represents its quotient class by a unit, and applies the fixed-root Kummer calculation above. -/
+theorem torsion_fixed_by_localInertia_of_split_multiplicative_of_j_eq
     (P : FreyPackage) {q : ℕ}
     (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
     let v := hq.toHeightOneSpectrumRingOfIntegersRat
@@ -268,18 +349,19 @@ theorem torsion_fixed_by_localInertia_of_split_multiplicative
       HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
     let K := v.adicCompletion ℚ
     let R := v.adicCompletionIntegers ℚ
-    let E := P.freyCurve.baseChange K
     let Ω := AlgebraicClosure K
     let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
-    ∀ [E.HasSplitMultiplicativeReduction R]
+    ∀ (E : WeierstrassCurve K) [E.IsElliptic]
+      [E.HasSplitMultiplicativeReduction R]
       [NeZero (P.p : IsLocalRing.ResidueField R)]
       [DecidableEq Ω]
+      (_hj : E.j = algebraMap ℚ K P.freyCurve.j)
       (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
       ∀ T : AddSubgroup.torsionBy (E⁄Ω).Point (P.p : ℤ),
         E.nTorsionMap P.p σ.toAlgHom T = T := by
   let _ : Fact q.Prime := ⟨hq⟩
   dsimp only
-  intro hsplit hp hdec σ hσ T
+  intro E hell hsplit hp hdec hjmap σ hσ T
   let v := hq.toHeightOneSpectrumRingOfIntegersRat
   let _ : Field (v.adicCompletion ℚ) :=
     HeightOneSpectrum.adicCompletion.instField ℚ v
@@ -289,9 +371,8 @@ theorem torsion_fixed_by_localInertia_of_split_multiplicative
     HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
   let K := v.adicCompletion ℚ
   let R := v.adicCompletionIntegers ℚ
-  let E := P.freyCurve.baseChange K
   let Ω := AlgebraicClosure K
-  let _ : E.IsElliptic := inferInstance
+  let _ : E.IsElliptic := hell
   let _ : DecidableEq K := Classical.typeDecidableEq K
   let _ : E.HasSplitMultiplicativeReduction R := hsplit
   let _ : NeZero (P.p : IsLocalRing.ResidueField R) := hp
@@ -301,7 +382,8 @@ theorem torsion_fixed_by_localInertia_of_split_multiplicative
       (ValuativeRel.valuation K).integer :=
     hasSplitMultiplicativeReduction_valuativeRel_of_adicCompletion v E
   obtain ⟨r, hr, hfixr⟩ :=
-    exists_localInertia_fixed_pow_eq_tateParameter P hq hqodd hqbad σ hσ
+    exists_localInertia_fixed_pow_eq_tateParameter_of_j_eq
+      P hq hqodd hqbad E hjmap σ hσ
   have hr0 : r ≠ 0 := by
     intro hzero
     apply E.q_ne_zero
@@ -352,6 +434,52 @@ theorem torsion_fixed_by_localInertia_of_split_multiplicative
   change WeierstrassCurve.Affine.Point.map (W' := E) σ.toAlgHom T.1 = T.1
   rw [← hTu]
   exact hpoint
+
+/-- At a bad odd split-multiplicative prime distinct from the Frey exponent, local inertia
+fixes every `p`-torsion point of the completed Frey curve. -/
+theorem torsion_fixed_by_localInertia_of_split_multiplicative
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    let Ω := AlgebraicClosure K
+    let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+    ∀ [E.HasSplitMultiplicativeReduction R]
+      [NeZero (P.p : IsLocalRing.ResidueField R)]
+      [DecidableEq Ω]
+      (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
+      ∀ T : AddSubgroup.torsionBy (E⁄Ω).Point (P.p : ℤ),
+        E.nTorsionMap P.p σ.toAlgHom T = T := by
+  dsimp only
+  intro hsplit hp hdec σ hσ T
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let Ω := AlgebraicClosure K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.HasSplitMultiplicativeReduction R := by
+    simpa [E, R, K, v] using hsplit
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := by
+    simpa [R, v] using hp
+  let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+  let _ : DecidableEq Ω := hdec
+  exact torsion_fixed_by_localInertia_of_split_multiplicative_of_j_eq
+    P hq hqodd hqbad E (P.freyCurve.map_j _) σ hσ T
 
 end
 
