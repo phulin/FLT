@@ -5,6 +5,7 @@ Authors: Edison Xie, Kevin Buzzard
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import FLT.AutomorphicForm.QuaternionAlgebra.HeckeOperators.Concrete
 public import FLT.DedekindDomain.IntegralClosure
 public import FLT.Deformations.RepresentationTheory.GaloisRep
@@ -193,4 +194,4 @@ theorem cyclic_base_change
     -- ρ | Gal(Ebar/E) is automorphic of level (the pullback of S to E)
     ((ρ.map (algebraMap F E)).IsAutomorphicOfLevel p hpE hV
       (HeightOneSpectrum.preimageComapFinset (𝓞 F) F E (𝓞 E) S)) :=
-  sorry
+  knownin1980s

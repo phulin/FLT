@@ -5,6 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
 public import Mathlib.FieldTheory.Finiteness
 public import Mathlib.GroupTheory.FiniteAbelian.Basic
@@ -49,7 +50,7 @@ noncomputable instance (n : ℕ) : Module (ZMod n) (E.nTorsion n) :=
 -- Please do not work on it without talking to KB and David first.
 -- This theorem was well-known in the early part of the 20th century.
 theorem WeierstrassCurve.n_torsion_card [IsSepClosed k] {n : ℕ} (hn : (n : k) ≠ 0) :
-    Nat.card (E.nTorsion n) = n^2 := sorry
+    Nat.card (E.nTorsion n) = n^2 := knownin1980s
 
 /-- If `n` is nonzero in a separably closed field, the `n`-torsion is finite.  This is an
 immediate consequence of its cardinality; spelling it out avoids a separate, stronger

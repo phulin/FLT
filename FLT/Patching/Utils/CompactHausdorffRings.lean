@@ -5,6 +5,7 @@ Authors: Thomas Browning, Kevin Buzzard
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import Mathlib.GroupTheory.Divisible
 public import Mathlib.Topology.Algebra.Group.CompactOpen
 public import Mathlib.Data.Nat.Prime.Defs
@@ -39,7 +40,7 @@ theorem Group.subsingleton_of_pow_prime_eq_one
     [ConnectedSpace A] [CompactSpace A] [T2Space A]
     (p : ℕ) (hp : p.Prime) (hAp : ∀ a : A, a ^ p = 1) :
     Subsingleton A := by
-  sorry
+  knownin1980s
 
 /-- A compact Hausdorff vector space over `𝔽_p` is totally disconnected. -/
 @[to_additive]

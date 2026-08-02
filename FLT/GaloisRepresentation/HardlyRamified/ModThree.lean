@@ -5,6 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
+public import FLT.Assumptions.KnownIn1980s
 public import FLT.GaloisRepresentation.HardlyRamified.Defs
 public import FLT.Deformations.RepresentationTheory.TraceReducibility
 
@@ -35,7 +36,7 @@ theorem mod_three_exists_nonzero_invariant_covector
     (hV : Module.rank k V = 2) {ρ : GaloisRep ℚ k V}
     (hρ : IsHardlyRamified (show Odd 3 by decide) hV ρ) :
     ∃ π : V →ₗ[k] k, π ≠ 0 ∧ ∀ g : Γ ℚ, ∀ v : V, π (ρ g v) = π v := by
-  sorry
+  knownin1980s
 
 /-- A mod 3 hardly ramified representation is an extension of trivial by cyclo -/
 -- Probably `Field k` can be replaced with `(3 : k) = 0`
