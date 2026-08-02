@@ -9,6 +9,7 @@ public import FLT.GaloisRepresentation.HardlyRamified.Defs
 public import FLT.FreyCurve.Basic
 public import FLT.KnownIn1980s.EllipticCurves.WeilPairing
 import FLT.FreyCurve.Flat
+import FLT.FreyCurve.TameAtTwo
 import FLT.FreyCurve.Unramified
 import FLT.GaloisRepresentation.HardlyRamified.Reduction
 import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
@@ -100,7 +101,11 @@ theorem FreyCurve.torsion_isHardlyRamified :
       · exact P.pp
       · exact_mod_cast P.pp.ne_zero)
       (P.freyCurve.galoisRep P.p (show 0 < P.p from P.hppos)) :=
-  sorry
+  by
+    letI : Fact (P.p.Prime) := ⟨P.pp⟩
+    exact FreyCurve.torsion_isHardlyRamified_of_local_conditions P
+      (FreyCurve.torsion_isFlatAt P)
+      (FreyCurve.torsion_hasTameQuadraticQuotientAtTwo P)
 
 theorem FreyCurve.torsion_not_isIrreducible :
     haveI : Fact (P.p.Prime) := ⟨P.pp⟩
