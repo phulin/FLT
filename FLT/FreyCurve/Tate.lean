@@ -11,6 +11,9 @@ public import FLT.KnownIn1980s.EllipticCurves.LocalInertia
 public import FLT.KnownIn1980s.EllipticCurves.TateCurve
 public import FLT.NumberField.Completion.ValuativeRel
 
+import FLT.KnownIn1980s.EllipticCurves.QuadraticTwists.SplitMultiplicativeReduction
+import FLT.Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
+
 /-!
 # Tate parameters at bad primes of the Frey curve
 
@@ -434,6 +437,133 @@ theorem torsion_fixed_by_localInertia_of_split_multiplicative_of_j_eq
   change WeierstrassCurve.Affine.Point.map (W' := E) σ.toAlgHom T.1 = T.1
   rw [← hTu]
   exact hpoint
+
+/-- At a bad odd prime, local inertia also fixes the `p`-torsion of a nonsplit
+multiplicative curve with the Frey `j`-invariant.  Pass to the unramified quadratic twist,
+where the reduction is split and the Tate calculation applies.  Inertia fixes the twisting
+extension, so its quadratic character is trivial; naturality of the twist and minimal-model
+point equivalences then transports the fixed point back to the original curve. -/
+theorem torsion_fixed_by_localInertia_of_nonsplit_multiplicative_of_j_eq
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let Ω := AlgebraicClosure K
+    let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+    ∀ (E : WeierstrassCurve K) [E.IsElliptic]
+      [E.HasMultiplicativeReduction R]
+      [NeZero (P.p : IsLocalRing.ResidueField R)]
+      [DecidableEq Ω]
+      (_hnsplit : ¬ E.HasSplitMultiplicativeReduction R)
+      (_hj : E.j = algebraMap ℚ K P.freyCurve.j)
+      (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
+      ∀ T : AddSubgroup.torsionBy (E⁄Ω).Point (P.p : ℤ),
+        E.nTorsionMap P.p σ.toAlgHom T = T := by
+  let _ : Fact q.Prime := ⟨hq⟩
+  dsimp only
+  intro E hell hmult hp hdec hnsplit hjmap σ hσ T
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let Ω := AlgebraicClosure K
+  let _ : E.IsElliptic := hell
+  let _ : DecidableEq K := Classical.typeDecidableEq K
+  let _ : E.HasMultiplicativeReduction R := hmult
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := hp
+  let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+  let _ : DecidableEq Ω := hdec
+  have hd : E.UnramifiedQuadraticTwistData R :=
+    E.exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction R hnsplit
+  unfold WeierstrassCurve.UnramifiedQuadraticTwistData at hd
+  obtain ⟨L, hfield, halgebra, hquadratic, hseparable, halgebraR, htower,
+      θ, t, n, hθint, hθbase, htrace, hnorm, hdisc, hsplit⟩ := hd
+  let ι : L →ₐ[K] Ω := IsAlgClosed.lift
+  let _ : Algebra L Ω := ι.toRingHom.toAlgebra
+  have halgι : algebraMap L Ω = ι := RingHom.algebraMap_toAlgebra _
+  let _ : IsScalarTower K L Ω := IsScalarTower.of_algebraMap_eq fun x => by
+    rw [halgι]
+    exact (ι.commutes x).symm
+  have hfixL (x : L) : σ (algebraMap L Ω x) = algebraMap L Ω x := by
+    rw [halgι]
+    exact v.localInertia_fixed_on_unramified_quadratic_extension
+      L ι θ t n hθint hθbase htrace hnorm hdisc σ hσ x
+  have hchi : quadraticCharacter K L Ω σ = 1 :=
+    (quadraticCharacter_eq_one_iff K L Ω σ).2 hfixL
+  let Et := E.quadraticTwist L
+  let C := (Et.exists_isMinimal R).choose
+  let W := Et.minimal R
+  have hWdef : W = C • Et := rfl
+  let _ : Et.IsElliptic := inferInstance
+  let _ : W.IsElliptic := by
+    change (C • Et).IsElliptic
+    infer_instance
+  let _ : W.HasSplitMultiplicativeReduction R := hsplit
+  have hjW : W.j = algebraMap ℚ K P.freyCurve.j := by
+    calc
+      W.j = Et.j := by
+        change (C • Et).j = Et.j
+        exact WeierstrassCurve.variableChange_j Et C
+      _ = E.j := E.j_quadraticTwist L
+      _ = algebraMap ℚ K P.freyCurve.j := hjmap
+  let twistEquiv := E.quadraticTwistPointEquiv L Ω
+  let minimalEquiv :=
+    WeierstrassCurve.Affine.Point.variableChangePointEquiv Et C Ω
+  let Qtwist := twistEquiv.symm T.1
+  let Qmin := minimalEquiv.symm Qtwist
+  have hTzero : P.p • T.1 = 0 := AddSubgroup.torsionBy.nsmul_iff.mp T.2
+  have hQtwistzero : P.p • Qtwist = 0 := by
+    apply twistEquiv.injective
+    rw [map_nsmul, map_zero, twistEquiv.apply_symm_apply, hTzero]
+  have hQminzero : P.p • Qmin = 0 := by
+    apply minimalEquiv.injective
+    rw [map_nsmul, map_zero, minimalEquiv.apply_symm_apply, hQtwistzero]
+  let QminTorsion : AddSubgroup.torsionBy (W⁄Ω).Point (P.p : ℤ) := by
+    refine ⟨?_, AddSubgroup.torsionBy.nsmul_iff.mpr ?_⟩
+    · exact Qmin
+    · exact hQminzero
+  have hfixedW := torsion_fixed_by_localInertia_of_split_multiplicative_of_j_eq
+    P hq hqodd hqbad W hjW σ hσ QminTorsion
+  have hfixedWpoint :
+      WeierstrassCurve.Affine.Point.map (W' := W) σ.toAlgHom Qmin = Qmin := by
+    have h := congrArg Subtype.val hfixedW
+    rw [W.nTorsionMap_coe] at h
+    change WeierstrassCurve.Affine.Point.map (W' := W) σ.toAlgHom Qmin = Qmin at h
+    exact h
+  have hQtwistfixed :
+      WeierstrassCurve.Affine.Point.map (W' := Et) σ.toAlgHom Qtwist = Qtwist := by
+    calc
+      WeierstrassCurve.Affine.Point.map (W' := Et) σ.toAlgHom Qtwist =
+          WeierstrassCurve.Affine.Point.map (W' := Et) σ.toAlgHom
+            (minimalEquiv Qmin) := by rw [minimalEquiv.apply_symm_apply]
+      _ = minimalEquiv
+          (WeierstrassCurve.Affine.Point.map (W' := W) σ.toAlgHom Qmin) := by
+            symm
+            exact WeierstrassCurve.Affine.Point.variableChangePointEquiv_map
+              Et C σ.toAlgHom Qmin
+      _ = minimalEquiv Qmin := congrArg minimalEquiv hfixedWpoint
+      _ = Qtwist := minimalEquiv.apply_symm_apply Qtwist
+  have hEpoint :
+      WeierstrassCurve.Affine.Point.map (W' := E) σ.toAlgHom T.1 = T.1 := by
+    have hgal := E.quadraticTwistPointEquiv_galois L Ω σ Qtwist
+    have hQtwistT : twistEquiv Qtwist = T.1 := twistEquiv.apply_symm_apply T.1
+    rw [hQtwistfixed, hchi, Units.val_one, one_zsmul, hQtwistT] at hgal
+    exact hgal.symm
+  apply Subtype.ext
+  rw [E.nTorsionMap_coe]
+  exact hEpoint
 
 /-- At a bad odd split-multiplicative prime distinct from the Frey exponent, local inertia
 fixes every `p`-torsion point of the completed Frey curve. -/
