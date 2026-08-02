@@ -11,6 +11,7 @@ public import FLT.Deformations.IsProartinian
 public import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 public import Mathlib.LinearAlgebra.Charpoly.Basic
 public import Mathlib.LinearAlgebra.Matrix.Unique
+public import Mathlib.Order.JordanHolder
 public import Mathlib.RingTheory.Bialgebra.TensorProduct
 public import Mathlib.RingTheory.HopfAlgebra.Basic
 public import Mathlib.RepresentationTheory.Irreducible
@@ -927,11 +928,44 @@ theorem FramedGaloisRep.IsFlatAt.baseChange [IsTopologicalRing B]
 
 end Flat
 
+namespace Subrepresentation
+
+/-- Subrepresentations form a modular lattice because their meets and joins are the
+corresponding meets and joins of their underlying submodules. -/
+instance instIsModularLattice
+    {R G W : Type*} [Ring R] [Monoid G] [AddCommGroup W] [Module R W]
+    {ρ : Representation R G W} : IsModularLattice (Subrepresentation ρ) where
+  sup_inf_le_assoc_of_le {x} y {z} hxz := by
+    change x.toSubmodule ≤ z.toSubmodule at hxz
+    change (x.toSubmodule ⊔ y.toSubmodule) ⊓ z.toSubmodule ≤
+      x.toSubmodule ⊔ y.toSubmodule ⊓ z.toSubmodule
+    exact IsModularLattice.sup_inf_le_assoc_of_le y.toSubmodule hxz
+
+/-- A finite representation has only finitely many subrepresentations. -/
+noncomputable instance instFinite
+    {R G W : Type*} [Semiring R] [Monoid G] [AddCommMonoid W] [Module R W]
+    {ρ : Representation R G W} [Finite W] : Finite (Subrepresentation ρ) :=
+  Finite.of_injective Subrepresentation.toSubmodule
+    Subrepresentation.toSubmodule_injective
+
+end Subrepresentation
+
 /-- A Galois representation is a representation (note that we
 are forgetting topological information here). -/
 def GaloisRep.toRepresentation (ρ : GaloisRep K A M) : Representation A (Γ K) M :=
   letI := moduleTopology A (Module.End A M) -- ?!
   ρ.toMonoidHom
+
+/-- Every Galois representation on a finite module admits a composition series by invariant
+submodules, starting at zero and ending at the whole representation. -/
+theorem GaloisRep.exists_invariant_compositionSeries [Finite M]
+    (ρ : GaloisRep K A M) :
+    ∃ s : CompositionSeries (Subrepresentation ρ.toRepresentation),
+      s.head = ⊥ ∧ s.last = ⊤ := by
+  obtain ⟨f, f₀, n, hn⟩ :=
+    exists_covBy_seq_of_wellFoundedLT_wellFoundedGT
+      (Subrepresentation ρ.toRepresentation)
+  exact ⟨⟨n, fun i ↦ f i, fun i ↦ hn.2 i i.2⟩, f₀.eq_bot, hn.1.eq_top⟩
 
 /-- Irreducibility of a Galois representation over a field. -/
 def GaloisRep.IsIrreducible {k : Type*} [Field k] [TopologicalSpace k] [Module k M]
