@@ -2089,6 +2089,148 @@ noncomputable def coordinateBialgebra (h2 : IsUnit (2 : R))
     (rightCounit_comp_comulAlgHom R N u t n h2 hdisc)
     (leftCounit_comp_comulAlgHom R N u t n h2 hdisc)
 
+/-- Scalar extension to the quadratic cover identifies the descended bialgebra with the
+split Tate--Kummer bialgebra. -/
+noncomputable def baseChangeBialgEquiv
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    letI := coordinateBialgebra R N u t n h2 hdisc
+    BaseChangedFixedAlgebra R N u t n ≃ₐc[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n := by
+  letI := coordinateBialgebra R N u t n h2 hdisc
+  apply BialgEquiv.ofAlgEquiv (baseChangeEquiv R N u t n h2 hdisc)
+  · apply Algebra.TensorProduct.ext_ring
+    apply AlgHom.ext
+    intro z
+    simp only [AlgHom.comp_apply, AlgHom.restrictScalars_apply,
+      AlgEquiv.coe_toAlgHom, Algebra.TensorProduct.includeRight_apply]
+    rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul]
+    have hz := coverCounitAlgHom_eq_algebraMap_counitAlgHom
+      R N u t n h2 z
+    change CoalgebraStruct.counit
+        (R := QuadraticDescent.Algebra R t n)
+          (z : CoverCoordinateAlgebra R N u t n) =
+        algebraMap R (QuadraticDescent.Algebra R t n)
+          (CoalgebraStruct.counit (R := R) z) at hz
+    have hcounit := DFunLike.congr_fun
+      (Bialgebra.counitAlgHom_comp_includeRight
+        (R := R) (A := QuadraticDescent.Algebra R t n)
+        (B := fixedSubalgebra R N u t n)) z
+    change CoalgebraStruct.counit
+        (R := QuadraticDescent.Algebra R t n)
+          (z : CoverCoordinateAlgebra R N u t n) =
+      (((Bialgebra.counitAlgHom (QuadraticDescent.Algebra R t n)
+        (BaseChangedFixedAlgebra R N u t n)).restrictScalars R).comp
+          (Algebra.TensorProduct.includeRight :
+            fixedSubalgebra R N u t n →ₐ[R]
+              BaseChangedFixedAlgebra R N u t n)) z
+    rw [hcounit]
+    exact hz
+  · apply Algebra.TensorProduct.ext_ring
+    apply AlgHom.ext
+    intro z
+    simp only [AlgHom.comp_apply, AlgHom.restrictScalars_apply,
+      AlgEquiv.coe_toAlgHom, Algebra.TensorProduct.includeRight_apply]
+    have hcomul := DFunLike.congr_fun
+      (Bialgebra.comul_includeRight (R := R)
+        (A := QuadraticDescent.Algebra R t n)
+        (B := fixedSubalgebra R N u t n)) z
+    have hcoordinateComul :
+        Bialgebra.comulAlgHom R (fixedSubalgebra R N u t n) =
+          comulAlgHom R N u t n h2 hdisc := rfl
+    rw [hcoordinateComul] at hcomul
+    have hinclude :
+        (Algebra.TensorProduct.includeRight :
+          fixedSubalgebra R N u t n →ₐ[R]
+            BaseChangedFixedAlgebra R N u t n).toRingHom.comp
+            (algebraMap R (fixedSubalgebra R N u t n)) =
+          (algebraMap (QuadraticDescent.Algebra R t n)
+            (BaseChangedFixedAlgebra R N u t n)).comp
+              (algebraMap R (QuadraticDescent.Algebra R t n)) := by
+      ext r
+      simp [← IsScalarTower.algebraMap_apply R
+        (QuadraticDescent.Algebra R t n)]
+    have hcomul' :
+        Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+            (BaseChangedFixedAlgebra R N u t n)
+            (Algebra.TensorProduct.includeRight z) =
+          baseChangeTensorEmbedding R N u t n
+            (comulAlgHom R N u t n h2 hdisc z) := by
+      let q := comulAlgHom R N u t n h2 hdisc z
+      change
+        (((RingHomClass.toRingHom
+          (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+            (BaseChangedFixedAlgebra R N u t n))).comp
+          (RingHomClass.toRingHom
+            (Algebra.TensorProduct.includeRight :
+              fixedSubalgebra R N u t n →ₐ[R]
+                BaseChangedFixedAlgebra R N u t n))) z) =
+          baseChangeTensorEmbedding R N u t n q
+      have hq : (comulAlgHom R N u t n h2 hdisc).toRingHom z = q := rfl
+      simp only [RingHom.comp_apply] at hcomul ⊢
+      change _ = Algebra.TensorProduct.mapRingHom
+        (algebraMap R (QuadraticDescent.Algebra R t n))
+        (Algebra.TensorProduct.includeRight :
+          fixedSubalgebra R N u t n →ₐ[R]
+            BaseChangedFixedAlgebra R N u t n).toRingHom
+        (Algebra.TensorProduct.includeRight :
+          fixedSubalgebra R N u t n →ₐ[R]
+            BaseChangedFixedAlgebra R N u t n).toRingHom
+        hinclude hinclude ((comulAlgHom R N u t n h2 hdisc).toRingHom z)
+          at hcomul
+      rw [hq] at hcomul
+      rw [hcomul]
+      let f : (fixedSubalgebra R N u t n ⊗[R]
+          fixedSubalgebra R N u t n) →+*
+            BaseChangedFixedTensorSquare R N u t n :=
+        Algebra.TensorProduct.mapRingHom
+          (algebraMap R (QuadraticDescent.Algebra R t n))
+          (Algebra.TensorProduct.includeRight :
+            fixedSubalgebra R N u t n →ₐ[R]
+              BaseChangedFixedAlgebra R N u t n).toRingHom
+          (Algebra.TensorProduct.includeRight :
+            fixedSubalgebra R N u t n →ₐ[R]
+              BaseChangedFixedAlgebra R N u t n).toRingHom
+          hinclude hinclude
+      change f q = baseChangeTensorEmbedding R N u t n q
+      induction q using TensorProduct.induction_on with
+      | zero =>
+          exact f.map_zero.trans
+            (baseChangeTensorEmbedding R N u t n).map_zero.symm
+      | add x y hx hy =>
+          calc
+            f (x + y) = f x + f y := f.map_add x y
+            _ = baseChangeTensorEmbedding R N u t n x +
+                baseChangeTensorEmbedding R N u t n y :=
+              congrArg₂ (fun a b ↦ a + b) hx hy
+            _ = baseChangeTensorEmbedding R N u t n (x + y) :=
+              (baseChangeTensorEmbedding R N u t n).map_add x y |>.symm
+      | tmul x y => simp [f, baseChangeTensorEmbedding_tmul]
+    have hmap (q : fixedSubalgebra R N u t n ⊗[R]
+        fixedSubalgebra R N u t n) :
+        (Algebra.TensorProduct.map
+          (baseChangeEquiv R N u t n h2 hdisc).toAlgHom
+          (baseChangeEquiv R N u t n h2 hdisc).toAlgHom)
+            (baseChangeTensorEmbedding R N u t n q) =
+          baseChangeTensorCoverEquiv R N u t n h2 hdisc
+            ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q) := by
+      induction q using TensorProduct.induction_on with
+      | zero => simp
+      | add x y hx hy => simp only [map_add, TensorProduct.tmul_add, hx, hy]
+      | tmul x y =>
+          simp [baseChangeTensorCoverEquiv_tmul]
+    change
+      (Algebra.TensorProduct.map
+        (baseChangeEquiv R N u t n h2 hdisc).toAlgHom
+        (baseChangeEquiv R N u t n h2 hdisc).toAlgHom)
+          (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+            (BaseChangedFixedAlgebra R N u t n)
+            (Algebra.TensorProduct.includeRight z)) = _
+    rw [hcomul']
+    rw [hmap]
+    rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul]
+    rw [baseChangeTensorCoverEquiv_one_tmul_comulAlgHom]
+
 /-! ## Antipode identities -/
 
 /-- Apply the descended antipode to the left tensor factor and multiply. -/
