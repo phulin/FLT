@@ -123,6 +123,25 @@ theorem finite_quotient_maximalIdeal_pow_of_finiteFree_moduleTopology
   exact AddSubgroup.quotient_finite_of_isOpen _
     (isOpen_maximalIdeal_pow_of_finiteFree_moduleTopology (R := R) n)
 
+/-- The finite Galois extension cut out by a finite three-adic representation is unramified
+outside `2` and `3`, in the precise Galois-theoretic sense that local inertia acts trivially
+on the extension.  This transfers the representation-level hard-ramification hypothesis to
+the finite extension used in Schoof's classification argument. -/
+theorem schoof_three_adic_fieldCutOut_unramified_outside_two_three
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
+    ∀ p (hp : p.Prime), p ≠ 2 ∧ p ≠ 3 →
+      localInertiaGroup hp.toHeightOneSpectrumRingOfIntegersRat ≤
+        (τ.fieldCutOutLocalAction hp.toHeightOneSpectrumRingOfIntegersRat).ker := by
+  intro p hp hp_ne
+  letI : τ.IsUnramifiedAt hp.toHeightOneSpectrumRingOfIntegersRat :=
+    hτ.isUnramified p hp hp_ne
+  exact τ.localInertiaGroup_le_fieldCutOutLocalAction_ker
+    hp.toHeightOneSpectrumRingOfIntegersRat
+
 /-- The arithmetic filtration input for a hardly ramified representation over a finite local
 `ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
 the only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing

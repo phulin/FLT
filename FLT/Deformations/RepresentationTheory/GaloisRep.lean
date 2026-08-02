@@ -555,6 +555,27 @@ class GaloisRep.IsUnramifiedAt (ρ : GaloisRep K A M) (v : Ω K) : Prop where
     letI := moduleTopology A (Module.End A M)
     localInertiaGroup v ≤ (ρ.toLocal v).ker
 
+/-- The action of a local absolute Galois group on the finite field cut out by a global
+representation.  It is obtained by mapping the local Galois group into the global one and
+then restricting global automorphisms to the fixed field of the representation's kernel. -/
+noncomputable def GaloisRep.fieldCutOutLocalAction (ρ : GaloisRep K A M) (v : Ω K) :
+    Γ (v.adicCompletion K) →* (ρ.fieldCutOut ≃ₐ[K] ρ.fieldCutOut) :=
+  (AlgEquiv.restrictNormalHom ρ.fieldCutOut).comp
+    (Field.absoluteGaloisGroup.map (algebraMap K (v.adicCompletion K))).toMonoidHom
+
+/-- If a discrete representation is unramified at `v`, local inertia acts trivially on the
+finite extension cut out by the representation. -/
+theorem GaloisRep.localInertiaGroup_le_fieldCutOutLocalAction_ker
+    [PerfectField K] [DiscreteTopology A] (ρ : GaloisRep K A M) (v : Ω K)
+    [ρ.IsUnramifiedAt v] :
+    localInertiaGroup v ≤ (ρ.fieldCutOutLocalAction v).ker := by
+  intro σ hσ
+  have hρ := GaloisRep.IsUnramifiedAt.localInertiaGroup_le (ρ := ρ) hσ
+  change Field.absoluteGaloisGroup.map (algebraMap K (v.adicCompletion K)) σ ∈ ρ.ker at hρ
+  change Field.absoluteGaloisGroup.map (algebraMap K (v.adicCompletion K)) σ ∈
+    (AlgEquiv.restrictNormalHom ρ.fieldCutOut).ker
+  rwa [IntermediateField.restrictNormalHom_ker, ρ.fieldCutOut_fixingSubgroup]
+
 instance (ρ : GaloisRep K A M) (v : Ω K) [ρ.IsUnramifiedAt v] (e : M ≃ₗ[A] N) :
     (ρ.conj e).IsUnramifiedAt v where
   localInertiaGroup_le := (GaloisRep.IsUnramifiedAt.localInertiaGroup_le (ρ := ρ)).trans (by simp)
