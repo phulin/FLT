@@ -216,6 +216,51 @@ lemma InfiniteGalois.evalMulActionHom_bijective_of_isSepClosed
     Function.Bijective (AlgHom.evalMulActionHom (L ≃ₐ[K] L) K A L) :=
   InfiniteGalois.evalMulActionHom_bijective _ _ _ fun _ _ ↦ ⟨IsSepClosed.lift⟩
 
+/-- For a finite etale algebra over `K`, evaluation is the algebra equivalence from the algebra
+to the equivariant `L`-valued functions on its geometric points. -/
+noncomputable def InfiniteGalois.evalMulActionAlgEquiv
+    [Algebra.Etale K A] [IsGalois K L] [IsSepClosed L] :
+    A ≃ₐ[K] ((A →ₐ[K] L) →[L ≃ₐ[K] L] L) :=
+  AlgEquiv.ofBijective (AlgHom.evalMulActionHom (L ≃ₐ[K] L) K A L)
+    (InfiniteGalois.evalMulActionHom_bijective_of_isSepClosed K L A)
+
+variable {B : Type u} [CommRing B] [Algebra K B]
+
+/-- Full faithfulness of the finite-etale/Galois-set correspondence: an equivariant map from
+the geometric points of `B` to those of `A` uniquely induces a `K`-algebra map `A → B`.
+The reversal of direction is the usual contravariance of `Spec`. -/
+noncomputable def InfiniteGalois.algHomOfMulActionHom
+    [Algebra.Etale K A] [Algebra.Etale K B] [IsGalois K L] [IsSepClosed L]
+    (f : (B →ₐ[K] L) →[L ≃ₐ[K] L] (A →ₐ[K] L)) : A →ₐ[K] B :=
+  (InfiniteGalois.evalMulActionAlgEquiv K L B).symm.toAlgHom.comp
+    ((MulActionHom.compLeftAlgHom (L ≃ₐ[K] L) K L f).comp
+      (InfiniteGalois.evalMulActionAlgEquiv K L A).toAlgHom)
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The algebra map obtained by full faithfulness induces the prescribed map on geometric
+points. -/
+@[simp]
+lemma InfiniteGalois.comp_algHomOfMulActionHom
+    [Algebra.Etale K A] [Algebra.Etale K B] [IsGalois K L] [IsSepClosed L]
+    (f : (B →ₐ[K] L) →[L ≃ₐ[K] L] (A →ₐ[K] L)) (q : B →ₐ[K] L) :
+    q.comp (InfiniteGalois.algHomOfMulActionHom K L A f) = f q := by
+  ext a
+  let h : (B →ₐ[K] L) →[L ≃ₐ[K] L] L :=
+    (MulActionHom.compLeftAlgHom (L ≃ₐ[K] L) K L f)
+      (InfiniteGalois.evalMulActionAlgEquiv K L A a)
+  have H := (InfiniteGalois.evalMulActionAlgEquiv K L B).apply_symm_apply h
+  exact DFunLike.congr_fun H q
+
+/-- Algebra maps between finite etale algebras are equal when they induce the same map on all
+geometric points over a separably closed Galois extension. -/
+lemma InfiniteGalois.algHom_ext_of_comp_eq
+    [Algebra.Etale K A] [Algebra.Etale K B] [IsGalois K L] [IsSepClosed L]
+    {f g : A →ₐ[K] B} (h : ∀ q : B →ₐ[K] L, q.comp f = q.comp g) : f = g := by
+  ext a
+  apply (InfiniteGalois.evalMulActionHom_bijective_of_isSepClosed K L B).1
+  ext q
+  exact DFunLike.congr_fun (h q) a
+
 instance finiteIndex_fixingSubgroup {K L : Type*} [Field K] [Field L] [Algebra K L]
     (E : IntermediateField K L) [FiniteDimensional K E] : E.fixingSubgroup.FiniteIndex := by
   let f : (L ≃ₐ[K] L) ⧸ E.fixingSubgroup → E →ₐ[K] L := Quotient.lift
