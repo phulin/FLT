@@ -482,6 +482,54 @@ theorem not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_ne_zero
   ring
 
 open IsLocalRing in
+/-- In equal characteristic `2`, a nontrivial quadratic twist of a split-multiplicative curve
+cannot again be split multiplicative.  Split tangent directions Hensel-lift from the residue
+field to `k`; the two node polynomials would then give an Artin--Schreier solution for the
+quadratic generator's trace and norm, contradicting its field-level characteristic polynomial. -/
+theorem not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_eq_zero
+    (W : WeierstrassCurve k) [W.IsElliptic] [W.HasSplitMultiplicativeReduction 𝒪[k]]
+    (L : Type u) [Field L] [Algebra k L] [Algebra.IsQuadraticExtension k L]
+    [Algebra.IsSeparable k L] (W' : WeierstrassCurve k) [W'.IsElliptic]
+    (C : VariableChange k) (hC : C • W' = W.quadraticTwist L)
+    (h2res : (2 : ResidueField 𝒪[k]) = 0) (h2k : (2 : k) = 0) :
+    ¬ W'.HasSplitMultiplicativeReduction 𝒪[k] := by
+  intro hW'split
+  letI : W'.HasSplitMultiplicativeReduction 𝒪[k] := hW'split
+  let θ : L := (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose
+  have hθ : θ ∉ Set.range (algebraMap k L) :=
+    (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose_spec
+  let t : k := Algebra.trace k L θ
+  let n : k := Algebra.norm k θ
+  change C • W' = W.quadraticTwistOf t n at hC
+  have ht : t ≠ 0 := by
+    intro ht
+    apply Algebra.IsQuadraticExtension.discrim_ne_zero k L hθ
+    have h4 : (4 : k) = 0 := by
+      rw [show (4 : k) = 2 * 2 by norm_num, h2k, zero_mul]
+    change t ^ 2 - 4 * n = 0
+    rw [ht, zero_pow (by norm_num : 2 ≠ 0), h4, zero_mul, sub_zero]
+  letI : UniformSpace k := IsTopologicalAddGroup.rightUniformSpace k
+  letI : IsUniformAddGroup k := isUniformAddGroup_of_addCommGroup
+  have hsW : W.nodePoly.Splits :=
+    nodePoly_splits_of_hasSplitMultiplicativeReduction_of_two_residue_eq_zero W 𝒪[k] h2res
+  have hsW' : W'.nodePoly.Splits :=
+    nodePoly_splits_of_hasSplitMultiplicativeReduction_of_two_residue_eq_zero W' 𝒪[k] h2res
+  have hschange : ((C • W').nodePoly.map (RingHom.id k)).Splits :=
+    (nodePoly_map_splits_smul_iff (RingHom.id k) W' C).mpr (by simpa using hsW')
+  have htwist : (W.quadraticTwistOf t n).nodePoly.Splits := by
+    rw [hC] at hschange
+    simpa using hschange
+  have hAS : ¬ ∃ z : k, t ^ 2 * (z ^ 2 + z) = n := by
+    dsimp only [t, n]
+    exact not_exists_artinSchreier_of_quadratic_generator hθ h2k
+  have hnot := not_nodePoly_quadraticTwistOf_map_splits_of_splits_of_not_exists_artinSchreier
+    h2k (RingHom.id k) W t n
+      (by simpa using c₄_ne_zero_of_one_lt_valuation_j W W.one_lt_valuation_j)
+      (by simpa using c₆_ne_zero_of_one_lt_valuation_j W W.one_lt_valuation_j)
+      (by simpa using ht) (by simpa using hsW) (by simpa using hAS)
+  exact hnot (by simpa using htwist)
+
+open IsLocalRing in
 /-- In residue characteristic `2`, the `a₁` coefficient of a minimal equation with
 multiplicative reduction is a unit.  Indeed, modulo the maximal ideal the discriminant of the
 node polynomial is

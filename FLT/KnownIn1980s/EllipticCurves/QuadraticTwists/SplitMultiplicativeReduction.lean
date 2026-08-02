@@ -283,7 +283,7 @@ extension in characteristic `2` is nontrivial.  If
 `θ`.  Factoring the rank-two Cayley--Hamilton identity therefore puts `θ` in the base field. -/
 lemma not_exists_artinSchreier_of_quadratic_generator
     {L : Type*} [Field L] [Algebra K L] [Algebra.IsQuadraticExtension K L]
-    { θ : L } (hθ : θ ∉ Set.range (algebraMap K L)) (h2 : (2 : K) = 0) :
+    {θ : L} (hθ : θ ∉ Set.range (algebraMap K L)) (h2 : (2 : K) = 0) :
     ¬ ∃ z : K, Algebra.trace K L θ ^ 2 * (z ^ 2 + z) = Algebra.norm K θ := by
   rintro ⟨z, hz⟩
   let t : K := Algebra.trace K L θ
