@@ -27,6 +27,7 @@ of component indices, is built on top of these component algebras.
 @[expose] public section
 
 open Polynomial
+open scoped TensorProduct
 
 universe u
 
@@ -91,5 +92,90 @@ instance algebraModuleFinite (N : ℕ) [NeZero N] (u : Rˣ) :
 instance algebraModuleFlat (N : ℕ) [NeZero N] (u : Rˣ) :
     Module.Flat R (CoordinateAlgebra (R := R) N u) :=
   Module.Flat.of_free
+
+/-! ## Component arithmetic -/
+
+/-- Addition of component indices, represented in the standard range `0, ..., N - 1`. -/
+def addIndex (N : ℕ) [NeZero N] (i j : Fin N) : Fin N :=
+  ⟨(i.1 + j.1) % N, Nat.mod_lt _ (Nat.pos_of_ne_zero (NeZero.ne N))⟩
+
+/-- The number of copies of `N` carried when adding two standard component indices. -/
+def addCarry (N : ℕ) (i j : Fin N) : ℕ :=
+  (i.1 + j.1) / N
+
+lemma addIndex_val_add_mul_addCarry (N : ℕ) [NeZero N] (i j : Fin N) :
+    (addIndex N i j).1 + N * addCarry N i j = i.1 + j.1 :=
+  Nat.mod_add_div _ _
+
+/-- The unit identity behind multiplication in the Tate--Kummer model. The compensating
+inverse power removes the carried copy of `N`. -/
+lemma unit_mul_unit_mul_invCarry_pow (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
+    u ^ i.1 * u ^ j.1 * ((u⁻¹) ^ addCarry N i j) ^ N =
+      u ^ (addIndex N i j).1 := by
+  rw [← pow_add]
+  have hs := addIndex_val_add_mul_addCarry N i j
+  calc
+    u ^ (i.1 + j.1) * ((u⁻¹) ^ addCarry N i j) ^ N =
+        u ^ ((addIndex N i j).1 + N * addCarry N i j) *
+          (u⁻¹) ^ (addCarry N i j * N) := by
+            rw [hs, pow_mul]
+    _ = u ^ (addIndex N i j).1 *
+          (u ^ (N * addCarry N i j) *
+            (u⁻¹) ^ (N * addCarry N i j)) := by
+          rw [pow_add, Nat.mul_comm (addCarry N i j) N, mul_assoc]
+    _ = u ^ (addIndex N i j).1 := by
+          rw [← mul_pow, mul_inv_cancel, one_pow, mul_one]
+
+/-! ## Multiplication of component coordinates -/
+
+/-- The image of the distinguished coordinate under multiplication of components `i`
+and `j`. The final scalar is the inverse-unit correction for the carry. -/
+noncomputable def componentMulRoot (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
+    (Component R N i.1 u) ⊗[R] (Component R N j.1 u) :=
+  Algebra.TensorProduct.includeLeft
+      (R := R) (S := R)
+      (B := Component R N j.1 u)
+      (AdjoinRoot.root (componentPolynomial R N i.1 u)) *
+    Algebra.TensorProduct.includeRight
+      (R := R) (A := Component R N i.1 u)
+      (AdjoinRoot.root (componentPolynomial R N j.1 u)) *
+    algebraMap R _ ((((u⁻¹) ^ addCarry N i j : Rˣ) : R))
+
+/-- The component multiplication coordinate satisfies the equation of the sum component. -/
+lemma componentMulRoot_pow (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
+    (componentMulRoot N u i j) ^ N =
+      algebraMap R
+        ((Component R N i.1 u) ⊗[R] (Component R N j.1 u))
+        ((u : R) ^ (addIndex N i j).1) := by
+  rw [componentMulRoot, mul_pow, mul_pow, ← map_pow, ← map_pow,
+    root_pow, root_pow, ← map_pow]
+  simp only [AlgHom.commutes]
+  rw [← map_mul, ← map_mul]
+  congr 1
+  exact congrArg Units.val (unit_mul_unit_mul_invCarry_pow N u i j)
+
+/-- The algebra map contravariantly encoding multiplication from components `i` and `j`
+to their sum component. -/
+noncomputable def componentMulAlgHom (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
+    Component R N (addIndex N i j).1 u →ₐ[R]
+      (Component R N i.1 u) ⊗[R] (Component R N j.1 u) :=
+  AdjoinRoot.liftAlgHom
+    (componentPolynomial R N (addIndex N i j).1 u)
+    (Algebra.ofId R _)
+    (componentMulRoot N u i j)
+    (by
+      rw [show componentPolynomial R N (addIndex N i j).1 u =
+        X ^ N - C ((u : R) ^ (addIndex N i j).1) from rfl]
+      simp [componentMulRoot_pow])
+
+@[simp]
+lemma componentMulAlgHom_root (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
+    componentMulAlgHom N u i j
+        (AdjoinRoot.root
+          (componentPolynomial R N (addIndex N i j).1 u)) =
+      componentMulRoot N u i j :=
+  by
+    unfold componentMulAlgHom
+    apply AdjoinRoot.liftAlgHom_root
 
 end TateKummer
