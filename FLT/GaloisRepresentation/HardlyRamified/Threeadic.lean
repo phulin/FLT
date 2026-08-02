@@ -14,6 +14,7 @@ import FLT.Mathlib.RingTheory.Valuation.ValuationSubring
 import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 import Mathlib.Algebra.CharP.CharAndCard
 import Mathlib.Data.Nat.Factors
+import Mathlib.GroupTheory.OrderOfElement
 import Mathlib.NumberTheory.Padics.ProperSpace
 import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 import Mathlib.Topology.Algebra.Module.Compact
@@ -399,6 +400,39 @@ theorem schoof_three_adic_inertia_action_pow_three_eq_one_at_two
       (schoof_three_adic_inertia_unipotent_at_two W hW htau g hg) ?_⟩
   rw [← hchar]
   exact CharP.cast_eq_zero A (ringChar A)
+
+/-- A subgroup of inertia whose finite linear image has `2`-power exponent acts trivially.
+This packages the final coprime-orders step separately from the local-field theorem that wild
+inertia has `2`-power image in every finite quotient. -/
+theorem schoof_three_adic_inertia_subgroup_trivial_of_pow_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau)
+    (P : Subgroup (Γ ℚ_[2]))
+    (hP : P ≤ AddSubgroup.inertia
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]))
+    (hpow_two : ∀ g ∈ P, ∃ m : ℕ,
+      (tau.map (algebraMap ℚ ℚ_[2]) g) ^ (2 ^ m) = LinearMap.id) :
+    P ≤ (tau.map (algebraMap ℚ ℚ_[2])).ker := by
+  intro g hg
+  obtain ⟨m, hm⟩ := hpow_two g hg
+  obtain ⟨n, hn⟩ :=
+    schoof_three_adic_inertia_action_pow_three_eq_one_at_two W hW htau g (hP hg)
+  let f : Module.End A W := tau.map (algebraMap ℚ ℚ_[2]) g
+  have hm' : f ^ (2 ^ m) = 1 := by
+    change (tau.map (algebraMap ℚ ℚ_[2]) g) ^ (2 ^ m) = LinearMap.id
+    exact hm
+  have hn' : f ^ (3 ^ n) = 1 := by
+    change (tau.map (algebraMap ℚ ℚ_[2]) g) ^ (3 ^ n) = LinearMap.id
+    exact hn
+  have horder_two : orderOf f ∣ 2 ^ m := orderOf_dvd_of_pow_eq_one hm'
+  have horder_three : orderOf f ∣ 3 ^ n := orderOf_dvd_of_pow_eq_one hn'
+  have horder : orderOf f = 1 := Nat.eq_one_of_dvd_coprimes
+    ((show Nat.Coprime 2 3 by decide).pow m n) horder_two horder_three
+  change f = 1
+  exact orderOf_eq_one_iff.mp horder
 
 /-- The arithmetic filtration input for a hardly ramified representation over a finite local
 `ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
