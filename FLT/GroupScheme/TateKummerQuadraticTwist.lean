@@ -774,6 +774,182 @@ lemma baseChangeEquiv_apply (h2 : IsUnit (2 : R))
     baseChangeEquiv R N u t n h2 hdisc z = baseChangeToCover R N u t n z :=
   rfl
 
+/-! ## Tensor-square base change -/
+
+/-- Scalar extension of the descended coordinate algebra. -/
+noncomputable abbrev BaseChangedFixedAlgebra :=
+  QuadraticDescent.Algebra R t n ⊗[R] fixedSubalgebra R N u t n
+
+/-- The tensor square of the scalar-extended descended coordinate algebra. -/
+noncomputable abbrev BaseChangedFixedTensorSquare :=
+  BaseChangedFixedAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+    BaseChangedFixedAlgebra R N u t n
+
+/-- Embed the left descended tensor factor into the tensor square after scalar extension. -/
+noncomputable def baseChangeTensorLeftEmbedding :
+    fixedSubalgebra R N u t n →ₐ[R] BaseChangedFixedTensorSquare R N u t n :=
+  ((Algebra.TensorProduct.includeLeft :
+      BaseChangedFixedAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+        BaseChangedFixedTensorSquare R N u t n).restrictScalars R).comp
+    (Algebra.TensorProduct.includeRight :
+      fixedSubalgebra R N u t n →ₐ[R] BaseChangedFixedAlgebra R N u t n)
+
+/-- Embed the right descended tensor factor into the tensor square after scalar extension. -/
+noncomputable def baseChangeTensorRightEmbedding :
+    fixedSubalgebra R N u t n →ₐ[R] BaseChangedFixedTensorSquare R N u t n :=
+  ((Algebra.TensorProduct.includeRight :
+      BaseChangedFixedAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+        BaseChangedFixedTensorSquare R N u t n).restrictScalars R).comp
+    (Algebra.TensorProduct.includeRight :
+      fixedSubalgebra R N u t n →ₐ[R] BaseChangedFixedAlgebra R N u t n)
+
+/-- Embed the descended tensor square into the tensor square after scalar extension. -/
+noncomputable def baseChangeTensorEmbedding :
+    fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n →ₐ[R]
+      BaseChangedFixedTensorSquare R N u t n :=
+  Algebra.TensorProduct.lift
+    (baseChangeTensorLeftEmbedding R N u t n)
+    (baseChangeTensorRightEmbedding R N u t n)
+    fun _ _ => Commute.all _ _
+
+@[simp]
+lemma baseChangeTensorLeftEmbedding_apply (x : fixedSubalgebra R N u t n) :
+    baseChangeTensorLeftEmbedding R N u t n x =
+      ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] x) ⊗ₜ[
+        QuadraticDescent.Algebra R t n]
+        (1 : BaseChangedFixedAlgebra R N u t n) := by
+  rfl
+
+@[simp]
+lemma baseChangeTensorRightEmbedding_apply (y : fixedSubalgebra R N u t n) :
+    baseChangeTensorRightEmbedding R N u t n y =
+      (1 : BaseChangedFixedAlgebra R N u t n) ⊗ₜ[
+        QuadraticDescent.Algebra R t n]
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] y) := by
+  rfl
+
+@[simp]
+lemma baseChangeTensorEmbedding_tmul
+    (x y : fixedSubalgebra R N u t n) :
+    baseChangeTensorEmbedding R N u t n (x ⊗ₜ[R] y) =
+      ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] x) ⊗ₜ[
+        QuadraticDescent.Algebra R t n]
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] y) := by
+  simp [baseChangeTensorEmbedding, baseChangeTensorLeftEmbedding,
+    baseChangeTensorRightEmbedding, Algebra.TensorProduct.one_def,
+    Algebra.TensorProduct.tmul_mul_tmul]
+
+/-- The multiplicative base-change distribution map for the descended tensor square. -/
+noncomputable def baseChangeTensorMap :
+    QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) →ₐ[
+      QuadraticDescent.Algebra R t n] BaseChangedFixedTensorSquare R N u t n :=
+  Algebra.TensorProduct.liftEquivRight R (QuadraticDescent.Algebra R t n)
+    (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)
+    (BaseChangedFixedTensorSquare R N u t n)
+    (baseChangeTensorEmbedding R N u t n)
+
+@[simp]
+lemma baseChangeTensorMap_tmul (a : QuadraticDescent.Algebra R t n)
+    (x y : fixedSubalgebra R N u t n) :
+    baseChangeTensorMap R N u t n (a ⊗ₜ[R] (x ⊗ₜ[R] y)) =
+      (a ⊗ₜ[R] x) ⊗ₜ[QuadraticDescent.Algebra R t n]
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] y) := by
+  simp [baseChangeTensorMap, baseChangeTensorEmbedding,
+    baseChangeTensorLeftEmbedding, baseChangeTensorRightEmbedding,
+    Algebra.TensorProduct.one_def, Algebra.TensorProduct.tmul_mul_tmul]
+
+/-- The underlying linear map is Mathlib's standard distribution of scalar extension over a
+tensor product. -/
+lemma baseChangeTensorMap_toLinearMap :
+    (baseChangeTensorMap R N u t n).toLinearMap =
+      (TensorProduct.AlgebraTensorModule.distribBaseChange R
+        (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+        (fixedSubalgebra R N u t n)).toLinearMap := by
+  apply LinearMap.ext
+  intro z
+  induction z using TensorProduct.induction_on with
+  | zero =>
+      change
+        baseChangeTensorMap R N u t n 0 =
+          TensorProduct.AlgebraTensorModule.distribBaseChange R
+            (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+            (fixedSubalgebra R N u t n) 0
+      exact (baseChangeTensorMap R N u t n).map_zero.trans
+        (TensorProduct.AlgebraTensorModule.distribBaseChange R
+          (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+          (fixedSubalgebra R N u t n)).map_zero.symm
+  | tmul a w =>
+      induction w using TensorProduct.induction_on with
+      | zero =>
+          change
+            baseChangeTensorMap R N u t n (a ⊗ₜ[R] 0) =
+              TensorProduct.AlgebraTensorModule.distribBaseChange R
+                (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+                (fixedSubalgebra R N u t n) (a ⊗ₜ[R] 0)
+          rw [TensorProduct.tmul_zero]
+          exact (baseChangeTensorMap R N u t n).map_zero.trans
+            (TensorProduct.AlgebraTensorModule.distribBaseChange R
+              (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+              (fixedSubalgebra R N u t n)).map_zero.symm
+      | tmul x y =>
+          change
+            baseChangeTensorMap R N u t n (a ⊗ₜ[R] (x ⊗ₜ[R] y)) =
+              TensorProduct.AlgebraTensorModule.distribBaseChange R
+                (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+                (fixedSubalgebra R N u t n) (a ⊗ₜ[R] (x ⊗ₜ[R] y))
+          rw [baseChangeTensorMap_tmul,
+            TensorProduct.AlgebraTensorModule.distribBaseChange_tmul]
+      | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+lemma baseChangeTensorMap_bijective :
+    Function.Bijective (baseChangeTensorMap R N u t n) := by
+  have hfun :
+      (baseChangeTensorMap R N u t n :
+        QuadraticDescent.Algebra R t n ⊗[R]
+            (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) →
+          BaseChangedFixedTensorSquare R N u t n) =
+        TensorProduct.AlgebraTensorModule.distribBaseChange R
+          (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+          (fixedSubalgebra R N u t n) := by
+    funext z
+    exact LinearMap.congr_fun (baseChangeTensorMap_toLinearMap R N u t n) z
+  rw [hfun]
+  exact (TensorProduct.AlgebraTensorModule.distribBaseChange R
+    (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n)
+    (fixedSubalgebra R N u t n)).bijective
+
+/-- Scalar extension distributes over the descended tensor square as an algebra
+equivalence. -/
+noncomputable def baseChangeTensorEquiv :
+    QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) ≃ₐ[
+      QuadraticDescent.Algebra R t n] BaseChangedFixedTensorSquare R N u t n :=
+  AlgEquiv.ofBijective (baseChangeTensorMap R N u t n)
+    (baseChangeTensorMap_bijective R N u t n)
+
+@[simp]
+lemma baseChangeTensorEquiv_apply
+    (z : QuadraticDescent.Algebra R t n ⊗[R]
+      (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) :
+    baseChangeTensorEquiv R N u t n z = baseChangeTensorMap R N u t n z :=
+  rfl
+
+/-- After distributing scalar extension, apply the fixed-algebra base-change equivalence in
+both tensor factors. -/
+noncomputable def baseChangeTensorCoverEquiv (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) ≃ₐ[
+      QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+          CoverCoordinateAlgebra R N u t n :=
+  (baseChangeTensorEquiv R N u t n).trans
+    (Algebra.TensorProduct.congr
+      (baseChangeEquiv R N u t n h2 hdisc)
+      (baseChangeEquiv R N u t n h2 hdisc))
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
