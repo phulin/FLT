@@ -259,6 +259,341 @@ lemma exists_rationalPrime_not_mem_of_infinite
     rfl
   exact ⟨q.1, q.2, by simpa only [hwq] using And.intro hwT hwS⟩
 
+/-- The image of a finite subextension of `AlgebraicClosure ℚ` in the algebraic closure of
+the completion at `w`. -/
+noncomputable def localImage (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    IntermediateField ℚ (AlgebraicClosure (w.adicCompletion ℚ)) :=
+  E.map (AlgebraicClosure.map (adicEmbedding w)).toRatAlgHom
+
+noncomputable local instance localImage_numberField
+    (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) [FiniteDimensional ℚ E] :
+    NumberField (localImage w E) := by
+  letI : FiniteDimensional ℚ (localImage w E) :=
+    LinearEquiv.finiteDimensional
+      (E.equivMap (AlgebraicClosure.map (adicEmbedding w)).toRatAlgHom).toLinearEquiv
+  exact NumberField.of_module_finite ℚ (localImage w E)
+
+/-- Embed the ring of integers of the local image into the integral closure used to define
+the local arithmetic Frobenius. -/
+noncomputable def integersToLocalIntegralClosure (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    𝓞 (localImage w E) →+*
+      IntegralClosure (w.adicCompletionIntegers ℚ)
+        (AlgebraicClosure (w.adicCompletion ℚ)) where
+  toFun x := ⟨x.1.1, by
+    have hx : IsIntegral ℤ (x.1.1 : AlgebraicClosure (w.adicCompletion ℚ)) := by
+      letI : Algebra ℤ (localImage w E) := Ring.toIntAlgebra _
+      apply IsIntegral.map_of_comp_eq (RingHom.id ℤ)
+        (localImage w E).val.toRingHom ?_ x.2
+      ext
+      simp
+    exact hx.tower_top⟩
+  map_one' := rfl
+  map_mul' _ _ := rfl
+  map_zero' := rfl
+  map_add' _ _ := rfl
+
+/-- The prime of the local image obtained by contracting the maximal ideal in the local
+algebraic closure. -/
+noncomputable def localPrime (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) : Ideal (𝓞 (localImage w E)) :=
+  (IsLocalRing.maximalIdeal
+    (IntegralClosure (w.adicCompletionIntegers ℚ)
+      (AlgebraicClosure (w.adicCompletion ℚ)))).comap
+        (integersToLocalIntegralClosure w E)
+
+/-- The rational ring of integers acts compatibly through the completion and its algebraic
+closure. -/
+lemma scalarTower_ringOfIntegers_adic_algebraicClosure
+    (w : HeightOneSpectrum (𝓞 ℚ)) :
+    IsScalarTower (𝓞 ℚ) (w.adicCompletionIntegers ℚ)
+      (AlgebraicClosure (w.adicCompletion ℚ)) := by
+  apply IsScalarTower.of_algebraMap_eq
+  intro x
+  obtain ⟨z, rfl⟩ := Rat.ringOfIntegersEquiv.symm.surjective x
+  rw [show Rat.ringOfIntegersEquiv.symm z = (z : 𝓞 ℚ) by
+    simpa using map_intCast Rat.ringOfIntegersEquiv.symm z]
+  simp
+
+/-- The contracted local prime lies over the original rational place. -/
+lemma localPrime_liesOver (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    (localPrime w E).LiesOver w.asIdeal := by
+  constructor
+  ext x
+  change x ∈ w.asIdeal ↔ integersToLocalIntegralClosure w E
+      (algebraMap (𝓞 ℚ) (𝓞 (localImage w E)) x) ∈
+        IsLocalRing.maximalIdeal
+          (IntegralClosure (w.adicCompletionIntegers ℚ)
+            (AlgebraicClosure (w.adicCompletion ℚ)))
+  rw [Ideal.LiesOver.over (P := w.completionIdeal ℚ) (p := w.asIdeal)]
+  change algebraMap (𝓞 ℚ) (w.adicCompletionIntegers ℚ) x ∈
+    IsLocalRing.maximalIdeal (w.adicCompletionIntegers ℚ) ↔ _
+  rw [← IsLocalRing.maximalIdeal_comap
+    (algebraMap (w.adicCompletionIntegers ℚ)
+      (IntegralClosure (w.adicCompletionIntegers ℚ)
+        (AlgebraicClosure (w.adicCompletion ℚ))))]
+  change algebraMap (w.adicCompletionIntegers ℚ)
+    (IntegralClosure (w.adicCompletionIntegers ℚ)
+      (AlgebraicClosure (w.adicCompletion ℚ)))
+      (algebraMap (𝓞 ℚ) (w.adicCompletionIntegers ℚ) x) ∈
+        IsLocalRing.maximalIdeal
+          (IntegralClosure (w.adicCompletionIntegers ℚ)
+            (AlgebraicClosure (w.adicCompletion ℚ))) ↔
+    integersToLocalIntegralClosure w E
+      (algebraMap (𝓞 ℚ) (𝓞 (localImage w E)) x) ∈
+        IsLocalRing.maximalIdeal
+          (IntegralClosure (w.adicCompletionIntegers ℚ)
+            (AlgebraicClosure (w.adicCompletion ℚ)))
+  have heq : algebraMap (w.adicCompletionIntegers ℚ)
+      (IntegralClosure (w.adicCompletionIntegers ℚ)
+        (AlgebraicClosure (w.adicCompletion ℚ)))
+        (algebraMap (𝓞 ℚ) (w.adicCompletionIntegers ℚ) x) =
+      integersToLocalIntegralClosure w E
+        (algebraMap (𝓞 ℚ) (𝓞 (localImage w E)) x) := by
+    apply Subtype.ext
+    obtain ⟨z, rfl⟩ := Rat.ringOfIntegersEquiv.symm.surjective x
+    rw [show Rat.ringOfIntegersEquiv.symm z = (z : 𝓞 ℚ) by
+      simpa using map_intCast Rat.ringOfIntegersEquiv.symm z]
+    simp only [map_intCast]
+    change (z : AlgebraicClosure (w.adicCompletion ℚ)) = z
+    rfl
+  rw [heq]
+
+/-- The canonical equivalence between a finite global subextension and its image under the
+chosen local embedding. -/
+noncomputable def localImageEquiv (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    E ≃ₐ[ℚ] localImage w E :=
+  E.equivMap (AlgebraicClosure.map (adicEmbedding w)).toRatAlgHom
+
+/-- Restriction of local arithmetic Frobenius to the embedded finite subextension. -/
+noncomputable def localFrobOnImage (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) [Normal ℚ E] :
+    localImage w E ≃ₐ[ℚ] localImage w E := by
+  letI : Normal ℚ (localImage w E) := Normal.of_algEquiv (localImageEquiv w E)
+  exact ((adicArithFrob w).restrictScalars ℚ).restrictNormal (localImage w E)
+
+/-- Local Frobenius on the embedded field is the transport of the chosen global-adic
+Frobenius restriction. -/
+lemma localFrobOnImage_eq_autCongr (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) [Normal ℚ E] :
+    localFrobOnImage w E =
+      AlgEquiv.autCongr (localImageEquiv w E)
+        ((globalAdicArithFrob w).restrictNormal E) := by
+  letI : Normal ℚ (localImage w E) := Normal.of_algEquiv (localImageEquiv w E)
+  apply AlgEquiv.ext
+  intro y
+  obtain ⟨x, rfl⟩ := (localImageEquiv w E).surjective y
+  apply Subtype.ext
+  simp only [localFrobOnImage]
+  change (((((adicArithFrob w).restrictScalars ℚ).restrictNormal
+      (localImage w E)) ((localImageEquiv w E) x) : localImage w E) :
+        AlgebraicClosure (w.adicCompletion ℚ)) =
+    ((AlgEquiv.autCongr (localImageEquiv w E)
+      ((globalAdicArithFrob w).restrictNormal E)
+        ((localImageEquiv w E) x) : localImage w E) :
+          AlgebraicClosure (w.adicCompletion ℚ))
+  rw [show (AlgEquiv.autCongr (localImageEquiv w E)
+      ((globalAdicArithFrob w).restrictNormal E)) ((localImageEquiv w E) x) =
+      (localImageEquiv w E) ((globalAdicArithFrob w).restrictNormal E x) by
+        rw [AlgEquiv.autCongr_apply]
+        simp]
+  change algebraMap (localImage w E) (AlgebraicClosure (w.adicCompletion ℚ))
+      (((adicArithFrob w).restrictScalars ℚ).restrictNormal
+        (localImage w E) ((localImageEquiv w E) x)) = _
+  rw [AlgEquiv.restrictNormal_commutes]
+  rw [show algebraMap (localImage w E) (AlgebraicClosure (w.adicCompletion ℚ))
+      ((localImageEquiv w E) x) = AlgebraicClosure.map (adicEmbedding w) x by rfl]
+  rw [show (((localImageEquiv w E)
+      ((globalAdicArithFrob w).restrictNormal E x) : localImage w E) :
+        AlgebraicClosure (w.adicCompletion ℚ)) =
+      AlgebraicClosure.map (adicEmbedding w)
+        ((globalAdicArithFrob w).restrictNormal E x) by rfl]
+  change ((adicArithFrob w).restrictScalars ℚ)
+      (AlgebraicClosure.map (adicEmbedding w) x) =
+    AlgebraicClosure.map (adicEmbedding w)
+      (algebraMap E (AlgebraicClosure ℚ) ((globalAdicArithFrob w).restrictNormal E x))
+  rw [AlgEquiv.restrictNormal_commutes]
+  change adicArithFrob w (AlgebraicClosure.map (adicEmbedding w) x) =
+    AlgebraicClosure.map (adicEmbedding w) (globalAdicArithFrob w x)
+  exact (map_globalAdicArithFrob w x).symm
+
+/-- The embedding of integral elements intertwines finite local Frobenius with the absolute
+local Frobenius. -/
+lemma integersToLocalIntegralClosure_smul_localFrob
+    (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) [Normal ℚ E]
+    (y : 𝓞 (localImage w E)) :
+    integersToLocalIntegralClosure w E (localFrobOnImage w E • y) =
+      adicArithFrob w • integersToLocalIntegralClosure w E y := by
+  letI : Normal ℚ (localImage w E) := Normal.of_algEquiv (localImageEquiv w E)
+  have hbridgeImage :
+      ((((localFrobOnImage w E • y : 𝓞 (localImage w E)).1 : localImage w E)) :
+        AlgebraicClosure (w.adicCompletion ℚ)) =
+      ((localFrobOnImage w E (y.1 : localImage w E) : localImage w E) :
+        AlgebraicClosure (w.adicCompletion ℚ)) := rfl
+  have hbridgeLocal :
+      (adicArithFrob w • integersToLocalIntegralClosure w E y :
+        IntegralClosure (w.adicCompletionIntegers ℚ)
+          (AlgebraicClosure (w.adicCompletion ℚ))).1 =
+      adicArithFrob w (integersToLocalIntegralClosure w E y).1 := rfl
+  apply Subtype.ext
+  change ((((localFrobOnImage w E • y : 𝓞 (localImage w E)).1 : localImage w E)) :
+      AlgebraicClosure (w.adicCompletion ℚ)) =
+    (adicArithFrob w • integersToLocalIntegralClosure w E y :
+      IntegralClosure (w.adicCompletionIntegers ℚ)
+        (AlgebraicClosure (w.adicCompletion ℚ))).1
+  rw [hbridgeImage, hbridgeLocal]
+  change (((((adicArithFrob w).restrictScalars ℚ).restrictNormal
+      (localImage w E)) (y : localImage w E) : localImage w E) :
+        AlgebraicClosure (w.adicCompletion ℚ)) =
+    adicArithFrob w ((y : localImage w E) : AlgebraicClosure (w.adicCompletion ℚ))
+  exact AlgEquiv.restrictNormal_commutes ((adicArithFrob w).restrictScalars ℚ)
+    (localImage w E) (y : localImage w E)
+
+/-- The contracted local ideal is prime. -/
+lemma localPrime_isPrime (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    (localPrime w E).IsPrime := by
+  exact Ideal.comap_isPrime _ _
+
+/-- The residue cardinality at the contracted local prime is the residue cardinality used
+by the absolute local Frobenius. -/
+lemma localPrime_residueCard (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    Nat.card (𝓞 ℚ ⧸ (localPrime w E).under (𝓞 ℚ)) =
+      Nat.card (w.adicCompletionIntegers ℚ ⧸
+        (IsLocalRing.maximalIdeal
+          (IntegralClosure (w.adicCompletionIntegers ℚ)
+            (AlgebraicClosure (w.adicCompletion ℚ)))).under
+              (w.adicCompletionIntegers ℚ)) := by
+  rw [← (localPrime_liesOver w E).over]
+  rw [Ideal.under_def, IsLocalRing.maximalIdeal_comap]
+  exact Nat.card_congr
+    (IsDedekindDomain.HeightOneSpectrum.ResidueFieldEquivCompletionResidueField ℚ w).toEquiv
+
+noncomputable instance intermediateField_ringOfIntegersRat_smulCommClass
+    (K : Type*) [Field K] [Algebra ℚ K]
+    (E : IntermediateField ℚ K) [NumberField E] :
+    SMulCommClass (E ≃ₐ[ℚ] E) (𝓞 ℚ) (𝓞 E) where
+  smul_comm σ r x := by
+    obtain ⟨z, rfl⟩ := Rat.ringOfIntegersEquiv.symm.surjective r
+    rw [show Rat.ringOfIntegersEquiv.symm z = (z : 𝓞 ℚ) by
+      simpa using map_intCast Rat.ringOfIntegersEquiv.symm z]
+    have hzsmul (y : 𝓞 E) : (z : 𝓞 ℚ) • y = (z : ℤ) • y := by
+      change algebraMap (𝓞 ℚ) (𝓞 E) (z : 𝓞 ℚ) * y = (z : ℤ) • y
+      rw [map_intCast, zsmul_eq_mul]
+    rw [hzsmul x, hzsmul (σ • x)]
+    exact smul_comm σ z x
+
+/-- The restriction of local Frobenius to the embedded finite field is arithmetic Frobenius
+at the contracted local prime. -/
+lemma localFrobOnImage_isArithFrobAt
+    (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) [FiniteDimensional ℚ E]
+    [Normal ℚ E] :
+    IsArithFrobAt (𝓞 ℚ) (localFrobOnImage w E) (localPrime w E) := by
+  letI : Normal ℚ (localImage w E) := Normal.of_algEquiv (localImageEquiv w E)
+  intro y
+  change localFrobOnImage w E • y -
+      y ^ Nat.card (𝓞 ℚ ⧸ (localPrime w E).under (𝓞 ℚ)) ∈ localPrime w E
+  change integersToLocalIntegralClosure w E
+      (localFrobOnImage w E • y -
+        y ^ Nat.card (𝓞 ℚ ⧸ (localPrime w E).under (𝓞 ℚ))) ∈
+    IsLocalRing.maximalIdeal
+      (IntegralClosure (w.adicCompletionIntegers ℚ)
+        (AlgebraicClosure (w.adicCompletion ℚ)))
+  rw [map_sub, map_pow, integersToLocalIntegralClosure_smul_localFrob,
+    localPrime_residueCard]
+  exact isArithFrobAt_adicArithFrob w (integersToLocalIntegralClosure w E y)
+
+/-- Transport the contracted local prime back to the original finite global field. -/
+noncomputable def globalPrime (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) : Ideal (𝓞 E) :=
+  (localPrime w E).comap
+    (NumberField.RingOfIntegers.mapRingEquiv
+      (localImageEquiv w E).toRingEquiv).toRingHom
+
+/-- The transported global ideal is prime. -/
+lemma globalPrime_isPrime (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    (globalPrime w E).IsPrime := by
+  letI : (localPrime w E).IsPrime := localPrime_isPrime w E
+  exact Ideal.comap_isPrime _ _
+
+/-- The transported global prime lies over the original rational place. -/
+lemma globalPrime_liesOver (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) :
+    (globalPrime w E).LiesOver w.asIdeal := by
+  constructor
+  ext x
+  rw [(localPrime_liesOver w E).over]
+  change algebraMap (𝓞 ℚ) (𝓞 (localImage w E)) x ∈ localPrime w E ↔
+    NumberField.RingOfIntegers.mapRingEquiv (localImageEquiv w E).toRingEquiv
+      (algebraMap (𝓞 ℚ) (𝓞 E) x) ∈ localPrime w E
+  have heq : NumberField.RingOfIntegers.mapRingEquiv
+      (localImageEquiv w E).toRingEquiv (algebraMap (𝓞 ℚ) (𝓞 E) x) =
+      algebraMap (𝓞 ℚ) (𝓞 (localImage w E)) x := by
+    apply NumberField.RingOfIntegers.ext
+    obtain ⟨z, rfl⟩ := Rat.ringOfIntegersEquiv.symm.surjective x
+    rw [show Rat.ringOfIntegersEquiv.symm z = (z : 𝓞 ℚ) by
+      simpa using map_intCast Rat.ringOfIntegersEquiv.symm z]
+    simp
+  rw [heq]
+
+/-- The ring-of-integers equivalence intertwines the chosen global Frobenius restriction with
+local Frobenius on the embedded finite field. -/
+lemma mapRingEquiv_smul_restrictNormal_globalAdicArithFrob
+    (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) [Normal ℚ E]
+    (y : 𝓞 E) :
+    NumberField.RingOfIntegers.mapRingEquiv (localImageEquiv w E).toRingEquiv
+        ((globalAdicArithFrob w).restrictNormal E • y) =
+      localFrobOnImage w E •
+        NumberField.RingOfIntegers.mapRingEquiv (localImageEquiv w E).toRingEquiv y := by
+  letI : Normal ℚ (localImage w E) := Normal.of_algEquiv (localImageEquiv w E)
+  apply NumberField.RingOfIntegers.ext
+  have hglobal :
+      ((((globalAdicArithFrob w).restrictNormal E • y : 𝓞 E) : E)) =
+      (globalAdicArithFrob w).restrictNormal E (y : E) := rfl
+  have hlocal :
+      ((localFrobOnImage w E •
+        NumberField.RingOfIntegers.mapRingEquiv
+          (localImageEquiv w E).toRingEquiv y : 𝓞 (localImage w E)) :
+            localImage w E) =
+      localFrobOnImage w E
+        (NumberField.RingOfIntegers.mapRingEquiv
+          (localImageEquiv w E).toRingEquiv y : localImage w E) := rfl
+  rw [NumberField.RingOfIntegers.mapRingEquiv_apply, hglobal, hlocal,
+    NumberField.RingOfIntegers.mapRingEquiv_apply, localFrobOnImage_eq_autCongr]
+  rw [AlgEquiv.autCongr_apply]
+  simp
+
+/-- The chosen global-adic Frobenius restriction is arithmetic Frobenius at the transported
+prime of the original finite global field. -/
+lemma restrictNormal_globalAdicArithFrob_isArithFrobAt
+    (w : HeightOneSpectrum (𝓞 ℚ))
+    (E : IntermediateField ℚ (AlgebraicClosure ℚ)) [FiniteDimensional ℚ E]
+    [Normal ℚ E] [NumberField E] :
+    IsArithFrobAt (𝓞 ℚ) ((globalAdicArithFrob w).restrictNormal E) (globalPrime w E) := by
+  letI : Normal ℚ (localImage w E) := Normal.of_algEquiv (localImageEquiv w E)
+  intro y
+  change NumberField.RingOfIntegers.mapRingEquiv
+      (localImageEquiv w E).toRingEquiv
+        (((globalAdicArithFrob w).restrictNormal E • y) -
+          y ^ Nat.card (𝓞 ℚ ⧸ (globalPrime w E).under (𝓞 ℚ))) ∈ localPrime w E
+  rw [map_sub, map_pow, mapRingEquiv_smul_restrictNormal_globalAdicArithFrob]
+  have hcard : Nat.card (𝓞 ℚ ⧸ (globalPrime w E).under (𝓞 ℚ)) =
+      Nat.card (𝓞 ℚ ⧸ (localPrime w E).under (𝓞 ℚ)) := by
+    rw [← (globalPrime_liesOver w E).over, ← (localPrime_liesOver w E).over]
+  rw [hcard]
+  exact localFrobOnImage_isArithFrobAt w E
+    (NumberField.RingOfIntegers.mapRingEquiv
+      (localImageEquiv w E).toRingEquiv y)
+
 /-- Weak Chebotarev for a finite normal subextension of `AlgebraicClosure ℚ`: outside any
 finite set of rational places, some arithmetic Frobenius has a conjugate agreeing with a
 prescribed absolute Galois element on the subextension. -/
@@ -269,7 +604,31 @@ theorem exists_restrictNormal_rationalFrobenius_isConj_of_not_mem
     ∃ (q : ℕ) (hq : q.Prime),
       let w := hq.toHeightOneSpectrumRingOfIntegersRat
       w ∉ T ∧ IsConj ((Frob w).restrictNormal E) τ := by
-  sorry
+  letI : NumberField E := NumberField.of_module_finite ℚ E
+  letI : Algebra.IsIntegral ℚ E := Algebra.IsIntegral.of_finite ℚ E
+  letI : Algebra.IsSeparable ℚ E := Algebra.IsSeparable.of_integral ℚ E
+  letI : IsGalois ℚ E := { }
+  let S : Set (Ideal (𝓞 ℚ)) :=
+    {𝔭 | 𝔭.IsPrime ∧ Chebotarev.UnramifiedIn ℚ E 𝔭 ∧
+      Chebotarev.frobeniusClass ℚ E 𝔭 = ConjClasses.mk τ}
+  have hS : S.Infinite :=
+    Chebotarev.infinite_setOf_frobenius_class (ConjClasses.mk τ)
+  obtain ⟨q, hq, hwT, hwS⟩ :=
+    exists_rationalPrime_not_mem_of_infinite S hS (fun _ h ↦ h.1) T
+  let w := hq.toHeightOneSpectrumRingOfIntegersRat
+  change w.asIdeal.IsPrime ∧ Chebotarev.UnramifiedIn ℚ E w.asIdeal ∧
+    Chebotarev.frobeniusClass ℚ E w.asIdeal = ConjClasses.mk τ at hwS
+  rcases hwS with ⟨hprime, hunr, hclass⟩
+  letI : w.asIdeal.IsPrime := hprime
+  letI : NeZero w.asIdeal := ⟨w.ne_bot⟩
+  letI : (globalPrime w E).IsPrime := globalPrime_isPrime w E
+  have hglobalClass :=
+    Chebotarev.frobeniusClass_eq_mk_of_isArithFrobAt ℚ E w.asIdeal hunr
+      ((globalAdicArithFrob w).restrictNormal E) (globalPrime w E)
+      (restrictNormal_globalAdicArithFrob_isArithFrobAt w E)
+      (globalPrime_liesOver w E)
+  exact ⟨q, hq, hwT,
+    ConjClasses.mk_eq_mk_iff_isConj.mp (hglobalClass.symm.trans hclass)⟩
 
 /-- Lift finite-level Chebotarev from `Gal(E/ℚ)` to the absolute Galois group.  The
 conjugating automorphism of `E` extends to `AlgebraicClosure ℚ` because both extensions are
