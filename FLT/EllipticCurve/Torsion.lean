@@ -538,6 +538,45 @@ lemma WeierstrassCurve.Points.map_comp (K L M : Type u) [Field K] [Field L] [Fie
   ext P
   exact WeierstrassCurve.Affine.Point.map_map _ _ _
 
+/-- A field homomorphism sends `n`-torsion points to `n`-torsion points.  This is the
+functorial torsion map underlying the Galois representation. -/
+noncomputable def WeierstrassCurve.nTorsionMap {K L : Type u} [Field K] [Field L]
+    [Algebra k K] [Algebra k L] [DecidableEq K] [DecidableEq L]
+    (n : ℕ) (f : K →ₐ[k] L) :
+    AddSubgroup.torsionBy (E⁄K).Point (n : ℤ) →+
+      AddSubgroup.torsionBy (E⁄L).Point (n : ℤ) :=
+  { toFun := fun P ↦ ⟨WeierstrassCurve.Points.map E f P.1, by
+      apply AddSubgroup.torsionBy.nsmul_iff.mpr
+      rw [← map_nsmul]
+      have hP : n • P.1 = 0 := AddSubgroup.torsionBy.nsmul_iff.mp P.2
+      rw [hP, map_zero]⟩
+    map_zero' := Subtype.ext (map_zero (WeierstrassCurve.Points.map E f))
+    map_add' := fun P Q ↦
+      Subtype.ext (map_add (WeierstrassCurve.Points.map E f) P.1 Q.1) }
+
+@[simp]
+theorem WeierstrassCurve.nTorsionMap_coe {K L : Type u} [Field K] [Field L]
+    [Algebra k K] [Algebra k L] [DecidableEq K] [DecidableEq L]
+    (n : ℕ) (f : K →ₐ[k] L) (P : AddSubgroup.torsionBy (E⁄K).Point (n : ℤ)) :
+    (E.nTorsionMap n f P : (E⁄L).Point) = WeierstrassCurve.Points.map E f P.1 := rfl
+
+/-- The torsion map of the identity field homomorphism is the identity. -/
+theorem WeierstrassCurve.nTorsionMap_id (K : Type u) [Field K] [Algebra k K]
+    [DecidableEq K] (n : ℕ) :
+    E.nTorsionMap n (AlgHom.id k K) = AddMonoidHom.id _ := by
+  ext P
+  exact DFunLike.congr_fun (WeierstrassCurve.Points.map_id E K) P.1
+
+/-- Torsion maps compose in the same order as their field homomorphisms. -/
+theorem WeierstrassCurve.nTorsionMap_comp
+    (K L M : Type u) [Field K] [Field L] [Field M]
+    [Algebra k K] [Algebra k L] [Algebra k M]
+    [DecidableEq K] [DecidableEq L] [DecidableEq M]
+    (n : ℕ) (f : K →ₐ[k] L) (g : L →ₐ[k] M) :
+    (E.nTorsionMap n g).comp (E.nTorsionMap n f) = E.nTorsionMap n (g.comp f) := by
+  ext P
+  exact DFunLike.congr_fun (WeierstrassCurve.Points.map_comp E K L M f g) P.1
+
 omit [E.IsElliptic] [DecidableEq k] in
 /-- For the Krull topology, the set of automorphisms sending one elliptic-curve point to
 another is open. -/
@@ -611,18 +650,7 @@ noncomputable def WeierstrassCurve.galoisRep {K : Type u} [Field K]
   let T := (E⁄(AlgebraicClosure K)).nTorsion n
   change GaloisRep K (ZMod n) T
   let act (g : AlgebraicClosure K ≃ₐ[K] AlgebraicClosure K) : T →+ T :=
-    let g' : AlgebraicClosure K →ₐ[K] AlgebraicClosure K := g
-    {
-      toFun := fun P ↦ ⟨WeierstrassCurve.Points.map E g' P.1, by
-        rw [Submodule.mem_torsionBy_iff]
-        rw [← map_zsmul]
-        have hP : (n : ℤ) • P.1 = 0 :=
-          (Submodule.mem_torsionBy_iff (R := ℤ) (a := (n : ℤ)) P.1).mp P.2
-        rw [hP, map_zero]⟩
-      map_zero' := Subtype.ext (map_zero (WeierstrassCurve.Points.map E g'))
-      map_add' := fun P Q ↦
-        Subtype.ext (map_add (WeierstrassCurve.Points.map E g') P.1 Q.1)
-    }
+    E.nTorsionMap n (g : AlgebraicClosure K →ₐ[K] AlgebraicClosure K)
   let ρ : Field.absoluteGaloisGroup K →* Module.End (ZMod n) T := {
     toFun := fun g ↦ (act g).toZModLinearMap n
     map_one' := by
