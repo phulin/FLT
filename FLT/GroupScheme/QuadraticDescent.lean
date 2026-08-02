@@ -8,6 +8,7 @@ module
 public import Mathlib.RingTheory.Etale.StandardEtale
 public import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
 public import Mathlib.RingTheory.LocalRing.ResidueField.Basic
+public import Mathlib.Algebra.QuadraticAlgebra.Basic
 
 /-!
 # Quadratic descent algebras
@@ -167,6 +168,83 @@ lemma root_sq_sub_trace_mul_add_norm (t n : R) :
   rw [eval₂_polynomial] at h
   exact h
 
+/-- The adjoin-root presentation identified with mathlib's explicit rank-two quadratic algebra. -/
+noncomputable def quadraticAlgebraEquiv (t n : R) :
+    QuadraticAlgebra R (-n) t ≃ₐ[R] Algebra R t n := by
+  let x : Algebra R t n := AdjoinRoot.root (polynomial R t n)
+  have hx : x * x = (-n) • (1 : Algebra R t n) + t • x := by
+    have hr := root_sq_sub_trace_mul_add_norm R t n
+    dsimp only [x]
+    simp only [Algebra.smul_def, map_neg, mul_one,
+      AdjoinRoot.algebraMap_eq]
+    change
+      AdjoinRoot.root (polynomial R t n) * AdjoinRoot.root (polynomial R t n) =
+        -AdjoinRoot.of (polynomial R t n) n +
+          AdjoinRoot.of (polynomial R t n) t *
+            AdjoinRoot.root (polynomial R t n)
+    linear_combination hr
+  let f : QuadraticAlgebra R (-n) t →ₐ[R] Algebra R t n :=
+    QuadraticAlgebra.lift ⟨x, hx⟩
+  let g : Algebra R t n →ₐ[R] QuadraticAlgebra R (-n) t :=
+    AdjoinRoot.liftAlgHom (polynomial R t n)
+      (Algebra.ofId R (QuadraticAlgebra R (-n) t)) QuadraticAlgebra.omega (by
+        rw [eval₂_polynomial]
+        ext <;> simp [pow_two, QuadraticAlgebra.omega_mul_omega_eq_add,
+          QuadraticAlgebra.re_one, QuadraticAlgebra.im_one])
+  have hfomega :
+      f (QuadraticAlgebra.omega : QuadraticAlgebra R (-n) t) = x := by
+    simp [f]
+  have hgroot :
+      g (AdjoinRoot.root (polynomial R t n)) =
+        (QuadraticAlgebra.omega : QuadraticAlgebra R (-n) t) := by
+    dsimp only [g]
+    apply AdjoinRoot.liftAlgHom_root
+  refine AlgEquiv.ofAlgHom f g ?_ ?_
+  · apply AdjoinRoot.algHom_ext
+    rw [AlgHom.comp_apply, hgroot, hfomega]
+    rfl
+  · apply QuadraticAlgebra.algHom_ext
+    rw [AlgHom.comp_apply, hfomega, hgroot]
+    rfl
+
+@[simp]
+lemma quadraticAlgebraEquiv_omega (t n : R) :
+    quadraticAlgebraEquiv R t n (QuadraticAlgebra.omega : QuadraticAlgebra R (-n) t) =
+      AdjoinRoot.root (polynomial R t n) := by
+  simp [quadraticAlgebraEquiv]
+
+@[simp]
+lemma quadraticAlgebraEquiv_symm_root (t n : R) :
+    (quadraticAlgebraEquiv R t n).symm (AdjoinRoot.root (polynomial R t n)) =
+      (QuadraticAlgebra.omega : QuadraticAlgebra R (-n) t) := by
+  simp [quadraticAlgebraEquiv]
+
+/-- The scalar coefficient in the basis `1, root`. -/
+noncomputable def reCoeff (t n : R) : Algebra R t n →ₗ[R] R :=
+  (QuadraticAlgebra.reₗ (-n) t).comp
+    (quadraticAlgebraEquiv R t n).symm.toLinearMap
+
+/-- The root coefficient in the basis `1, root`. -/
+noncomputable def imCoeff (t n : R) : Algebra R t n →ₗ[R] R :=
+  (QuadraticAlgebra.imₗ (-n) t).comp
+    (quadraticAlgebraEquiv R t n).symm.toLinearMap
+
+/-- Every element has its explicit scalar-plus-root decomposition. -/
+lemma eq_algebraMap_reCoeff_add_smul_root (t n : R) (z : Algebra R t n) :
+    z = algebraMap R (Algebra R t n) (reCoeff R t n z) +
+      imCoeff R t n z • AdjoinRoot.root (polynomial R t n) := by
+  let q := (quadraticAlgebraEquiv R t n).symm z
+  have hq : q =
+      algebraMap R (QuadraticAlgebra R (-n) t) q.re +
+        q.im • (QuadraticAlgebra.omega : QuadraticAlgebra R (-n) t) :=
+    QuadraticAlgebra.mk_eq_add_smul_omega q.re q.im
+  have h := congrArg (quadraticAlgebraEquiv R t n) hq
+  simpa only [q, reCoeff, imCoeff, LinearMap.comp_apply,
+    AlgEquiv.toLinearMap_apply, AlgEquiv.coe_toLinearEquiv,
+    AlgEquiv.apply_symm_apply, QuadraticAlgebra.reₗ_apply,
+    QuadraticAlgebra.imₗ_apply, map_add, map_smul,
+    AlgEquiv.commutes, quadraticAlgebraEquiv_omega] using h
+
 /-- The conjugate of the distinguished quadratic generator. -/
 noncomputable def conjugateRoot (t n : R) : Algebra R t n :=
   AdjoinRoot.of (polynomial R t n) t - AdjoinRoot.root (polynomial R t n)
@@ -231,6 +309,71 @@ lemma conjugationAlgEquiv_apply (t n : R) (x : Algebra R t n) :
 lemma conjugationAlgEquiv_symm (t n : R) :
     (conjugationAlgEquiv R t n).symm = conjugationAlgEquiv R t n := by
   rfl
+
+/-- The explicit quadratic-algebra identification intertwines its standard star operation with
+quadratic conjugation on the adjoin-root presentation. -/
+lemma conjugationAlgEquiv_quadraticAlgebraEquiv (t n : R)
+    (q : QuadraticAlgebra R (-n) t) :
+    conjugationAlgEquiv R t n (quadraticAlgebraEquiv R t n q) =
+      quadraticAlgebraEquiv R t n (star q) := by
+  rcases q with ⟨a, b⟩
+  change
+    conjugationAlgEquiv R t n
+        (quadraticAlgebraEquiv R t n (⟨a, b⟩ : QuadraticAlgebra R (-n) t)) =
+      quadraticAlgebraEquiv R t n
+        (⟨a + t * b, -b⟩ : QuadraticAlgebra R (-n) t)
+  rw [QuadraticAlgebra.mk_eq_add_smul_omega a b,
+    QuadraticAlgebra.mk_eq_add_smul_omega (a + t * b) (-b)]
+  simp only [map_add, map_smul, AlgEquiv.commutes,
+    quadraticAlgebraEquiv_omega, conjugationAlgEquiv_apply,
+    conjugationAlgHom_root, conjugateRoot]
+  rw [← AdjoinRoot.algebraMap_eq]
+  simp only [Algebra.smul_def, map_mul, map_neg]
+  ring
+
+/-- Quadratic conjugation negates the root coordinate. -/
+lemma imCoeff_conjugationAlgEquiv (t n : R) (z : Algebra R t n) :
+    imCoeff R t n (conjugationAlgEquiv R t n z) = -imCoeff R t n z := by
+  let q := (quadraticAlgebraEquiv R t n).symm z
+  have h := conjugationAlgEquiv_quadraticAlgebraEquiv R t n q
+  have h' := congrArg (quadraticAlgebraEquiv R t n).symm h
+  have him := congrArg QuadraticAlgebra.im h'
+  simpa only [q, imCoeff, LinearMap.comp_apply, AlgEquiv.toLinearMap_apply,
+    AlgEquiv.coe_toLinearEquiv, AlgEquiv.symm_apply_apply,
+    AlgEquiv.apply_symm_apply, QuadraticAlgebra.imₗ_apply,
+    QuadraticAlgebra.im_star] using him
+
+/-- If `2` is invertible, the only elements fixed by quadratic conjugation are scalars. -/
+lemma eq_algebraMap_of_conjugationAlgEquiv_eq (t n : R)
+    (h2 : IsUnit (2 : R)) (z : Algebra R t n)
+    (hz : conjugationAlgEquiv R t n z = z) :
+    z = algebraMap R (Algebra R t n) (reCoeff R t n z) := by
+  have himneg : -imCoeff R t n z = imCoeff R t n z := by
+    calc
+      -imCoeff R t n z =
+          imCoeff R t n (conjugationAlgEquiv R t n z) :=
+        (imCoeff_conjugationAlgEquiv R t n z).symm
+      _ = imCoeff R t n z := congrArg (imCoeff R t n) hz
+  have himtwo : (2 : R) * imCoeff R t n z = 0 := by
+    linear_combination -himneg
+  have hhalf : (↑(h2.unit⁻¹) : R) * 2 = 1 := by
+    calc
+      (↑(h2.unit⁻¹) : R) * 2 =
+          (↑(h2.unit⁻¹) : R) * (h2.unit : R) :=
+        congrArg (fun x : R ↦ (↑(h2.unit⁻¹) : R) * x) h2.unit_spec.symm
+      _ = 1 := h2.unit.inv_mul
+  have him : imCoeff R t n z = 0 := by
+    calc
+      imCoeff R t n z =
+          ((↑(h2.unit⁻¹) : R) * 2) * imCoeff R t n z := by rw [hhalf, one_mul]
+      _ = (↑(h2.unit⁻¹) : R) * ((2 : R) * imCoeff R t n z) := by ring
+      _ = 0 := by rw [himtwo, mul_zero]
+  calc
+    z = algebraMap R (Algebra R t n) (reCoeff R t n z) +
+        imCoeff R t n z • AdjoinRoot.root (polynomial R t n) :=
+      eq_algebraMap_reCoeff_add_smul_root R t n z
+    _ = algebraMap R (Algebra R t n) (reCoeff R t n z) := by
+      rw [him, zero_smul, add_zero]
 
 /-- The trace-zero generator of the quadratic algebra. -/
 noncomputable def antiInvariant (t n : R) : Algebra R t n :=
