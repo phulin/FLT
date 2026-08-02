@@ -18,6 +18,62 @@ Material destined for Mathlib.
 
 @[expose] public section
 
+namespace Valuation
+
+section AdicValuation
+
+variable {K Γ₀ O : Type*} [Field K] [LinearOrderedCommGroupWithZero Γ₀]
+  (w : Valuation K Γ₀)
+
+/-- On an integral element of an arbitrary ring of integers for `w`, the adic valuation
+attached to its maximal ideal is less than `1` exactly when `w` is. -/
+theorem adicValuation_lt_one_iff_of_integers [CommRing O] [IsDomain O] [Algebra O K]
+    [IsDiscreteValuationRing O] [IsFractionRing O K] (hO : w.Integers O) {x : O} :
+    (IsDiscreteValuationRing.maximalIdeal O).valuation K (algebraMap O K x) < 1 ↔
+      w (algebraMap O K x) < 1 := by
+  have hnonunit : ¬IsUnit x ↔ w (algebraMap O K x) < 1 := by
+    rw [← not_le, not_iff_not, hO.isUnit_iff_valuation_eq_one, le_antisymm_iff]
+    exact and_iff_right (hO.map_le_one x)
+  rw [IsDedekindDomain.HeightOneSpectrum.valuation_lt_one_iff_mem]
+  change x ∈ IsLocalRing.maximalIdeal O ↔ w (algebraMap O K x) < 1
+  rw [IsLocalRing.mem_maximalIdeal, mem_nonunits_iff]
+  exact hnonunit
+
+/-- On an integral element of an arbitrary ring of integers for `w`, the adic valuation
+attached to its maximal ideal equals `1` exactly when `w` does. -/
+theorem adicValuation_eq_one_iff_of_integers [CommRing O] [IsDomain O] [Algebra O K]
+    [IsDiscreteValuationRing O] [IsFractionRing O K] (hO : w.Integers O) {x : O} :
+    (IsDiscreteValuationRing.maximalIdeal O).valuation K (algebraMap O K x) = 1 ↔
+      w (algebraMap O K x) = 1 := by
+  rw [IsDedekindDomain.HeightOneSpectrum.valuation_eq_one_iff_notMem]
+  change x ∉ IsLocalRing.maximalIdeal O ↔ w (algebraMap O K x) = 1
+  rw [IsLocalRing.mem_maximalIdeal, mem_nonunits_iff, not_not]
+  exact hO.isUnit_iff_valuation_eq_one
+
+/-- On an element integral for a discrete valuation `w`, the adic valuation attached to
+the maximal ideal of `w.integer` is less than `1` exactly when `w` is.  This version is
+independent of the choice of value group and is therefore useful when reduction theory and
+local-field theory use equivalent valuations with different codomains. -/
+theorem adicValuation_lt_one_iff_integer [IsDiscreteValuationRing w.integer]
+    [IsFractionRing w.integer K] {x : w.integer} :
+    (IsDiscreteValuationRing.maximalIdeal w.integer).valuation K
+        (algebraMap w.integer K x) < 1 ↔
+      w (algebraMap w.integer K x) < 1 :=
+  w.adicValuation_lt_one_iff_of_integers (Valuation.integer.integers w)
+
+/-- On an element integral for a discrete valuation `w`, the adic valuation attached to
+the maximal ideal of `w.integer` equals `1` exactly when `w` does. -/
+theorem adicValuation_eq_one_iff_integer [IsDiscreteValuationRing w.integer]
+    [IsFractionRing w.integer K] {x : w.integer} :
+    (IsDiscreteValuationRing.maximalIdeal w.integer).valuation K
+        (algebraMap w.integer K x) = 1 ↔
+      w (algebraMap w.integer K x) = 1 :=
+  w.adicValuation_eq_one_iff_of_integers (Valuation.integer.integers w)
+
+end AdicValuation
+
+end Valuation
+
 namespace ValuativeRel
 
 variable {R : Type*} [Ring R] [ValuativeRel R]
@@ -68,26 +124,16 @@ maximal ideal, i.e. non-unitality in `𝒪[K]`. -/
 theorem adicValuation_lt_one_iff {x : (valuation K).integer} :
     (IsDiscreteValuationRing.maximalIdeal (valuation K).integer).valuation K
         (algebraMap (valuation K).integer K x) < 1 ↔
-      valuation K (algebraMap (valuation K).integer K x) < 1 := by
-  rw [IsDedekindDomain.HeightOneSpectrum.valuation_lt_one_iff_mem]
-  exact ⟨fun h ↦ Valuation.Integer.not_isUnit_iff_valuation_lt_one.mp
-      (mem_nonunits_iff.mp ((IsLocalRing.mem_maximalIdeal _).mp h)),
-    fun h ↦ (IsLocalRing.mem_maximalIdeal _).mpr
-      (mem_nonunits_iff.mpr (Valuation.Integer.not_isUnit_iff_valuation_lt_one.mpr h))⟩
+      valuation K (algebraMap (valuation K).integer K x) < 1 :=
+  Valuation.adicValuation_lt_one_iff_integer (valuation K)
 
 /-- On an integral element, the adic valuation attached to the maximal ideal of `𝒪[K]`
 equals `1` exactly when the canonical valuation does: both detect unitality in `𝒪[K]`. -/
 theorem adicValuation_eq_one_iff {x : (valuation K).integer} :
     (IsDiscreteValuationRing.maximalIdeal (valuation K).integer).valuation K
         (algebraMap (valuation K).integer K x) = 1 ↔
-      valuation K (algebraMap (valuation K).integer K x) = 1 := by
-  rw [IsDedekindDomain.HeightOneSpectrum.valuation_eq_one_iff_notMem]
-  exact ⟨fun h ↦ (Valuation.integer.integers (valuation K)).isUnit_iff_valuation_eq_one.mp
-      (by
-        by_contra hne
-        exact h ((IsLocalRing.mem_maximalIdeal _).mpr (mem_nonunits_iff.mpr hne))),
-    fun h hmem ↦ mem_nonunits_iff.mp ((IsLocalRing.mem_maximalIdeal _).mp hmem)
-      ((Valuation.integer.integers (valuation K)).isUnit_iff_valuation_eq_one.mpr h)⟩
+      valuation K (algebraMap (valuation K).integer K x) = 1 :=
+  Valuation.adicValuation_eq_one_iff_integer (valuation K)
 
 end AdicValuation
 

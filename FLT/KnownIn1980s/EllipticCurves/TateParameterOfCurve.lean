@@ -132,6 +132,36 @@ theorem WeierstrassCurve.one_lt_valuation_j (E : WeierstrassCurve k) [E.IsEllipt
   exact (one_lt_inv₀ (zero_lt_iff.mpr E.valuation_Δ_ne_zero)).mpr E.valuation_Δ_lt_one
 
 omit [TopologicalSpace k] [IsNonarchimedeanLocalField k] in
+/-- A split multiplicative model defined using any compatible discrete valuation still has
+non-integral `j` for the canonical valuation.  In particular, this avoids transporting the
+reduction structure across an equality of valuation subrings when a completed number field
+is equipped both with its concrete `ℤᵐ⁰`-valued valuation and with `ValuativeRel.valuation`. -/
+theorem WeierstrassCurve.one_lt_valuation_j_of_compatible
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀] (w : Valuation k Γ₀) [w.Compatible]
+    {R : Type*} [CommRing R] [IsDomain R] [Algebra R k] [IsDiscreteValuationRing R]
+    [IsFractionRing R k] (hR : w.Integers R)
+    (E : WeierstrassCurve k) [E.IsElliptic]
+    [E.HasSplitMultiplicativeReduction R] :
+    1 < valuation k E.j := by
+  have hΔ : w E.Δ < 1 := by
+    have hbad := HasMultiplicativeReduction.badReduction (R := R) (W := E)
+    rw [← integralModel_Δ_eq R E] at hbad ⊢
+    exact (w.adicValuation_lt_one_iff_of_integers hR).mp hbad
+  have hc₄ : w E.c₄ = 1 := by
+    have hmul := HasMultiplicativeReduction.multiplicativeReduction (R := R) (W := E)
+    rw [← integralModel_c₄_eq R E] at hmul ⊢
+    exact (w.adicValuation_eq_one_iff_of_integers hR).mp hmul
+  have hΔ0 : w E.Δ ≠ 0 := by
+    rw [w.ne_zero_iff, ← E.coe_Δ']
+    exact Units.ne_zero _
+  have hj : w E.j = (w E.Δ)⁻¹ := by
+    rw [show E.j = (↑(E.Δ'⁻¹) : k) * E.c₄ ^ 3 from rfl, map_mul, map_pow, hc₄,
+      one_pow, mul_one, Units.val_inv_eq_inv_val, map_inv₀, E.coe_Δ']
+  apply (ValuativeRel.isEquiv (valuation k) w).one_lt_iff_one_lt.mpr
+  rw [hj]
+  exact (one_lt_inv₀ (zero_lt_iff.mpr hΔ0)).mpr hΔ
+
+omit [TopologicalSpace k] [IsNonarchimedeanLocalField k] in
 /-- An elliptic curve with non-integral `j`-invariant has `c₄ ≠ 0`: otherwise `j = 0`. -/
 theorem WeierstrassCurve.c₄_ne_zero_of_one_lt_valuation_j (W : WeierstrassCurve k)
     [W.IsElliptic] (hj : 1 < valuation k W.j) :
