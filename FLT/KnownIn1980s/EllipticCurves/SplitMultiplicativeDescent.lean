@@ -628,89 +628,17 @@ theorem exists_generator_unit_trace_of_quadraticTwist_hasMultiplicativeReduction
   change valuation k (a * t + 2 * b) = 1
   rw [ht, map_div₀, hW'a₁val, hWa₁val, one_div, inv_one]
 
-open IsLocalRing in
-/-- **Wild ramification core.** If a quadratic twist still has multiplicative reduction in
-residue characteristic `2`, the quadratic extension admits an integral generator with unit
-trace. This is the reduction-theoretic form of the assertion that ramified quadratic twists are
-additive: such a generator exists exactly in the unramified case. -/
-theorem exists_integral_generator_unit_trace_of_quadraticTwist_hasMultiplicativeReduction
-    (W : WeierstrassCurve k) [W.IsElliptic] [W.HasMultiplicativeReduction 𝒪[k]]
-    (L : Type u) [Field L] [Algebra k L] [Algebra.IsQuadraticExtension k L]
-    [Algebra.IsSeparable k L] (W' : WeierstrassCurve k) [W'.IsElliptic]
-    [W'.HasMultiplicativeReduction 𝒪[k]] (C : VariableChange k)
-    (hC : C • W' = W.quadraticTwist L) (h2 : (2 : ResidueField 𝒪[k]) = 0) :
-    ∃ (θ : L), θ ∉ Set.range (algebraMap k L) ∧
-      _root_.IsIntegral 𝒪[k] θ ∧ valuation k (Algebra.trace k L θ) = 1 := by
-  sorry
-
-open IsLocalRing in
-/-- **Wild quadratic-twist normalization.** In residue characteristic `2`, if a quadratic twist
-of a multiplicative elliptic curve again has multiplicative reduction, then the quadratic
-extension is unramified.  Equivalently, it has an integral generator whose reduced trace is
-nonzero. Its reduced characteristic polynomial is then automatically irreducible by
-`not_exists_artinSchreier_residue_of_quadratic_generator`.
-
-This is the exact remaining local arithmetic input in the characteristic-`2` branch.  A ramified
-quadratic twist has additive (not multiplicative) reduction; after excluding it, an integral
-generator of the unramified quadratic extension supplies `t'` and `n'` below. -/
-theorem exists_integral_generator_of_quadraticTwist_hasMultiplicativeReduction
-    (W : WeierstrassCurve k) [W.IsElliptic] [W.HasMultiplicativeReduction 𝒪[k]]
-    (L : Type u) [Field L] [Algebra k L] [Algebra.IsQuadraticExtension k L]
-    [Algebra.IsSeparable k L] (W' : WeierstrassCurve k) [W'.IsElliptic]
-    [W'.HasMultiplicativeReduction 𝒪[k]] (C : VariableChange k)
-    (hC : C • W' = W.quadraticTwist L) (h2 : (2 : ResidueField 𝒪[k]) = 0) :
-    ∃ (θ : L), θ ∉ Set.range (algebraMap k L) ∧ ∃ (t' n' : 𝒪[k]),
-      Algebra.trace k L θ = algebraMap 𝒪[k] k t' ∧
-      Algebra.norm k θ = algebraMap 𝒪[k] k n' ∧
-      residue 𝒪[k] t' ≠ 0 := by
-  obtain ⟨θ, hθ, hθint, htrval⟩ :=
-    exists_integral_generator_unit_trace_of_quadraticTwist_hasMultiplicativeReduction
-      W L W' C hC h2
-  have htrint : _root_.IsIntegral 𝒪[k] (Algebra.trace k L θ) :=
-    Algebra.isIntegral_trace hθint
-  have hnrint : _root_.IsIntegral 𝒪[k] (Algebra.norm k θ) :=
-    Algebra.isIntegral_norm k hθint
-  obtain ⟨t', ht'⟩ := IsIntegrallyClosed.isIntegral_iff.mp htrint
-  obtain ⟨n', hn'⟩ := IsIntegrallyClosed.isIntegral_iff.mp hnrint
-  refine ⟨θ, hθ, t', n', ht'.symm, hn'.symm, ?_⟩
-  apply (residue_ne_zero_iff_isUnit _).mpr
-  apply (Valuation.integer.integers (valuation k)).isUnit_iff_valuation_eq_one.mpr
-  rw [ht']
-  exact htrval
-
 theorem not_hasSplitMultiplicativeReduction_quadraticTwist (W : WeierstrassCurve k)
     [W.IsElliptic] [W.HasSplitMultiplicativeReduction 𝒪[k]] (L : Type u) [Field L] [Algebra k L]
     [Algebra.IsQuadraticExtension k L] [Algebra.IsSeparable k L] (W' : WeierstrassCurve k)
     [W'.IsElliptic] (C : VariableChange k) (hC : C • W' = W.quadraticTwist L) :
     ¬ W'.HasSplitMultiplicativeReduction 𝒪[k] := by
   rcases eq_or_ne (2 : IsLocalRing.ResidueField 𝒪[k]) 0 with h2 | h2
-  · intro hW'split
-    letI : W'.HasSplitMultiplicativeReduction 𝒪[k] := hW'split
-    obtain ⟨θ, hθ, t', n', htr, hnr, ht⟩ :=
-      exists_integral_generator_of_quadraticTwist_hasMultiplicativeReduction
-        W L W' C hC h2
-    letI : UniformSpace k := IsTopologicalAddGroup.rightUniformSpace k
-    letI : IsUniformAddGroup k := isUniformAddGroup_of_addCommGroup
-    have hAS := not_exists_artinSchreier_residue_of_quadratic_generator
-      𝒪[k] hθ t' n' htr hnr h2 ht
-    obtain ⟨C₁, hC₁⟩ := W.exists_smul_quadraticTwist_eq_quadraticTwistBy L hθ
-    rw [quadraticTwistBy, htr, hnr,
-      ← baseChange_integralModel_quadraticTwistOf W 𝒪[k] t' n'] at hC₁
-    have hchange : (C₁ * C) • W' =
-        ((W.integralModel 𝒪[k]).quadraticTwistOf t' n').baseChange k := by
-      rw [mul_smul, hC, hC₁]
-    have h4 : (4 : IsLocalRing.ResidueField 𝒪[k]) = 0 := by
-      rw [show (4 : IsLocalRing.ResidueField 𝒪[k]) = 2 * 2 by norm_num, h2, zero_mul]
-    have hD : IsLocalRing.residue 𝒪[k] (t' ^ 2 - 4 * n') ≠ 0 := by
-      rw [map_sub, map_pow, map_mul, map_ofNat, h4, zero_mul, sub_zero]
-      exact pow_ne_zero 2 ht
-    letI := hasMultiplicativeReduction_baseChange_quadraticTwistOf W 𝒪[k] t' n' hD
-    have hexplicitSplit : HasSplitMultiplicativeReduction 𝒪[k]
-        (((W.integralModel 𝒪[k]).quadraticTwistOf t' n').baseChange k) :=
-      HasSplitMultiplicativeReduction.of_isMinimal_smul 𝒪[k] (C₁ * C) hchange hW'split
-    exact
-      not_hasSplitMultiplicativeReduction_baseChange_quadraticTwistOf_of_not_exists_artinSchreier
-        W 𝒪[k] t' n' h2 ht hAS hexplicitSplit
+  · rcases eq_or_ne (2 : k) 0 with h2k | h2k
+    · exact not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_eq_zero
+        W L W' C hC h2 h2k
+    · exact not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_ne_zero
+        W L W' C hC h2 h2k
   · exact not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_residue_ne_zero
       W L W' C hC h2
 
