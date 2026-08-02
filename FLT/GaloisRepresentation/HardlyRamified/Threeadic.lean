@@ -123,6 +123,22 @@ theorem finite_quotient_maximalIdeal_pow_of_finiteFree_moduleTopology
   exact AddSubgroup.quotient_finite_of_isOpen _
     (isOpen_maximalIdeal_pow_of_finiteFree_moduleTopology (R := R) n)
 
+/-- For finite discrete coefficients, the flat-at-`3` part of hard ramification produces an
+actual finite-flat Hopf-algebra model for the given local Galois module, without a residual
+scalar extension. -/
+theorem schoof_three_adic_hasFlatProlongationAt_three
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
+    τ.HasFlatProlongationAt
+      (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (show Nat.Prime 3 by decide)) := by
+  letI : τ.IsFlatAt
+      (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (show Nat.Prime 3 by decide)) := hτ.isFlat
+  exact τ.hasFlatProlongationAt_of_discrete
+    (Nat.Prime.toHeightOneSpectrumRingOfIntegersRat (show Nat.Prime 3 by decide))
+
 /-- The finite Galois extension cut out by a finite three-adic representation is unramified
 outside `2` and `3`, in the precise Galois-theoretic sense that local inertia acts trivially
 on the extension.  This transfers the representation-level hard-ramification hypothesis to

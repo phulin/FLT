@@ -685,6 +685,38 @@ def GaloisRep.HasFlatProlongationAt (ρ : GaloisRep K A M) : Prop :=
     (f : Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ) →+[Γ Kᵥ] (ρ.toLocal v).Space),
     Function.Bijective f
 
+/-- A Galois-equivariant additive equivalence transports a finite-flat prolongation.  The
+coefficient rings of the two representations may differ because the prolongation condition
+only depends on the underlying finite additive Galois module. -/
+lemma GaloisRep.HasFlatProlongationAt.of_addEquiv
+    {C P : Type*} [CommRing C] [TopologicalSpace C] [AddCommGroup P] [Module C P]
+    {ρ : GaloisRep K A M} (hρ : ρ.HasFlatProlongationAt v)
+    (ρ' : GaloisRep K C P) (e : M ≃+ P)
+    (heq : ∀ g x, e (ρ.toLocal v g x) = ρ'.toLocal v g (e x)) :
+    ρ'.HasFlatProlongationAt v := by
+  rcases hρ with ⟨G, hG, hHopf, hFlat, hFinite, hEtale, f, hf⟩
+  letI : CommRing G := hG
+  letI : HopfAlgebra 𝒪ᵥ G := hHopf
+  letI : Module.Flat 𝒪ᵥ G := hFlat
+  letI : Module.Finite 𝒪ᵥ G := hFinite
+  letI : Algebra.Etale Kᵥ (Kᵥ ⊗[𝒪ᵥ] G) := hEtale
+  let X := Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ)
+  let f₀ : X → M := f
+  have hf₀ : Function.Bijective f₀ := hf
+  have hf₀_zero : f₀ 0 = 0 := f.map_zero
+  have hf₀_add (x y : X) : f₀ (x + y) = f₀ x + f₀ y := f.map_add x y
+  have hf₀_smul (g : Γ Kᵥ) (x : X) :
+      f₀ (g • x) = ρ.toLocal v g (f₀ x) := f.map_smul g x
+  let f' : Additive (Kᵥ ⊗[𝒪ᵥ] G →ₐ[Kᵥ] Kᵥᵃˡᵍ) →+[Γ Kᵥ] (ρ'.toLocal v).Space := {
+    toFun x := e (f₀ x)
+    map_zero' := by rw [hf₀_zero, e.map_zero]; rfl
+    map_add' x y := by rw [hf₀_add, e.map_add]; rfl
+    map_smul' g x := by
+      rw [hf₀_smul]
+      exact heq g (f₀ x) }
+  exact ⟨G, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    f', e.bijective.comp hf₀⟩
+
 /-- A change of basis preserves the existence of a finite flat prolongation. -/
 lemma GaloisRep.HasFlatProlongationAt.conj
     {ρ : GaloisRep K A M} (hρ : ρ.HasFlatProlongationAt v) (e : M ≃ₗ[A] N) :
@@ -724,6 +756,28 @@ for all open ideals `I`. -/
 class GaloisRep.IsFlatAt [IsLocalRing A] (ρ : GaloisRep K A M) : Prop where
   cond : ∀ (I : Ideal A), IsOpen (I : Set A) →
     (ρ.baseChange (A ⧸ I)).HasFlatProlongationAt v
+
+/-- Over a discrete coefficient ring, flatness at `v` already gives a finite-flat
+prolongation of the representation itself.  Apply the defining condition to the zero ideal
+and identify `(A ⧸ ⊥) ⊗[A] M` with `M`. -/
+theorem GaloisRep.IsFlatAt.hasFlatProlongationAt_of_discrete
+    [IsLocalRing A] [DiscreteTopology A] (ρ : GaloisRep K A M) [hρ : ρ.IsFlatAt v] :
+    ρ.HasFlatProlongationAt v := by
+  let hflat := hρ.cond (⊥ : Ideal A)
+    (isOpen_discrete (↑(⊥ : Ideal A) : Set A))
+  let e : ((A ⧸ (⊥ : Ideal A)) ⊗[A] M) ≃ₗ[A] M :=
+    (TensorProduct.congr (AlgEquiv.quotientBot A A).toLinearEquiv
+      (LinearEquiv.refl A M)).trans (TensorProduct.lid A M)
+  apply hflat.of_addEquiv v ρ e.toAddEquiv
+  intro g x
+  induction x using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a m =>
+      change e (((ρ.toLocal v).baseChange (A ⧸ (⊥ : Ideal A))) g (a ⊗ₜ[A] m)) =
+        ρ.toLocal v g (e (a ⊗ₜ[A] m))
+      rw [GaloisRep.baseChange_tmul]
+      simp [e]
+  | add x y hx hy => simp only [map_add, hx, hy]
 
 /-- The finite-flat group-scheme input behind functoriality of the flat deformation
 condition: finite-flat Galois modules are closed under finite products and equivariant
