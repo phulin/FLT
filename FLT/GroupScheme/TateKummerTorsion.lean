@@ -247,6 +247,96 @@ lemma kummerPointToTorsion_injective
   subst y
   rfl
 
+/-- Every quotient-torsion class has a normalized Kummer representative. -/
+lemma kummerPointToTorsion_surjective
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q) :
+    Function.Surjective (kummerPointToTorsion R S N u q a hq) := by
+  intro t
+  obtain ⟨z, b, hbt, hbpow⟩ :=
+    QuotientGroup.exists_isTorsionExponent q N t
+  have hNnat : 0 < N := Nat.pos_of_ne_zero (NeZero.ne N)
+  have hNint : 0 < (N : ℤ) := by exact_mod_cast hNnat
+  let r : ℤ := z % (N : ℤ)
+  let k : ℤ := z / (N : ℤ)
+  have hr0 : 0 ≤ r := by
+    exact Int.emod_nonneg z (ne_of_gt hNint)
+  have hrN : r < (N : ℤ) := by
+    exact Int.emod_lt_of_pos z hNint
+  have hrNatN : r.toNat < N := by
+    have hrCast : (r.toNat : ℤ) = r := Int.toNat_of_nonneg hr0
+    have h : (r.toNat : ℤ) < (N : ℤ) := by simpa only [hrCast] using hrN
+    exact_mod_cast h
+  let i : Fin N := ⟨r.toNat, hrNatN⟩
+  have hiCast : (i.1 : ℤ) = r := by
+    exact Int.toNat_of_nonneg hr0
+  have hzsplit : r + (N : ℤ) * k = z := by
+    exact Int.emod_add_mul_ediv z (N : ℤ)
+  let b₀ : Sˣ := b * q ^ (-k)
+  have hb₀pow : b₀ ^ N = q ^ i.1 := by
+    calc
+      b₀ ^ N = b ^ N * (q ^ (-k)) ^ N := by
+        change (b * q ^ (-k)) ^ N = _
+        rw [mul_pow]
+      _ = q ^ z * q ^ ((-k) * (N : ℤ)) := by
+        rw [hbpow, ← zpow_natCast, ← zpow_mul]
+      _ = q ^ (z + (-k) * (N : ℤ)) := (zpow_add q _ _).symm
+      _ = q ^ r := by
+        have hexp : z + (-k) * (N : ℤ) = r := by
+          rw [← hzsplit]
+          ring
+        rw [hexp]
+      _ = q ^ (i.1 : ℤ) := by rw [hiCast]
+      _ = q ^ i.1 := zpow_natCast q i.1
+  let uS : Sˣ := Units.map (algebraMap R S) u
+  let x₀ : Sˣ := b₀ / a ^ i.1
+  have hx₀pow : x₀ ^ N = uS ^ i.1 := by
+    calc
+      x₀ ^ N = b₀ ^ N / (a ^ i.1) ^ N := by
+        change (b₀ / a ^ i.1) ^ N = _
+        rw [div_pow]
+      _ = q ^ i.1 / (a ^ i.1) ^ N := by rw [hb₀pow]
+      _ = (a ^ N * uS) ^ i.1 / (a ^ i.1) ^ N := by rw [hq]
+      _ = (a ^ N) ^ i.1 * uS ^ i.1 / (a ^ i.1) ^ N := by
+        rw [mul_pow]
+      _ = uS ^ i.1 := by
+        have ha : (a ^ i.1) ^ N = (a ^ N) ^ i.1 := by
+          rw [← pow_mul, ← pow_mul, Nat.mul_comm i.1 N]
+        rw [ha, mul_div_cancel_left]
+  let x : KummerUnitRoot R S N i u :=
+    ⟨x₀, by simpa [uS, map_pow] using hx₀pow⟩
+  let p : KummerUnitPoint R S N u := ⟨i, x⟩
+  refine ⟨p, ?_⟩
+  apply Subtype.ext
+  change Additive.ofMul
+      ((kummerRepresentative R S N u a p : Sˣ ⧸ Subgroup.zpowers q)) = t.1
+  have hrep : kummerRepresentative R S N u a p = b₀ := by
+    change a ^ i.1 * (b₀ / a ^ i.1) = b₀
+    exact mul_div_cancel (a ^ i.1) b₀
+  have hb₀quot : (b₀ : Sˣ ⧸ Subgroup.zpowers q) = b := by
+    apply QuotientGroup.eq_iff_div_mem.mpr
+    change (b * q ^ (-k)) / b ∈ Subgroup.zpowers q
+    rw [mul_div_cancel_left]
+    exact zpow_mem (Subgroup.mem_zpowers q) (-k)
+  calc
+    Additive.ofMul
+        ((kummerRepresentative R S N u a p : Sˣ ⧸ Subgroup.zpowers q)) =
+      Additive.ofMul (b₀ : Sˣ ⧸ Subgroup.zpowers q) :=
+        congrArg (fun w : Sˣ ↦ Additive.ofMul
+          (w : Sˣ ⧸ Subgroup.zpowers q)) hrep
+    _ = Additive.ofMul (b : Sˣ ⧸ Subgroup.zpowers q) :=
+      congrArg Additive.ofMul hb₀quot
+    _ = t.1 := hbt
+
+/-- The Kummer description is bijective when the quotient generator has infinite order. -/
+lemma kummerPointToTorsion_bijective
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (hqinj : Function.Injective fun z : ℤ ↦ q ^ z) :
+    Function.Bijective (kummerPointToTorsion R S N u q a hq) :=
+  ⟨kummerPointToTorsion_injective R S N u q a hq hqinj,
+    kummerPointToTorsion_surjective R S N u q a hq⟩
+
 end QuotientTorsion
 
 end TateKummer
