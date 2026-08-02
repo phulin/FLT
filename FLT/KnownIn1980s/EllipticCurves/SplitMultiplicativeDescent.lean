@@ -416,6 +416,21 @@ theorem not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_residue_ne_zer
     W 𝒪[k] (0 : 𝒪[k]) nR hDres hDresnsq hexplicitSplit
 
 open IsLocalRing in
+/-- **Wild ramification core.** If a quadratic twist still has multiplicative reduction in
+residue characteristic `2`, the quadratic extension admits an integral generator with unit
+trace. This is the reduction-theoretic form of the assertion that ramified quadratic twists are
+additive: such a generator exists exactly in the unramified case. -/
+theorem exists_integral_generator_unit_trace_of_quadraticTwist_hasMultiplicativeReduction
+    (W : WeierstrassCurve k) [W.IsElliptic] [W.HasMultiplicativeReduction 𝒪[k]]
+    (L : Type u) [Field L] [Algebra k L] [Algebra.IsQuadraticExtension k L]
+    [Algebra.IsSeparable k L] (W' : WeierstrassCurve k) [W'.IsElliptic]
+    [W'.HasMultiplicativeReduction 𝒪[k]] (C : VariableChange k)
+    (hC : C • W' = W.quadraticTwist L) (h2 : (2 : ResidueField 𝒪[k]) = 0) :
+    ∃ (θ : L), θ ∉ Set.range (algebraMap k L) ∧
+      _root_.IsIntegral 𝒪[k] θ ∧ valuation k (Algebra.trace k L θ) = 1 := by
+  sorry
+
+open IsLocalRing in
 /-- **Wild quadratic-twist normalization.** In residue characteristic `2`, if a quadratic twist
 of a multiplicative elliptic curve again has multiplicative reduction, then the quadratic
 extension is unramified.  Equivalently, it has an integral generator whose reduced trace is
@@ -435,7 +450,20 @@ theorem exists_integral_generator_of_quadraticTwist_hasMultiplicativeReduction
       Algebra.trace k L θ = algebraMap 𝒪[k] k t' ∧
       Algebra.norm k θ = algebraMap 𝒪[k] k n' ∧
       residue 𝒪[k] t' ≠ 0 := by
-  sorry
+  obtain ⟨θ, hθ, hθint, htrval⟩ :=
+    exists_integral_generator_unit_trace_of_quadraticTwist_hasMultiplicativeReduction
+      W L W' C hC h2
+  have htrint : _root_.IsIntegral 𝒪[k] (Algebra.trace k L θ) :=
+    Algebra.isIntegral_trace hθint
+  have hnrint : _root_.IsIntegral 𝒪[k] (Algebra.norm k θ) :=
+    Algebra.isIntegral_norm k hθint
+  obtain ⟨t', ht'⟩ := IsIntegrallyClosed.isIntegral_iff.mp htrint
+  obtain ⟨n', hn'⟩ := IsIntegrallyClosed.isIntegral_iff.mp hnrint
+  refine ⟨θ, hθ, t', n', ht'.symm, hn'.symm, ?_⟩
+  apply (residue_ne_zero_iff_isUnit _).mpr
+  apply (Valuation.integer.integers (valuation k)).isUnit_iff_valuation_eq_one.mpr
+  rw [ht']
+  exact htrval
 
 theorem not_hasSplitMultiplicativeReduction_quadraticTwist (W : WeierstrassCurve k)
     [W.IsElliptic] [W.HasSplitMultiplicativeReduction 𝒪[k]] (L : Type u) [Field L] [Algebra k L]
