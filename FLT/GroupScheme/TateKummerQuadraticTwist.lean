@@ -2313,17 +2313,16 @@ variable (S : Type v) [CommRing S] [IsDomain S]
   [Algebra R S] [Algebra K S] [Algebra L S]
   [IsScalarTower R K S] [IsScalarTower R L S]
 
-/-- Geometric points of the descended generic fiber are Kummer points.  The construction
-restricts a `K`-generic point to the fixed algebra, extends it to the integral quadratic
-cover using the chosen trace--norm generator, transports it across `baseChangeBialgEquiv`,
-and finally restricts it to the split Tate--Kummer coordinate algebra. -/
-noncomputable def genericFiberAlgHomUnitEquiv (θ : L)
+/-- Transport a geometric point of the descended generic fiber to a point of the split
+Tate--Kummer coordinate algebra.  This is the algebra-map part of the geometric-point
+classification, before reading off its component and Kummer root. -/
+noncomputable def genericFiberSplitAlgHomEquiv (θ : L)
     (htrace : Algebra.trace K L θ = algebraMap R K t)
     (hnorm : Algebra.norm K θ = algebraMap R K n)
     (h2 : IsUnit (2 : R))
     (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
     (K ⊗[R] fixedSubalgebra R N u t n →ₐ[K] S) ≃
-      TateKummer.KummerUnitPoint R S N u := by
+      (TateKummer.CoordinateAlgebra (R := R) N u →ₐ[R] S) := by
   let f := QuadraticDescent.integralFieldAlgHom K L R t n θ htrace hnorm
   let g : QuadraticDescent.Algebra R t n →+* S :=
     (algebraMap L S).comp f.toRingHom
@@ -2341,10 +2340,24 @@ noncomputable def genericFiberAlgHomUnitEquiv (θ : L)
       (fixedSubalgebra R N u t n) S).trans
     ((AlgEquiv.arrowCongr (baseChangeEquiv R N u t n h2 hdisc)
       (AlgEquiv.refl : S ≃ₐ[QuadraticDescent.Algebra R t n] S)).trans
-    ((Algebra.TensorProduct.liftEquivRight R
-      (QuadraticDescent.Algebra R t n)
-      (TateKummer.CoordinateAlgebra (R := R) N u) S).symm.trans
-      (TateKummer.coordinateAlgHomUnitEquiv R S N u))))
+      (Algebra.TensorProduct.liftEquivRight R
+        (QuadraticDescent.Algebra R t n)
+        (TateKummer.CoordinateAlgebra (R := R) N u) S).symm))
+
+/-- Geometric points of the descended generic fiber are Kummer points.  The construction
+restricts a `K`-generic point to the fixed algebra, extends it to the integral quadratic
+cover using the chosen trace--norm generator, transports it across `baseChangeBialgEquiv`,
+and finally restricts it to the split Tate--Kummer coordinate algebra. -/
+noncomputable def genericFiberAlgHomUnitEquiv (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (K ⊗[R] fixedSubalgebra R N u t n →ₐ[K] S) ≃
+      TateKummer.KummerUnitPoint R S N u := by
+  exact (genericFiberSplitAlgHomEquiv R N u t n K L S θ
+    htrace hnorm h2 hdisc).trans
+      (TateKummer.coordinateAlgHomUnitEquiv R S N u)
 
 /-- The generic-fiber point classification sends convolution on the descended Hopf algebra
 to carry-corrected Kummer multiplication. -/
