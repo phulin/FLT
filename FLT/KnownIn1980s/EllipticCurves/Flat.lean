@@ -12,6 +12,8 @@ public import Mathlib.RingTheory.Etale.Basic
 public import Mathlib.RingTheory.Flat.Basic
 public import Mathlib.RingTheory.HopfAlgebra.Basic
 public import Mathlib.RingTheory.Polynomial.Resultant.Basic
+public import FLT.EllipticCurve.Torsion
+public import FLT.Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
 
 /-!
 
@@ -113,6 +115,7 @@ above honest; compare the corresponding condition in `GaloisRep.HasFlatProlongat
 
 open scoped WeierstrassCurve.Affine -- `(E⁄K).Point` notation for the group of points
 open scoped TensorProduct -- `⊗[R]` notation
+open NumberField
 
 universe u
 
@@ -158,6 +161,98 @@ theorem WeierstrassCurve.torsion_flat_of_good_reduction :
         (f (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) : (E⁄Ksep).Point) =
           Affine.Point.map σ.toAlgHom (f (Additive.ofMul (WithConv.toConv φ))) :=
   sorry
+
+/-- The local finite-flat torsion model for good reduction gives a flat prolongation of the
+global torsion representation at the corresponding finite place.  The proof transports the
+local torsion group back to global torsion through the canonical adic embedding. -/
+theorem WeierstrassCurve.galoisRep_hasFlatProlongationAt_of_good_reduction
+    {F : Type*} [Field F] [NumberField F]
+    (v : IsDedekindDomain.HeightOneSpectrum (𝓞 F))
+    (W : WeierstrassCurve F) [W.IsElliptic]
+    [DecidableEq F] [DecidableEq (AlgebraicClosure F)]
+    [DecidableEq (AlgebraicClosure (v.adicCompletion F))]
+    (m : ℕ) [NeZero m] [NeZero (m : F)] (hm : 0 < m)
+    [(W.baseChange (v.adicCompletion F)).HasGoodReduction
+      (v.adicCompletionIntegers F)] :
+    (W.galoisRep m hm).HasFlatProlongationAt v := by
+  let k := v.adicCompletion F
+  let R := v.adicCompletionIntegers F
+  let Ω := AlgebraicClosure k
+  let Wlocal := W.baseChange k
+  let _ : Wlocal.IsElliptic := inferInstance
+  let _ : Wlocal.HasGoodReduction R := by infer_instance
+  let _ : NeZero m := inferInstance
+  let _ : DecidableEq Ω := inferInstance
+  obtain ⟨H, hHring, hHhopf, hHfinite, hHflat, hHetale, flocal, hflocal⟩ :=
+    Wlocal.torsion_flat_of_good_reduction R k m Ω
+  let _ : CommRing H := hHring
+  let _ : HopfAlgebra R H := hHhopf
+  let _ : Module.Finite R H := hHfinite
+  let _ : Module.Flat R H := hHflat
+  let _ : Algebra.Etale k (k ⊗[R] H) := hHetale
+  have hcurve : (Wlocal⁄Ω) = W⁄Ω := by
+    change (W.map (algebraMap F k)).map (algebraMap k Ω) = W.map (algebraMap F Ω)
+    rw [WeierstrassCurve.map_map]
+    apply congrArg W.map
+    ext x
+    exact (IsScalarTower.algebraMap_apply F k Ω x).symm
+  let reassocPointEquiv : (Wlocal⁄Ω).Point ≃+ (W⁄Ω).Point :=
+    WeierstrassCurve.Affine.Point.equivOfEq hcurve
+  let reassocTorsionEquiv := reassocPointEquiv.torsionBy m
+  let adicEquiv := W.adicCompletion_nTorsionAddEquiv v m
+  let localToGlobal := reassocTorsionEquiv.trans adicEquiv.symm
+  let f : Additive (WithConv (k ⊗[R] H →ₐ[k] Ω)) →+
+      ((W.galoisRep m hm).toLocal v).Space :=
+    localToGlobal.toAddMonoidHom.comp flocal.toAddMonoidHom
+  refine ⟨H, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    f, localToGlobal.bijective.comp flocal.bijective, ?_⟩
+  intro σ x
+  change localToGlobal (flocal (Additive.ofMul (WithConv.toConv
+      (σ.toAlgHom.comp x.toMul.ofConv)))) =
+    (W.galoisRep m hm).toLocal v σ (localToGlobal (flocal x))
+  dsimp only [localToGlobal]
+  change adicEquiv.symm (reassocTorsionEquiv
+      (flocal (Additive.ofMul (WithConv.toConv
+        (σ.toAlgHom.comp x.toMul.ofConv))))) = _
+  apply adicEquiv.injective
+  rw [adicEquiv.apply_symm_apply]
+  have hadic (P : AddSubgroup.torsionBy
+      (W⁄(AlgebraicClosure F)).Point (m : ℤ)) :
+      adicEquiv ((W.galoisRep m hm).toLocal v σ P) =
+        W.nTorsionMap m (σ.toAlgHom.restrictScalars F) (adicEquiv P) := by
+    exact W.adicCompletion_nTorsionAddEquiv_galois v m σ P
+  rw [hadic]
+  change reassocTorsionEquiv
+      (flocal (Additive.ofMul (WithConv.toConv
+        (σ.toAlgHom.comp x.toMul.ofConv)))) =
+    W.nTorsionMap m (σ.toAlgHom.restrictScalars F)
+      (adicEquiv (adicEquiv.symm (reassocTorsionEquiv (flocal x))))
+  rw [adicEquiv.apply_symm_apply]
+  apply Subtype.ext
+  change reassocPointEquiv
+      (flocal (Additive.ofMul (WithConv.toConv
+        (σ.toAlgHom.comp x.toMul.ofConv)))).1 =
+    WeierstrassCurve.Affine.Point.map (σ.toAlgHom.restrictScalars F)
+      (reassocPointEquiv (flocal x).1)
+  have hnat (P : (Wlocal⁄Ω).Point) :
+      reassocPointEquiv (WeierstrassCurve.Affine.Point.map σ.toAlgHom P) =
+        WeierstrassCurve.Affine.Point.map (σ.toAlgHom.restrictScalars F)
+          (reassocPointEquiv P) := by
+    cases P with
+    | zero =>
+        change reassocPointEquiv (0 : (Wlocal⁄Ω).Point) =
+          WeierstrassCurve.Affine.Point.map (σ.toAlgHom.restrictScalars F)
+            (reassocPointEquiv (0 : (Wlocal⁄Ω).Point))
+        simp only [map_zero]
+    | some px py hns =>
+        simp [reassocPointEquiv,
+          WeierstrassCurve.Affine.Point.map_some,
+          WeierstrassCurve.Affine.Point.equivOfEq_some]
+  calc
+    _ = reassocPointEquiv
+        (WeierstrassCurve.Affine.Point.map σ.toAlgHom (flocal x).1) :=
+      congrArg reassocPointEquiv (hflocal σ x.toMul.ofConv)
+    _ = _ := hnat (flocal x).1
 
 /-!
 ### A step towards the proof, via division polynomials
