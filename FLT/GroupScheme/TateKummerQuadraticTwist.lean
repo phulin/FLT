@@ -139,6 +139,21 @@ lemma descentAlgEquiv_apply_apply (z : CoverCoordinateAlgebra R N u t n) :
     descentAlgEquiv R N u t n (descentAlgEquiv R N u t n z) = z :=
   descentAlgEquiv_involutive R N u t n z
 
+@[simp]
+lemma descentAlgEquiv_algebraMap_cover
+    (a : QuadraticDescent.Algebra R t n) :
+    descentAlgEquiv R N u t n
+        (algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) a) =
+      algebraMap (QuadraticDescent.Algebra R t n)
+        (CoverCoordinateAlgebra R N u t n)
+        (QuadraticDescent.conjugationAlgEquiv R t n a) := by
+  change
+    descentAlgEquiv R N u t n
+        (a ⊗ₜ[R] (1 : TateKummer.CoordinateAlgebra (R := R) N u)) =
+      QuadraticDescent.conjugationAlgEquiv R t n a ⊗ₜ[R] 1
+  rw [descentAlgEquiv_tmul, map_one]
+
 /-- The trace-zero quadratic generator, embedded in the cover coordinate algebra. -/
 noncomputable def coverAntiInvariant : CoverCoordinateAlgebra R N u t n :=
   QuadraticDescent.antiInvariant R t n ⊗ₜ[R]
@@ -351,6 +366,229 @@ lemma fixedRetraction_comp_subtype (h2 : IsUnit (2 : R)) :
   ext z
   change fixedProjection R N u t n h2 z = z
   exact fixedProjection_of_mem R N u t n h2 z z.property
+
+lemma coe_fixedRetraction_baseChangeToCover_tmul (h2 : IsUnit (2 : R))
+    (a : QuadraticDescent.Algebra R t n) (z : fixedSubalgebra R N u t n) :
+    (fixedRetraction R N u t n h2
+        (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) :
+      CoverCoordinateAlgebra R N u t n) =
+      algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n)
+          (QuadraticDescent.evenPart R t n h2 a) *
+        (z : CoverCoordinateAlgebra R N u t n) := by
+  change
+    fixedProjection R N u t n h2
+        (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) = _
+  rw [fixedProjection_apply, baseChangeToCover_tmul, map_mul,
+    descentAlgEquiv_algebraMap_cover,
+    (mem_fixedSubalgebra R N u t n z).mp z.property]
+  rw [QuadraticDescent.evenPart]
+  simp only [Algebra.smul_def, map_mul, map_add]
+  rw [IsScalarTower.algebraMap_apply R (QuadraticDescent.Algebra R t n)
+    (CoverCoordinateAlgebra R N u t n)]
+  ring
+
+/-- The anti-invariant coefficient as an `R`-linear map. -/
+noncomputable def oddProjectionLinear (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    CoverCoordinateAlgebra R N u t n →ₗ[R] CoverCoordinateAlgebra R N u t n :=
+  (↑(h2.unit⁻¹) : R) •
+    (LinearMap.mulLeft R (coverAntiInvariantInv R N u t n hdisc)).comp
+      (LinearMap.id - (descentAlgEquiv R N u t n).toLinearMap)
+
+lemma oddProjectionLinear_apply (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : CoverCoordinateAlgebra R N u t n) :
+    oddProjectionLinear R N u t n h2 hdisc z = oddPart R N u t n h2 hdisc z := by
+  rfl
+
+/-- The anti-invariant coefficient with codomain restricted to the fixed algebra. -/
+noncomputable def oddRetraction (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    CoverCoordinateAlgebra R N u t n →ₗ[R] fixedSubalgebra R N u t n :=
+  (oddProjectionLinear R N u t n h2 hdisc).codRestrict
+    (fixedSubalgebra R N u t n).toSubmodule
+    (oddPart_mem_fixedSubalgebra R N u t n h2 hdisc)
+
+lemma coe_oddRetraction_baseChangeToCover_tmul (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (a : QuadraticDescent.Algebra R t n) (z : fixedSubalgebra R N u t n) :
+    (oddRetraction R N u t n h2 hdisc
+        (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) :
+      CoverCoordinateAlgebra R N u t n) =
+      algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n)
+          (QuadraticDescent.oddPart R t n h2 hdisc a) *
+        (z : CoverCoordinateAlgebra R N u t n) := by
+  change
+    oddPart R N u t n h2 hdisc
+        (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) = _
+  rw [oddPart, baseChangeToCover_tmul, map_mul,
+    descentAlgEquiv_algebraMap_cover,
+    (mem_fixedSubalgebra R N u t n z).mp z.property]
+  change
+    (↑(h2.unit⁻¹) : R) •
+        (algebraMap (QuadraticDescent.Algebra R t n)
+            (CoverCoordinateAlgebra R N u t n)
+            (QuadraticDescent.antiInvariantInv R t n hdisc) *
+          (algebraMap (QuadraticDescent.Algebra R t n)
+                (CoverCoordinateAlgebra R N u t n) a * (z : CoverCoordinateAlgebra R N u t n) -
+            algebraMap (QuadraticDescent.Algebra R t n)
+                (CoverCoordinateAlgebra R N u t n)
+                (QuadraticDescent.conjugationAlgEquiv R t n a) * z)) = _
+  rw [QuadraticDescent.oddPart]
+  simp only [Algebra.smul_def, map_mul, map_sub]
+  rw [IsScalarTower.algebraMap_apply R (QuadraticDescent.Algebra R t n)
+    (CoverCoordinateAlgebra R N u t n)]
+  ring
+
+/-- The explicit `R`-linear inverse candidate to the canonical base-change map. -/
+noncomputable def descentLinearInverse (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    CoverCoordinateAlgebra R N u t n →ₗ[R]
+      QuadraticDescent.Algebra R t n ⊗[R] fixedSubalgebra R N u t n :=
+  (TensorProduct.mk R (QuadraticDescent.Algebra R t n)
+      (fixedSubalgebra R N u t n) 1).comp
+      (fixedRetraction R N u t n h2) +
+    (TensorProduct.mk R (QuadraticDescent.Algebra R t n)
+      (fixedSubalgebra R N u t n) (QuadraticDescent.antiInvariant R t n)).comp
+      (oddRetraction R N u t n h2 hdisc)
+
+lemma descentLinearInverse_apply (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : CoverCoordinateAlgebra R N u t n) :
+    descentLinearInverse R N u t n h2 hdisc z =
+      (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          fixedRetraction R N u t n h2 z +
+        QuadraticDescent.antiInvariant R t n ⊗ₜ[R]
+          oddRetraction R N u t n h2 hdisc z := by
+  rfl
+
+/-- Applying the canonical base-change map after the explicit inverse recovers every cover
+element. -/
+lemma baseChangeToCover_comp_descentLinearInverse (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    ((baseChangeToCover R N u t n).toLinearMap.restrictScalars R).comp
+        (descentLinearInverse R N u t n h2 hdisc) = LinearMap.id := by
+  apply LinearMap.ext
+  intro z
+  rw [LinearMap.comp_apply, descentLinearInverse_apply, map_add]
+  change
+    baseChangeToCover R N u t n
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+            fixedRetraction R N u t n h2 z) +
+        baseChangeToCover R N u t n
+          (QuadraticDescent.antiInvariant R t n ⊗ₜ[R]
+            oddRetraction R N u t n h2 hdisc z) = z
+  rw [baseChangeToCover_tmul, baseChangeToCover_tmul, map_one, one_mul]
+  change
+    (evenPart R N u t n h2 z : CoverCoordinateAlgebra R N u t n) +
+      coverAntiInvariant R N u t n *
+        (oddPartFixed R N u t n h2 hdisc z :
+          CoverCoordinateAlgebra R N u t n) = z
+  exact evenPart_add_coverAntiInvariant_mul_oddPart R N u t n h2 hdisc z
+
+lemma descentLinearInverse_baseChangeToCover_tmul (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (a : QuadraticDescent.Algebra R t n) (z : fixedSubalgebra R N u t n) :
+    descentLinearInverse R N u t n h2 hdisc
+        (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) = a ⊗ₜ[R] z := by
+  let ae := QuadraticDescent.evenPart R t n h2 a
+  let ao := QuadraticDescent.oddPart R t n h2 hdisc a
+  let re := QuadraticDescent.reCoeff R t n ae
+  let ro := QuadraticDescent.reCoeff R t n ao
+  have hae : ae = algebraMap R (QuadraticDescent.Algebra R t n) re := by
+    exact QuadraticDescent.evenPart_eq_algebraMap R t n h2 a
+  have hao : ao = algebraMap R (QuadraticDescent.Algebra R t n) ro := by
+    exact QuadraticDescent.oddPart_eq_algebraMap R t n h2 hdisc a
+  have heven :
+      fixedRetraction R N u t n h2
+          (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) = re • z := by
+    apply Subtype.ext
+    rw [coe_fixedRetraction_baseChangeToCover_tmul]
+    change
+      algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) ae *
+          (z : CoverCoordinateAlgebra R N u t n) =
+        re • (z : CoverCoordinateAlgebra R N u t n)
+    rw [hae, ← IsScalarTower.algebraMap_apply R
+      (QuadraticDescent.Algebra R t n) (CoverCoordinateAlgebra R N u t n)]
+    rw [Algebra.smul_def]
+  have hodd :
+      oddRetraction R N u t n h2 hdisc
+          (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) = ro • z := by
+    apply Subtype.ext
+    rw [coe_oddRetraction_baseChangeToCover_tmul]
+    change
+      algebraMap (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) ao *
+          (z : CoverCoordinateAlgebra R N u t n) =
+        ro • (z : CoverCoordinateAlgebra R N u t n)
+    rw [hao, ← IsScalarTower.algebraMap_apply R
+      (QuadraticDescent.Algebra R t n) (CoverCoordinateAlgebra R N u t n)]
+    rw [Algebra.smul_def]
+  rw [descentLinearInverse_apply, heven, hodd]
+  calc
+    (1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] (re • z) +
+          QuadraticDescent.antiInvariant R t n ⊗ₜ[R] (ro • z) =
+        (re • (1 : QuadraticDescent.Algebra R t n)) ⊗ₜ[R] z +
+          (ro • QuadraticDescent.antiInvariant R t n) ⊗ₜ[R] z := by
+      rw [TensorProduct.tmul_smul, TensorProduct.tmul_smul,
+        TensorProduct.smul_tmul', TensorProduct.smul_tmul']
+    _ = ae ⊗ₜ[R] z +
+          (QuadraticDescent.antiInvariant R t n * ao) ⊗ₜ[R] z := by
+      rw [Algebra.smul_def, mul_one, ← hae, Algebra.smul_def, mul_comm, ← hao]
+    _ = (ae + QuadraticDescent.antiInvariant R t n * ao) ⊗ₜ[R] z := by
+      rw [TensorProduct.add_tmul]
+    _ = a ⊗ₜ[R] z := by
+      rw [QuadraticDescent.evenPart_add_antiInvariant_mul_oddPart R t n h2 hdisc a]
+
+lemma descentLinearInverse_comp_baseChangeToCover (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (descentLinearInverse R N u t n h2 hdisc).comp
+        ((baseChangeToCover R N u t n).toLinearMap.restrictScalars R) = LinearMap.id := by
+  apply TensorProduct.ext'
+  intro a z
+  rw [LinearMap.comp_apply]
+  change
+    descentLinearInverse R N u t n h2 hdisc
+        (baseChangeToCover R N u t n (a ⊗ₜ[R] z)) = a ⊗ₜ[R] z
+  exact descentLinearInverse_baseChangeToCover_tmul R N u t n h2 hdisc a z
+
+lemma baseChangeToCover_injective (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    Function.Injective (baseChangeToCover R N u t n) := by
+  apply Function.LeftInverse.injective
+    (g := descentLinearInverse R N u t n h2 hdisc)
+  intro z
+  have hz := LinearMap.congr_fun
+    (descentLinearInverse_comp_baseChangeToCover R N u t n h2 hdisc) z
+  change
+    descentLinearInverse R N u t n h2 hdisc
+        (baseChangeToCover R N u t n z) = z at hz
+  exact hz
+
+lemma baseChangeToCover_bijective (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    Function.Bijective (baseChangeToCover R N u t n) :=
+  ⟨baseChangeToCover_injective R N u t n h2 hdisc,
+    baseChangeToCover_surjective R N u t n h2 hdisc⟩
+
+/-- Extending the fixed algebra back to the quadratic cover recovers the original Tate--Kummer
+coordinate algebra. -/
+noncomputable def baseChangeEquiv (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    QuadraticDescent.Algebra R t n ⊗[R] fixedSubalgebra R N u t n ≃ₐ[
+      QuadraticDescent.Algebra R t n] CoverCoordinateAlgebra R N u t n :=
+  AlgEquiv.ofBijective (baseChangeToCover R N u t n)
+    (baseChangeToCover_bijective R N u t n h2 hdisc)
+
+@[simp]
+lemma baseChangeEquiv_apply (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : QuadraticDescent.Algebra R t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeEquiv R N u t n h2 hdisc z = baseChangeToCover R N u t n z :=
+  rfl
 
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
