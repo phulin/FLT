@@ -537,3 +537,71 @@ lemma genericFiberTorsionAddEquiv_comp
 end GenericFiber
 
 end TateKummer
+
+namespace WeierstrassCurve
+
+open ValuativeRel
+open scoped WeierstrassCurve.Affine
+
+section TateCurve
+
+variable (R : Type u) [CommRing R]
+variable (K : Type u) [Field K] [Algebra R K] [ValuativeRel K]
+  [TopologicalSpace K] [IsNonarchimedeanLocalField K]
+variable (S : Type v) [Field S] [Algebra R S] [Algebra K S]
+  [IsScalarTower R K S] [IsSepClosed S] [Algebra.IsSeparable K S]
+  [DecidableEq K] [DecidableEq S]
+variable (E : WeierstrassCurve K) [E.IsElliptic]
+  [E.HasSplitMultiplicativeReduction 𝒪[K]]
+
+/-- The generic-fiber points of the Tate--Kummer model, identified with the torsion of
+the split-multiplicative elliptic curve through Tate uniformization. -/
+noncomputable def tateKummerTorsionAddEquiv
+    (N : ℕ) [NeZero N] (u : Rˣ) (a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = E.qUnitSepClosure S) :
+    Additive (WithConv
+      (K ⊗[R] TateKummer.CoordinateAlgebra (R := R) N u →ₐ[K] S)) ≃+
+        AddSubgroup.torsionBy (E⁄S).Point (N : ℤ) := by
+  let e := E.tateTorsionLinearEquiv S N
+  let eAdd : AddSubgroup.torsionBy
+        (Additive (Sˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure S))) (N : ℤ) ≃+
+      AddSubgroup.torsionBy (E⁄S).Point (N : ℤ) :=
+    { toFun := e
+      invFun := e.symm
+      left_inv := e.symm_apply_apply
+      right_inv := e.apply_symm_apply
+      map_add' := e.map_add }
+  exact (TateKummer.genericFiberTorsionAddEquiv R K S N u
+      (E.qUnitSepClosure S) a hq (E.qUnitSepClosure_zpow_injective S)).trans eAdd
+
+/-- The Tate--Kummer identification with curve torsion is equivariant for the action of
+the absolute Galois group. -/
+lemma tateKummerTorsionAddEquiv_comp
+    (N : ℕ) [NeZero N] (u : Rˣ) (a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = E.qUnitSepClosure S)
+    (haσ : ∀ σ : S ≃ₐ[K] S,
+      Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (σ : S ≃ₐ[K] S)
+    (φ : K ⊗[R] TateKummer.CoordinateAlgebra (R := R) N u →ₐ[K] S) :
+    E.tateKummerTorsionAddEquiv R K S N u a hq
+        (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) =
+      E.nTorsionMap N σ.toAlgHom
+        (E.tateKummerTorsionAddEquiv R K S N u a hq
+          (Additive.ofMul (WithConv.toConv φ))) := by
+  let e := E.tateTorsionLinearEquiv S N
+  let g := TateKummer.genericFiberTorsionAddEquiv R K S N u
+    (E.qUnitSepClosure S) a hq (E.qUnitSepClosure_zpow_injective S)
+  change e (g (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ)))) =
+    E.nTorsionMap N σ.toAlgHom
+      (e (g (Additive.ofMul (WithConv.toConv φ))))
+  apply e.symm.injective
+  rw [e.symm_apply_apply]
+  rw [E.tateTorsionLinearEquiv_symm_nTorsionMap]
+  rw [e.symm_apply_apply]
+  exact TateKummer.genericFiberTorsionAddEquiv_comp R K S N u
+    (E.qUnitSepClosure S) a hq (E.qUnitSepClosure_zpow_injective S)
+      σ (E.unitsMap_qUnitSepClosure S σ) (haσ σ) φ
+
+end TateCurve
+
+end WeierstrassCurve
