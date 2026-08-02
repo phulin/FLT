@@ -19,6 +19,11 @@ name = "checkdecls"
 git = "https://github.com/PatrickMassot/checkdecls.git"
 
 [[require]]
+name = "cebotarev-density"
+git = "https://github.com/phulin/chebotarev-density.git"
+rev = "a5b0f7268f58bb3a25fb281761caf42bcbd75593"
+
+[[require]]
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"
 rev = "62244e5ddb2bb0c35e3500acb5730ad8fb4b17aa"
