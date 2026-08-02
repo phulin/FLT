@@ -115,6 +115,78 @@ def narrowSLiftUniversalRingCorepresentableBy :
       (narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ) :=
   (isCorepresentable_narrowSLiftFunctor 𝓞 hK l hl S hS ρ hρ).has_corepresentation.choose_spec.some
 
+/-- The universal narrow `S`-lift, as an element of the lifting functor evaluated at its
+corepresenting ring. -/
+def narrowSLiftUniversalElement :
+    (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.obj
+      (narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ) :=
+  (narrowSLiftUniversalRingCorepresentableBy 𝓞 hK l hl S hS ρ hρ).homEquiv
+    (𝟙 (narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ))
+
+/-- The matrix-valued representation underlying the universal narrow `S`-lift. -/
+def narrowSLiftUniversalRepresentation :
+    (repnFunctor (Fin 2) (Γ K) 𝓞).obj
+      (narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ) :=
+  (narrowSLiftUniversalElement 𝓞 hK l hl S hS ρ hρ).1
+
+/-- The universal narrow `S`-lift regarded as a framed Galois representation. -/
+noncomputable def narrowSLiftUniversalGaloisRep :
+    FramedGaloisRep K (narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ) (Fin 2) :=
+  toFramedGaloisRep (narrowSLiftUniversalRepresentation 𝓞 hK l hl S hS ρ hρ)
+
+/-- The universal representation satisfies every condition defining the narrow `S`-lift
+functor. -/
+theorem narrowSLiftUniversalRepresentation_mem :
+    narrowSLiftUniversalRepresentation 𝓞 hK l hl S hS ρ hρ ∈
+      (narrowSLiftFunctor 𝓞 l S ρ).obj
+        (narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ) :=
+  (narrowSLiftUniversalElement 𝓞 hK l hl S hS ρ hρ).2
+
+/-- The unique classifying morphism attached to a narrow `S`-lift over a pro-Artinian
+coefficient algebra. -/
+def narrowSLiftClassifyingMap {A : ProartinianCat 𝓞}
+    (x : (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.obj A) :
+    narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ ⟶ A :=
+  (narrowSLiftUniversalRingCorepresentableBy 𝓞 hK l hl S hS ρ hρ).homEquiv.symm x
+
+/-- Mapping the universal element along its classifying morphism recovers the prescribed
+narrow `S`-lift. -/
+theorem narrowSLiftUniversalElement_map_classifyingMap {A : ProartinianCat 𝓞}
+    (x : (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.obj A) :
+    (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.map
+        (narrowSLiftClassifyingMap 𝓞 hK l hl S hS ρ hρ x)
+        (narrowSLiftUniversalElement 𝓞 hK l hl S hS ρ hρ) = x := by
+  unfold narrowSLiftClassifyingMap narrowSLiftUniversalElement
+  rw [← (narrowSLiftUniversalRingCorepresentableBy
+    𝓞 hK l hl S hS ρ hρ).homEquiv_eq]
+  exact (narrowSLiftUniversalRingCorepresentableBy
+    𝓞 hK l hl S hS ρ hρ).homEquiv.apply_symm_apply x
+
+/-- The classifying morphism is the only morphism carrying the universal element to the
+prescribed narrow `S`-lift. -/
+theorem narrowSLiftClassifyingMap_unique {A : ProartinianCat 𝓞}
+    (x : (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.obj A)
+    (f : narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ ⟶ A)
+    (hf : (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.map f
+      (narrowSLiftUniversalElement 𝓞 hK l hl S hS ρ hρ) = x) :
+    f = narrowSLiftClassifyingMap 𝓞 hK l hl S hS ρ hρ x := by
+  apply (narrowSLiftUniversalRingCorepresentableBy
+    𝓞 hK l hl S hS ρ hρ).homEquiv.injective
+  calc
+    (narrowSLiftUniversalRingCorepresentableBy
+        𝓞 hK l hl S hS ρ hρ).homEquiv f =
+        (narrowSLiftFunctor 𝓞 l S ρ).toFunctor.map f
+          (narrowSLiftUniversalElement 𝓞 hK l hl S hS ρ hρ) := by
+            rw [(narrowSLiftUniversalRingCorepresentableBy
+              𝓞 hK l hl S hS ρ hρ).homEquiv_eq]
+            rfl
+    _ = x := hf
+    _ = (narrowSLiftUniversalRingCorepresentableBy
+        𝓞 hK l hl S hS ρ hρ).homEquiv
+          (narrowSLiftClassifyingMap 𝓞 hK l hl S hS ρ hρ x) :=
+      ((narrowSLiftUniversalRingCorepresentableBy
+        𝓞 hK l hl S hS ρ hρ).homEquiv.apply_symm_apply x).symm
+
 end
 
 end Deformation
