@@ -185,6 +185,57 @@ theorem schoof_three_adic_fieldCutOut_tame_quotient_at_two
       (τ.map (algebraMap ℚ ℚ_[2])) δ π hπ hintertwines
   exact ⟨π, hπ, δ, hker, hintertwines, (hπτ 1 0).2.1, (hπτ 1 0).2.2⟩
 
+/-- Inertia at `2` has character `1 + det` on a finite three-adic hardly ramified
+representation.  The hard-ramification hypothesis only states that a rank-one quotient is
+unramified; the local-ring version of the rank-two trace lemma upgrades this to a character
+identity for the entire representation. -/
+theorem schoof_three_adic_inertia_trace_eq_one_add_det_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau) :
+    ∀ g : Γ ℚ_[2],
+      g ∈ AddSubgroup.inertia
+        ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]) →
+      LinearMap.trace A W (tau.map (algebraMap ℚ ℚ_[2]) g) =
+        1 + LinearMap.det (tau.map (algebraMap ℚ ℚ_[2]) g) := by
+  obtain ⟨pi, hpi, delta, hpitau⟩ := htau.isTameAtTwo
+  intro g hg
+  have hgdelta : g ∈ delta.ker := (hpitau 1 0).2.1 hg
+  have hpitriv : ∀ w : W,
+      pi (tau.map (algebraMap ℚ ℚ_[2]) g w) = pi w := by
+    intro w
+    rw [(hpitau g w).1, show delta g = 1 from hgdelta]
+    rfl
+  exact LinearMap.trace_eq_one_add_det_of_surjective_invariant_quotient
+    hW (tau.map (algebraMap ℚ ℚ_[2]) g) pi hpi hpitriv
+
+/-- If the determinant is trivial on an inertia element at `2`, its action is unipotent of
+index at most two.  Together with the unramifiedness of the `3`-adic cyclotomic determinant,
+this is the linear-algebra input for proving that wild inertia acts trivially. -/
+theorem schoof_three_adic_inertia_unipotent_at_two
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {tau : GaloisRep ℚ A W}
+    (htau : IsHardlyRamified (show Odd 3 by decide) hW tau)
+    (g : Γ ℚ_[2])
+    (hg : g ∈ AddSubgroup.inertia
+      ((maximalIdeal Z2bar).toAddSubgroup : AddSubgroup Z2bar) (Γ ℚ_[2]))
+    (hdet : LinearMap.det (tau.map (algebraMap ℚ ℚ_[2]) g) = 1) :
+    let f := tau.map (algebraMap ℚ ℚ_[2]) g
+    (f - LinearMap.id).comp (f - LinearMap.id) = 0 := by
+  obtain ⟨pi, hpi, delta, hpitau⟩ := htau.isTameAtTwo
+  have hgdelta : g ∈ delta.ker := (hpitau 1 0).2.1 hg
+  have hpitriv : ∀ w : W,
+      pi (tau.map (algebraMap ℚ ℚ_[2]) g w) = pi w := by
+    intro w
+    rw [(hpitau g w).1, show delta g = 1 from hgdelta]
+    rfl
+  exact LinearMap.sub_id_comp_self_eq_zero_of_surjective_invariant_quotient_det_eq_one
+    hW (tau.map (algebraMap ℚ ℚ_[2]) g) pi hpi hpitriv hdet
+
 /-- The arithmetic filtration input for a hardly ramified representation over a finite local
 `ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
 the only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing

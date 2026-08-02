@@ -87,10 +87,15 @@ theorem trace_eq_one_add_det_of_multiplicative_constant_filtration
   change t = 1 + d
   exact (sub_eq_zero.mp hzero).symm
 
-/-- On a two-dimensional vector space, an endomorphism acting trivially on a nonzero
-one-dimensional quotient has trace equal to one plus its determinant. -/
+/-- Over a local ring, an endomorphism of a free rank-two module acting trivially on a
+surjective rank-one quotient has trace equal to one plus its determinant.
+
+The usual matrix proof over a field only needs one extra observation in this generality: the
+two coordinates of a surjective linear functional generate the unit ideal, so one of them is
+a unit in the local ring. -/
 theorem trace_eq_one_add_det_of_surjective_invariant_quotient
-    {k : Type u} {V : Type v} [Field k] [AddCommGroup V] [Module k V]
+    {k : Type u} {V : Type v} [CommRing k] [IsLocalRing k]
+    [AddCommGroup V] [Module k V]
     [Module.Finite k V] [Module.Free k V]
     (hV : Module.rank k V = 2) (f : V →ₗ[k] V)
     (π : V →ₗ[k] k) (hπ : Function.Surjective π)
@@ -108,14 +113,13 @@ theorem trace_eq_one_add_det_of_surjective_invariant_quotient
       _ = a * (b.repr x) 0 + c * (b.repr x) 1 := by
         rw [map_sum, Fin.sum_univ_two]
         simp [a, c, mul_comm]
-  have hac : a ≠ 0 ∨ c ≠ 0 := by
-    by_contra h
-    simp only [not_or, ne_eq, not_not] at h
+  have hac : IsUnit a ∨ IsUnit c := by
     obtain ⟨x, hx⟩ := hπ 1
-    have hzero : π x = 0 := by
-      rw [hπsum x, h.1, h.2]
-      simp
-    exact one_ne_zero (hx ▸ hzero)
+    have hone : a * (b.repr x) 0 + c * (b.repr x) 1 = 1 := by
+      rw [← hπsum x, hx]
+    rcases IsLocalRing.isUnit_or_isUnit_of_isUnit_add (hone ▸ isUnit_one) with ha | hc
+    · exact Or.inl ((Commute.all a ((b.repr x) 0)).isUnit_mul_iff.mp ha).1
+    · exact Or.inr ((Commute.all c ((b.repr x) 1)).isUnit_mul_iff.mp hc).1
   have h0 : a * M 0 0 + c * M 1 0 = a := by
     have h := hπf (b 0)
     rw [hπsum] at h
@@ -128,10 +132,30 @@ theorem trace_eq_one_add_det_of_surjective_invariant_quotient
     Matrix.trace_fin_two, Matrix.det_fin_two]
   change M 0 0 + M 1 1 = 1 + (M 0 0 * M 1 1 - M 0 1 * M 1 0)
   rcases hac with ha | hc
-  · apply mul_left_cancel₀ ha
+  · apply ha.mul_left_cancel
     linear_combination (1 - M 1 1) * h0 + M 1 0 * h1
-  · apply mul_left_cancel₀ hc
+  · apply hc.mul_left_cancel
     linear_combination M 0 1 * h0 - (M 0 0 - 1) * h1
+
+/-- A rank-two endomorphism with a trivial surjective rank-one quotient and determinant one
+is unipotent of index at most two.  This is the Cayley--Hamilton form used to control wild
+inertia in a three-primary representation. -/
+theorem sub_id_comp_self_eq_zero_of_surjective_invariant_quotient_det_eq_one
+    {k : Type u} {V : Type v} [CommRing k] [IsLocalRing k]
+    [AddCommGroup V] [Module k V] [Module.Finite k V] [Module.Free k V]
+    (hV : Module.rank k V = 2) (f : V →ₗ[k] V)
+    (pi : V →ₗ[k] k) (hpi : Function.Surjective pi)
+    (hpif : ∀ x, pi (f x) = pi x) (hdet : LinearMap.det f = 1) :
+    (f - LinearMap.id).comp (f - LinearMap.id) = 0 := by
+  have htrace : trace k V f = 1 + LinearMap.det f :=
+    trace_eq_one_add_det_of_surjective_invariant_quotient hV f pi hpi hpif
+  have hCH := cayley_hamilton_rank_two hV f
+  rw [htrace, hdet] at hCH
+  ext x
+  have hx := LinearMap.congr_fun hCH x
+  simp only [add_smul, one_smul] at hx
+  simpa [LinearMap.comp_apply, sub_eq_add_neg, add_assoc, add_comm, add_left_comm,
+    map_add, map_neg] using hx
 
 end LinearMap
 
