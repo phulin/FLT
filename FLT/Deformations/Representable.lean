@@ -142,6 +142,24 @@ theorem narrowSLiftUniversalRepresentation_mem :
         (narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ) :=
   (narrowSLiftUniversalElement 𝓞 hK l hl S hS ρ hρ).2
 
+/-- The five defining conditions of the narrow deformation problem, separated into usable
+components for the universal representation. -/
+theorem narrowSLiftUniversalRepresentation_conditions :
+    let τ := narrowSLiftUniversalRepresentation 𝓞 hK l hl S hS ρ hρ
+    let D := narrowSLiftUniversalRing 𝓞 hK l hl S hS ρ hρ
+    τ ∈ (liftFunctor (Fin 2) (Γ K) 𝓞 ρ).obj D ∧
+    τ ∈ (detConditionFunctor (Fin 2) 𝓞 l).obj D ∧
+    (∀ (v : Ω K) (_ : ↑l ∉ v.asIdeal) (_ : v ∉ S),
+      τ ∈ (unramifiedFunctor (Fin 2) 𝓞 v).obj D) ∧
+    (∀ (v : Ω K) (_ : v ∈ S),
+      τ ∈ (narrowTraceConditionFunctor 𝓞 v).obj D) ∧
+    (∀ (v : Ω K) (_ : ↑l ∈ v.asIdeal),
+      τ ∈ (flatFunctor (Fin 2) 𝓞 v).obj D) := by
+  simpa only [narrowSLiftFunctor, CategoryTheory.Subfunctor.min_obj,
+    Set.mem_inter_iff, CategoryTheory.Subfunctor.iInf_obj, Set.mem_iInter,
+    and_assoc] using
+      narrowSLiftUniversalRepresentation_mem 𝓞 hK l hl S hS ρ hρ
+
 /-- The unique classifying morphism attached to a narrow `S`-lift over a pro-Artinian
 coefficient algebra. -/
 def narrowSLiftClassifyingMap {A : ProartinianCat 𝓞}
