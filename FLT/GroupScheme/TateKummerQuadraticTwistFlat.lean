@@ -389,6 +389,115 @@ lemma genericFiberAlgHomUnitEquiv_comp_of_not_fixed
     ((genericFiberSplitAlgHomEquiv R N u₀ t n K L S θ
       htrace hnorm h2 hdisc φ).comp (TateKummer.antipodeAlgHom N u₀))
 
+/-! ## Galois action on quotient torsion -/
+
+/-- When the automorphism fixes the quadratic splitting field, the quotient-torsion
+classification is Galois equivariant without a sign. -/
+lemma genericFiberPointToTorsion_comp_of_fixed
+    (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q a : Sˣ) (hq : a ^ N * Units.map (algebraMap R S) u₀ = q)
+    (σ : S ≃ₐ[K] S)
+    (hqσ : Units.map σ.toRingEquiv.toMonoidHom q = q)
+    (haσ : Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (hσ : ∀ x : L, σ (algebraMap L S x) = algebraMap L S x)
+    (φ : K ⊗[R] fixedSubalgebra R N u₀ t n →ₐ[K] S) :
+    genericFiberPointToTorsion R N u₀ t n K L S θ htrace hnorm
+        h2 hdisc q a hq (σ.toAlgHom.comp φ) =
+      QuotientGroup.torsionMapFixingGenerator q N
+        (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+        (genericFiberPointToTorsion R N u₀ t n K L S θ htrace hnorm
+          h2 hdisc q a hq φ) := by
+  rw [genericFiberPointToTorsion,
+    genericFiberAlgHomUnitEquiv_comp_of_fixed R N u₀ t n K L S θ
+      htrace hnorm h2 hdisc σ hσ φ]
+  exact TateKummer.kummerPointToTorsion_map R S N u₀ q a hq
+    (σ.restrictScalars R) hqσ haσ
+      (genericFiberAlgHomUnitEquiv R N u₀ t n K L S θ
+        htrace hnorm h2 hdisc φ)
+
+/-- When the automorphism conjugates the quadratic splitting field, the descended
+point acquires the sign contributed by the Tate--Kummer antipode. -/
+lemma genericFiberPointToTorsion_comp_of_not_fixed
+    [Algebra.IsSeparable K L] [IsScalarTower K L S]
+    (θ : L) (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q a : Sˣ) (hq : a ^ N * Units.map (algebraMap R S) u₀ = q)
+    (σ : S ≃ₐ[K] S)
+    (hqσ : Units.map σ.toRingEquiv.toMonoidHom q = q)
+    (haσ : Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (hσ : ¬ ∀ x : L, σ (algebraMap L S x) = algebraMap L S x)
+    (φ : K ⊗[R] fixedSubalgebra R N u₀ t n →ₐ[K] S) :
+    genericFiberPointToTorsion R N u₀ t n K L S θ htrace hnorm
+        h2 hdisc q a hq (σ.toAlgHom.comp φ) =
+      -QuotientGroup.torsionMapFixingGenerator q N
+        (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+        (genericFiberPointToTorsion R N u₀ t n K L S θ htrace hnorm
+          h2 hdisc q a hq φ) := by
+  rw [genericFiberPointToTorsion,
+    genericFiberAlgHomUnitEquiv_comp_of_not_fixed R N u₀ t n K L S θ hθ
+      htrace hnorm h2 hdisc σ hσ φ]
+  rw [TateKummer.kummerPointToTorsion_map R S N u₀ q a hq
+    (σ.restrictScalars R) hqσ haσ]
+  change QuotientGroup.torsionMapFixingGenerator q N
+      (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+      (TateKummer.coordinatePointToTorsion R S N u₀ q a hq
+        ((genericFiberSplitAlgHomEquiv R N u₀ t n K L S θ
+          htrace hnorm h2 hdisc φ).comp (TateKummer.antipodeAlgHom N u₀))) = _
+  rw [TateKummer.coordinatePointToTorsion_antipode]
+  exact map_neg _ _
+
+/-- The quotient-torsion classification of the descended generic fiber is equivariant
+for the Galois action twisted by the quadratic character. -/
+lemma genericFiberTorsionAddEquiv_comp
+    [Algebra.IsSeparable K L] [IsScalarTower K L S]
+    (θ : L) (hθ : θ ∉ Set.range (algebraMap K L))
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q a : Sˣ) (hq : a ^ N * Units.map (algebraMap R S) u₀ = q)
+    (hqinj : Function.Injective fun z : ℤ ↦ q ^ z)
+    (σ : S ≃ₐ[K] S)
+    (hqσ : Units.map σ.toRingEquiv.toMonoidHom q = q)
+    (haσ : Units.map σ.toRingEquiv.toMonoidHom a = a)
+    (φ : K ⊗[R] fixedSubalgebra R N u₀ t n →ₐ[K] S) :
+    letI := coordinateBialgebra R N u₀ t n h2 hdisc
+    genericFiberTorsionAddEquiv R N u₀ t n K L S θ htrace hnorm h2 hdisc
+        q a hq hqinj
+        (Additive.ofMul (WithConv.toConv (σ.toAlgHom.comp φ))) =
+      (quadraticCharacter K L S σ : ℤ) •
+        QuotientGroup.torsionMapFixingGenerator q N
+          (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+          (genericFiberTorsionAddEquiv R N u₀ t n K L S θ htrace hnorm
+            h2 hdisc q a hq hqinj
+            (Additive.ofMul (WithConv.toConv φ))) := by
+  letI := coordinateBialgebra R N u₀ t n h2 hdisc
+  change genericFiberPointToTorsion R N u₀ t n K L S θ htrace hnorm
+      h2 hdisc q a hq (σ.toAlgHom.comp φ) =
+    (quadraticCharacter K L S σ : ℤ) •
+      QuotientGroup.torsionMapFixingGenerator q N
+        (Units.map σ.toRingEquiv.toMonoidHom) hqσ
+        (genericFiberPointToTorsion R N u₀ t n K L S θ htrace hnorm
+          h2 hdisc q a hq φ)
+  by_cases hσ : ∀ x : L, σ (algebraMap L S x) = algebraMap L S x
+  · rw [(quadraticCharacter_eq_one_iff K L S σ).mpr hσ,
+      Units.val_one, one_zsmul]
+    exact genericFiberPointToTorsion_comp_of_fixed R N u₀ t n K L S θ
+      htrace hnorm h2 hdisc q a hq σ hqσ haσ hσ φ
+  · have hχ : quadraticCharacter K L S σ = -1 :=
+      (Int.units_eq_one_or _).resolve_left
+        fun h ↦ hσ ((quadraticCharacter_eq_one_iff K L S σ).mp h)
+    rw [hχ, Units.val_neg, Units.val_one, neg_one_zsmul]
+    exact genericFiberPointToTorsion_comp_of_not_fixed R N u₀ t n K L S θ hθ
+      htrace hnorm h2 hdisc q a hq σ hqσ haσ hσ φ
+
 end GaloisPoints
 
 end TateKummer.QuadraticTwist
