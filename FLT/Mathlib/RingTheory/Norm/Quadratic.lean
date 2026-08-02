@@ -78,6 +78,38 @@ theorem Algebra.IsQuadraticExtension.discrim_ne_zero {θ : L}
   exact algEquiv_apply_ne K L hσ hθ
     (sub_eq_zero.mp ((pow_eq_zero_iff two_ne_zero).mp h1)).symm
 
+/-- Away from characteristic `2`, the discriminant of a generator of a separable quadratic
+extension is not a square in the base field.  Otherwise its square root, together with the trace,
+would express the generator itself as an element of the base field. -/
+theorem Algebra.IsQuadraticExtension.not_isSquare_discrim [NeZero (2 : K)] {θ : L}
+    (hθ : θ ∉ Set.range (algebraMap K L)) :
+    ¬ IsSquare (Algebra.trace K L θ ^ 2 - 4 * Algebra.norm K θ) := by
+  obtain ⟨σ, hσ⟩ := exists_algEquiv_ne_one K L
+  rintro ⟨d, hd⟩
+  have hdisc : (θ - σ θ) ^ 2 = (algebraMap K L d) ^ 2 := by
+    have hmap := congrArg (algebraMap K L) hd
+    simp only [map_sub, map_pow, map_mul, map_ofNat,
+      algebraMap_trace_eq_add K L hσ, algebraMap_norm_eq_mul K L hσ] at hmap
+    linear_combination hmap
+  have h2L : (2 : L) ≠ 0 := by
+    intro h2
+    apply NeZero.ne (2 : K)
+    apply FaithfulSMul.algebraMap_injective K L
+    simpa only [map_ofNat, map_zero] using h2
+  rcases sq_eq_sq_iff_eq_or_eq_neg.mp hdisc with hdiff | hdiff
+  · apply hθ
+    refine ⟨(Algebra.trace K L θ + d) / 2, ?_⟩
+    rw [map_div₀, map_add, map_ofNat, algebraMap_trace_eq_add K L hσ]
+    symm
+    apply (eq_div_iff h2L).mpr
+    linear_combination hdiff
+  · apply hθ
+    refine ⟨(Algebra.trace K L θ - d) / 2, ?_⟩
+    rw [map_div₀, map_sub, map_ofNat, algebraMap_trace_eq_add K L hσ]
+    symm
+    apply (eq_div_iff h2L).mpr
+    linear_combination hdiff
+
 /-- A square root `α ∉ K` of an element of `K` has trace `0`: the nontrivial automorphism
 sends `α` to `-α` (`Algebra.IsQuadraticExtension.algEquiv_apply_eq_neg_of_sq_eq`). -/
 theorem Algebra.IsQuadraticExtension.trace_eq_zero_of_sq_eq {α : L} {d : K}
