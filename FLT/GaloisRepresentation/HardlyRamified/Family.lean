@@ -23,7 +23,7 @@ open GaloisRepresentation IsDedekindDomain
 
 open scoped TensorProduct
 
-universe u v
+universe u v w
 
 -- let ρ : G_ℚ → GL_2(R) be hardly ramified, where R is the integers in a finite
 -- extension of ℚ_p
@@ -34,7 +34,25 @@ variable {p : ℕ} (hpodd : Odd p) [hp : Fact p.Prime]
     {V : Type v} [AddCommGroup V] [Module R V] [Module.Finite R V]
     [Module.Free R V] (hv : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
 
-theorem mem_isCompatible (hρ : IsHardlyRamified hpodd hv ρ) :
+/-- A hardly ramified characteristic-zero representation whose residual representation is
+irreducible belongs to a compatible family of hardly ramified representations.
+
+The irreducibility hypothesis on the reduction is essential: it is part of the statement in the
+project blueprint and of the potential-modularity input used to construct the family.  The
+reduction is supplied explicitly because the coefficient ring `R` need not literally be a ring of
+Witt vectors and the residual representation need not use a chosen basis.
+
+This is the level-two, weight-two specialization of Khare--Wintenberger, *On Serre's conjecture
+for 2-dimensional mod p representations of Gal(Qbar/Q)*, Theorem 4.2, together with the
+compatible-family construction obtained there by potential modularity and Brauer induction.
+-/
+theorem mem_isCompatible
+    {k : Type u} [Finite k] [Field k] [TopologicalSpace k] [DiscreteTopology k]
+    [Algebra R k] [ContinuousSMul R k]
+    {Vbar : Type w} [AddCommGroup Vbar] [Module k Vbar]
+    (hρ : IsHardlyRamified hpodd hv ρ) (ρbar : GaloisRep ℚ k Vbar)
+    (rbar : k ⊗[R] V ≃ₗ[k] Vbar) (hred : (ρ.baseChange k).conj rbar = ρbar)
+    (hρbar : ρbar.IsIrreducible) :
     -- Then `ρ` lives in a compatible family of Galois representations
     -- i.e., there's a family σ of 2-dimensional representations of Γ_ℚ
     -- parametrised by maps from a number field M → ℚ_p-bar

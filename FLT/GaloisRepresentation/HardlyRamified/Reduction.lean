@@ -49,7 +49,7 @@ theorem frobenius_trace_of_isIrreducible
   obtain ⟨R, _, _, _, _, _, _, _, _, _, _, _, _, _,
       W, _, _, _, _, hW, σ, r, hσ, hσred⟩ := lifts hpodd V hV ρ hρirred hρ
   obtain ⟨E, _, _, fam, hfam, hmembers, _, _, _, ψ, rψ, hψ⟩ :=
-    mem_isCompatible hpodd hW hσ
+    mem_isCompatible hpodd hW hσ ρ r hσred hρirred
   let h3 : Fact (Nat.Prime 3) := ⟨by decide⟩
   let φ3 : E →+* AlgebraicClosure ℚ_[3] :=
     (IsAlgClosed.lift (R := ℚ) (S := E) (M := AlgebraicClosure ℚ_[3])).toRingHom
