@@ -528,6 +528,32 @@ theorem valued_eq_ofAdd_neg_of_eq_pow_uniformizer_mul_unit
   norm_cast
   rw [← ofAdd_nsmul, Nat.smul_one_eq_cast]
 
+/-- If the discrete valuation of a nonzero integral element is the exponential of an integer
+divisible by `n`, then the exponent in its uniformizer-unit factorization is divisible by
+`n`.  This packages the sign change between additive and multiplicative valuation
+conventions and is the algebraic core of the Tate-parameter Kummer calculation. -/
+theorem exists_eq_pow_uniformizer_mul_unit_of_valued_eq_exp_of_dvd
+    {x : v.adicCompletionIntegers K} (hx : x ≠ 0) {n : ℕ} {z : ℤ}
+    (hxval : Valued.v x.1 = WithZero.exp z) (hdvd : (n : ℤ) ∣ z) :
+    ∃ (π : v.adicCompletionIntegers K) (m t : ℕ)
+        (u : (v.adicCompletionIntegers K)ˣ),
+      Valued.v π.1 = Multiplicative.ofAdd (-1 : ℤ) ∧
+      x = π ^ m * (u : v.adicCompletionIntegers K) ∧ m = n * t := by
+  obtain ⟨π, hπ⟩ := exists_uniformizer K v
+  obtain ⟨m, u, hfac⟩ := eq_pow_uniformizer_mul_unit K v hx hπ
+  have hfacval := valued_eq_ofAdd_neg_of_eq_pow_uniformizer_mul_unit
+    (K := K) v hπ hfac
+  rw [← WithZero.exp] at hfacval
+  have hmz : -(m : ℤ) = z :=
+    WithZero.exp_injective (hfacval.symm.trans hxval)
+  have hneg : (n : ℤ) ∣ -(m : ℤ) := by
+    rw [hmz]
+    exact hdvd
+  have hint : (n : ℤ) ∣ (m : ℤ) := by
+    simpa only [Int.dvd_neg] using hneg
+  obtain ⟨t, ht⟩ := Int.natCast_dvd_natCast.mp hint
+  exact ⟨π, m, t, u, hπ, hfac, ht⟩
+
 open scoped algebraMap in
 theorem maximalIdeal_eq_span_uniformizer {π : v.adicCompletionIntegers K}
     (hπ : Valued.v π.1 = Multiplicative.ofAdd (-1 : ℤ)) :
