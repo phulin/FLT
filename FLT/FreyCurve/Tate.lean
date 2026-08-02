@@ -23,7 +23,7 @@ exponent to construct inertia-fixed roots of the Tate parameter.
 @[expose] public section
 
 open IsDedekindDomain NumberField WithZero
-open scoped Multiplicative
+open scoped Multiplicative WeierstrassCurve.Affine
 
 namespace FreyCurve
 
@@ -251,6 +251,107 @@ theorem exists_localInertia_fixed_pow_eq_tateParameter (P : FreyPackage) {q : �
   rw [IsScalarTower.algebraMap_apply R K Ω]
   change algebraMap K Ω q0.1 = algebraMap K Ω E.q
   rw [hq0]
+
+/-- At a bad odd split-multiplicative prime distinct from the Frey exponent, local inertia
+fixes every `p`-torsion point of the Frey curve.  The proof pulls a torsion point back through
+Tate uniformization, represents its quotient class by a unit, and applies the fixed-root
+Kummer calculation above. -/
+theorem torsion_fixed_by_localInertia_of_split_multiplicative
+    (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    let Ω := AlgebraicClosure K
+    let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+    ∀ [E.HasSplitMultiplicativeReduction R]
+      [NeZero (P.p : IsLocalRing.ResidueField R)]
+      [DecidableEq Ω]
+      (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
+      ∀ T : AddSubgroup.torsionBy (E⁄Ω).Point (P.p : ℤ),
+        E.nTorsionMap P.p σ.toAlgHom T = T := by
+  let _ : Fact q.Prime := ⟨hq⟩
+  dsimp only
+  intro hsplit hp hdec σ hσ T
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let Ω := AlgebraicClosure K
+  let _ : E.IsElliptic := inferInstance
+  let _ : DecidableEq K := Classical.typeDecidableEq K
+  let _ : E.HasSplitMultiplicativeReduction R := hsplit
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := hp
+  let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+  let _ : DecidableEq Ω := hdec
+  let _ : E.HasSplitMultiplicativeReduction
+      (ValuativeRel.valuation K).integer :=
+    hasSplitMultiplicativeReduction_valuativeRel_of_adicCompletion v E
+  obtain ⟨r, hr, hfixr⟩ :=
+    exists_localInertia_fixed_pow_eq_tateParameter P hq hqodd hqbad σ hσ
+  have hr0 : r ≠ 0 := by
+    intro hzero
+    apply E.q_ne_zero
+    apply (algebraMap K Ω).injective
+    rw [map_zero, ← hr, hzero, zero_pow P.pp.ne_zero]
+  let r0 : Ωˣ := Units.mk0 r hr0
+  have hr0pow : r0 ^ P.p = E.qUnitSepClosure Ω := by
+    apply Units.ext
+    change r ^ P.p = algebraMap K Ω E.q
+    exact hr
+  have hfixr0 : Units.map σ.toAlgHom.toRingHom.toMonoidHom r0 = r0 := by
+    apply Units.ext
+    exact hfixr
+  let f := E.tateEquivSepClosure Ω
+  let x := f.symm T.1
+  obtain ⟨u, hu⟩ := (QuotientGroup.mk'_surjective
+    (N := Subgroup.zpowers (E.qUnitSepClosure Ω))) x.toMul
+  have hux : Additive.ofMul
+      (u : Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω)) = x := by
+    apply Additive.toMul.injective
+    exact hu
+  have hTu : E.tatePoint Ω u = T.1 := by
+    change f (Additive.ofMul
+      (u : Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) = T.1
+    rw [hux]
+    exact f.apply_symm_apply T.1
+  have hTzero : P.p • T.1 = 0 := AddSubgroup.torsionBy.nsmul_iff.mp T.2
+  have hxzero : P.p • x = 0 := by
+    apply f.injective
+    rw [map_nsmul, map_zero, show f x = T.1 from f.apply_symm_apply T.1, hTzero]
+  have hxpow : x.toMul ^ P.p = 1 := by
+    rw [← toMul_nsmul, hxzero]
+    rfl
+  have hupow :
+      (u : Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω)) ^ P.p = 1 := by
+    change (QuotientGroup.mk' (Subgroup.zpowers (E.qUnitSepClosure Ω)) u) ^ P.p = 1
+    rw [hu]
+    exact hxpow
+  have hfixu : Units.map σ.toAlgHom.toRingHom.toMonoidHom u = u :=
+    v.localInertia_fixed_unit_of_mk_pow_eq_one P.p σ hσ
+      (E.qUnitSepClosure Ω) r0 u hr0pow hfixr0 hupow
+  have hpoint :
+      WeierstrassCurve.Affine.Point.map (W' := E) σ.toAlgHom (E.tatePoint Ω u) =
+        E.tatePoint Ω u := by
+    rw [E.tatePoint_galois Ω σ u, hfixu]
+  apply Subtype.ext
+  rw [E.nTorsionMap_coe]
+  change WeierstrassCurve.Affine.Point.map (W' := E) σ.toAlgHom T.1 = T.1
+  rw [← hTu]
+  exact hpoint
 
 end
 
