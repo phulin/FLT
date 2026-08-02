@@ -416,6 +416,39 @@ theorem not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_residue_ne_zer
     W 𝒪[k] (0 : 𝒪[k]) nR hDres hDresnsq hexplicitSplit
 
 open IsLocalRing in
+/-- In residue characteristic `2`, the `a₁` coefficient of a minimal equation with
+multiplicative reduction is a unit.  Indeed, modulo the maximal ideal the discriminant of the
+node polynomial is
+`(a₁ c₄)² = -c₄ c₆`: both `c₄` and `c₆` are nonzero, so `a₁` is nonzero too. -/
+lemma valuation_a₁_eq_one_of_hasMultiplicativeReduction_of_two_residue_eq_zero
+    (W : WeierstrassCurve k) [W.HasMultiplicativeReduction 𝒪[k]]
+    (h2 : (2 : ResidueField 𝒪[k]) = 0) :
+    valuation k W.a₁ = 1 := by
+  let I := W.integralModel 𝒪[k]
+  have hc₄ : residue 𝒪[k] I.c₄ ≠ 0 := by
+    dsimp only [I]
+    exact residue_integralModel_c₄_ne_zero W 𝒪[k]
+  have hc₆ : residue 𝒪[k] I.c₆ ≠ 0 := by
+    dsimp only [I]
+    exact residue_integralModel_c₆_ne_zero W 𝒪[k]
+  have h4 : (4 : ResidueField 𝒪[k]) = 0 := by
+    rw [show (4 : ResidueField 𝒪[k]) = 2 * 2 by norm_num, h2, zero_mul]
+  have ha₁ : residue 𝒪[k] I.a₁ ≠ 0 := by
+    intro ha₁
+    have hdisc := map_splitPolynomial_discrim (residue 𝒪[k]) I
+    have hzero : -(residue 𝒪[k] I.c₄ * residue 𝒪[k] I.c₆) = 0 := by
+      simpa only [map_mul, ha₁, zero_mul, zero_pow (by norm_num : 2 ≠ 0), map_ofNat,
+        h4, map_neg, mul_zero, sub_zero] using hdisc.symm
+    exact (neg_ne_zero.mpr (mul_ne_zero hc₄ hc₆)) hzero
+  have hu : IsUnit I.a₁ := (residue_ne_zero_iff_isUnit I.a₁).mp ha₁
+  have hv :=
+    (Valuation.integer.integers (valuation k)).isUnit_iff_valuation_eq_one.mp hu
+  rw [show algebraMap 𝒪[k] k I.a₁ = W.a₁ by
+    dsimp only [I]
+    exact integralModel_a₁_eq 𝒪[k] W] at hv
+  exact hv
+
+open IsLocalRing in
 /-- **Wild ramification core.** If a quadratic twist still has multiplicative reduction in
 residue characteristic `2`, the quadratic extension admits an integral generator with unit
 trace. This is the reduction-theoretic form of the assertion that ramified quadratic twists are
