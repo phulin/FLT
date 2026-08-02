@@ -110,6 +110,27 @@ theorem exists_characteristicZero_minimalPrime_of_dvr
     ← Ideal.comap_comap, ← RingHom.ker_eq_comap_bot (Ideal.Quotient.mk P),
     Ideal.mk_ker, hcomap]
 
+/-- The characteristic-zero minimal-prime quotient of a finite flat local algebra over a DVR
+is finite free over the DVR. -/
+theorem exists_finiteFree_characteristicZero_minimalPrime_of_dvr
+    (A B : Type*) [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
+    [CommRing B] [IsLocalRing B] [Algebra A B]
+    [Module.Finite A B] [Module.Flat A B] [IsLocalHom (algebraMap A B)] :
+    ∃ P ∈ minimalPrimes B,
+      Function.Injective ((Ideal.Quotient.mk P).comp (algebraMap A B)) ∧
+      Module.Finite A (B ⧸ P) ∧ Module.Free A (B ⧸ P) := by
+  obtain ⟨P, hPmin, hinj⟩ := exists_characteristicZero_minimalPrime_of_dvr A B
+  letI : P.IsPrime := hPmin.1.1
+  have hfinite : Module.Finite A (B ⧸ P) :=
+    Module.Finite.of_surjective (Ideal.Quotient.mkₐ A P).toLinearMap
+      Ideal.Quotient.mk_surjective
+  letI : Module.Finite A (B ⧸ P) := hfinite
+  letI : Module.IsTorsionFree A (B ⧸ P) :=
+    Module.isTorsionFree_iff_algebraMap_injective.mpr hinj
+  have hfree : Module.Free A (B ⧸ P) :=
+    Module.free_of_finite_type_torsion_free'
+  exact ⟨P, hPmin, hinj, hfinite, hfree⟩
+
 /-- A flat local `ℤ_[p]`-algebra has a minimal-prime quotient of characteristic zero.  The
 quotient map is not included in the conclusion as an extra datum: it is canonically
 `Ideal.Quotient.mk P`, and the stated composite is its coefficient map. -/
