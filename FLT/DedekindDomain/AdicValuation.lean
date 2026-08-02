@@ -513,6 +513,21 @@ theorem eq_pow_uniformizer_mul_unit {x : v.adicCompletionIntegers K} (hx : x ≠
     ← zpow_natCast, m.toNat_of_nonneg hm₀, ← mul_assoc]
   rw [mul_inv_cancel₀ (zpow_ne_zero _ <| (by simp [uniformizer_ne_zero hπ])), one_mul]
 
+/-- The exponent in a uniformizer-unit factorization is recovered by the canonical valuation. -/
+theorem valued_eq_ofAdd_neg_of_eq_pow_uniformizer_mul_unit
+    {x π : v.adicCompletionIntegers K} {m : ℕ} {u : (v.adicCompletionIntegers K)ˣ}
+    (hπ : Valued.v π.1 = Multiplicative.ofAdd (-1 : ℤ))
+    (hx : x = π ^ m * (u : v.adicCompletionIntegers K)) :
+    Valued.v x.1 = (↑(Multiplicative.ofAdd (-(m : ℤ))) : WithZero (Multiplicative ℤ)) := by
+  rw [hx, MulMemClass.coe_mul, SubmonoidClass.coe_pow, Valued.v.map_mul, map_pow, hπ,
+    ValuationSubring.valued_eq_one_of_isUnit (u : v.adicCompletionIntegers K) u.isUnit,
+    mul_one]
+  rw [← WithZero.coe_pow]
+  congr
+  norm_num
+  norm_cast
+  rw [← ofAdd_nsmul, Nat.smul_one_eq_cast]
+
 open scoped algebraMap in
 theorem maximalIdeal_eq_span_uniformizer {π : v.adicCompletionIntegers K}
     (hπ : Valued.v π.1 = Multiplicative.ofAdd (-1 : ℤ)) :
