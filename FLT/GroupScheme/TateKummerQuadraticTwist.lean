@@ -950,6 +950,146 @@ noncomputable def baseChangeTensorCoverEquiv (h2 : IsUnit (2 : R))
       (baseChangeEquiv R N u t n h2 hdisc)
       (baseChangeEquiv R N u t n h2 hdisc))
 
+/-! ## Semilinear descent on tensor squares -/
+
+/-- The descent involution, regarded as a semilinear map for quadratic conjugation on the
+covering ring. -/
+noncomputable def descentSemilinearMap :
+    CoverCoordinateAlgebra R N u t n →ₛₗ[
+      (QuadraticDescent.conjugationAlgEquiv R t n).toRingEquiv.toRingHom]
+      CoverCoordinateAlgebra R N u t n where
+  toFun := descentAlgEquiv R N u t n
+  map_add' x y := map_add (descentAlgEquiv R N u t n) x y
+  map_smul' a z := by
+    induction z using TensorProduct.induction_on with
+    | zero => simp
+    | tmul b h =>
+        change descentAlgEquiv R N u t n ((a * b) ⊗ₜ[R] h) =
+          (QuadraticDescent.conjugationAlgEquiv R t n a *
+            QuadraticDescent.conjugationAlgEquiv R t n b) ⊗ₜ[R]
+              TateKummer.antipodeAlgEquiv N u h
+        rw [descentAlgEquiv_tmul, map_mul]
+    | add x y hx hy => simp only [smul_add, map_add, hx, hy]
+
+@[simp]
+lemma descentSemilinearMap_apply (z : CoverCoordinateAlgebra R N u t n) :
+    descentSemilinearMap R N u t n z = descentAlgEquiv R N u t n z :=
+  rfl
+
+/-- Apply the semilinear descent involution in both factors of the cover tensor square. -/
+noncomputable def coverTensorDescentSemilinearMap :
+    (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n) →ₛₗ[
+        (QuadraticDescent.conjugationAlgEquiv R t n).toRingEquiv.toRingHom]
+      (CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n) :=
+  TensorProduct.map (descentSemilinearMap R N u t n)
+    (descentSemilinearMap R N u t n)
+
+@[simp]
+lemma coverTensorDescentSemilinearMap_tmul
+    (x y : CoverCoordinateAlgebra R N u t n) :
+    coverTensorDescentSemilinearMap R N u t n
+        (x ⊗ₜ[QuadraticDescent.Algebra R t n] y) =
+      descentAlgEquiv R N u t n x ⊗ₜ[QuadraticDescent.Algebra R t n]
+        descentAlgEquiv R N u t n y := by
+  rfl
+
+/-- Conjugate the quadratic scalar in the scalar extension of the fixed algebra. -/
+noncomputable def baseChangeConjugationAlgEquiv :
+    BaseChangedFixedAlgebra R N u t n ≃ₐ[R]
+      BaseChangedFixedAlgebra R N u t n :=
+  Algebra.TensorProduct.congr (QuadraticDescent.conjugationAlgEquiv R t n)
+    (AlgEquiv.refl)
+
+@[simp]
+lemma baseChangeConjugationAlgEquiv_tmul
+    (a : QuadraticDescent.Algebra R t n)
+    (x : fixedSubalgebra R N u t n) :
+    baseChangeConjugationAlgEquiv R N u t n (a ⊗ₜ[R] x) =
+      QuadraticDescent.conjugationAlgEquiv R t n a ⊗ₜ[R] x := by
+  rfl
+
+/-- The one-factor base-change equivalence intertwines scalar conjugation with the cover
+descent involution. -/
+lemma descentAlgEquiv_baseChangeEquiv (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : BaseChangedFixedAlgebra R N u t n) :
+    descentAlgEquiv R N u t n (baseChangeEquiv R N u t n h2 hdisc z) =
+      baseChangeEquiv R N u t n h2 hdisc
+        (baseChangeConjugationAlgEquiv R N u t n z) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a x =>
+      rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_mul,
+        descentAlgEquiv_algebraMap_cover,
+        (mem_fixedSubalgebra R N u t n x).mp x.property,
+        baseChangeConjugationAlgEquiv_tmul, baseChangeEquiv_apply,
+        baseChangeToCover_tmul]
+  | add x y hx hy => simp only [map_add, hx, hy]
+
+/-- Conjugate the quadratic scalar after extending the descended tensor square. -/
+noncomputable def baseChangeTensorConjugationAlgEquiv :
+    QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) ≃ₐ[R]
+      QuadraticDescent.Algebra R t n ⊗[R]
+        (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :=
+  Algebra.TensorProduct.congr (QuadraticDescent.conjugationAlgEquiv R t n)
+    (AlgEquiv.refl)
+
+@[simp]
+lemma baseChangeTensorConjugationAlgEquiv_tmul
+    (a : QuadraticDescent.Algebra R t n)
+    (x y : fixedSubalgebra R N u t n) :
+    baseChangeTensorConjugationAlgEquiv R N u t n (a ⊗ₜ[R] (x ⊗ₜ[R] y)) =
+      QuadraticDescent.conjugationAlgEquiv R t n a ⊗ₜ[R] (x ⊗ₜ[R] y) := by
+  rfl
+
+@[simp]
+lemma baseChangeTensorCoverEquiv_tmul (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (a : QuadraticDescent.Algebra R t n)
+    (x y : fixedSubalgebra R N u t n) :
+    baseChangeTensorCoverEquiv R N u t n h2 hdisc (a ⊗ₜ[R] (x ⊗ₜ[R] y)) =
+      baseChangeEquiv R N u t n h2 hdisc (a ⊗ₜ[R] x) ⊗ₜ[
+        QuadraticDescent.Algebra R t n]
+      baseChangeEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] y) := by
+  simp [baseChangeTensorCoverEquiv, baseChangeTensorEquiv_apply,
+    baseChangeTensorMap_tmul]
+
+/-- The two-factor base-change equivalence intertwines scalar conjugation with the
+semilinear descent map on the cover tensor square. -/
+lemma coverTensorDescentSemilinearMap_baseChangeTensorCoverEquiv
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : QuadraticDescent.Algebra R t n ⊗[R]
+      (fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n)) :
+    coverTensorDescentSemilinearMap R N u t n
+        (baseChangeTensorCoverEquiv R N u t n h2 hdisc z) =
+      baseChangeTensorCoverEquiv R N u t n h2 hdisc
+        (baseChangeTensorConjugationAlgEquiv R N u t n z) := by
+  induction z using TensorProduct.induction_on with
+  | zero =>
+      change coverTensorDescentSemilinearMap R N u t n 0 = 0
+      exact (coverTensorDescentSemilinearMap R N u t n).map_zero
+  | tmul a w =>
+      induction w using TensorProduct.induction_on with
+      | zero =>
+          rw [TensorProduct.tmul_zero]
+          simpa only [map_zero] using
+            (coverTensorDescentSemilinearMap R N u t n).map_zero
+      | tmul x y =>
+          rw [baseChangeTensorCoverEquiv_tmul,
+            coverTensorDescentSemilinearMap_tmul,
+            descentAlgEquiv_baseChangeEquiv,
+            descentAlgEquiv_baseChangeEquiv,
+            baseChangeTensorConjugationAlgEquiv_tmul,
+            baseChangeTensorCoverEquiv_tmul]
+          simp only [baseChangeConjugationAlgEquiv_tmul, map_one]
+      | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+  | add x y hx hy => simp only [map_add, hx, hy]
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
