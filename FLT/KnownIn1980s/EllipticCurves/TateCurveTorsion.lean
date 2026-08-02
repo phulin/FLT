@@ -172,4 +172,261 @@ lemma torsionExponentLinearMap_surjective (q r : G) (N : ℕ)
       (torsionClassOfRoot q r N hr) = 1 from
     torsionExponent_torsionClassOfRoot q r N hq hr, smul_eq_mul, mul_one]
 
+/-! ### Functoriality under automorphisms fixing the Tate parameter -/
+
+/-- A group endomorphism fixing `q` descends to the quotient by `q^ℤ`. -/
+def mapFixingGenerator (q : G) (f : G →* G) (hf : f q = q) :
+    G ⧸ Subgroup.zpowers q →* G ⧸ Subgroup.zpowers q :=
+  QuotientGroup.map (Subgroup.zpowers q) (Subgroup.zpowers q) f <| by
+    intro u hu
+    obtain ⟨z, rfl⟩ := Subgroup.mem_zpowers_iff.mp hu
+    change f (q ^ z) ∈ Subgroup.zpowers q
+    rw [map_zpow, hf]
+    exact zpow_mem (Subgroup.mem_zpowers q) z
+
+@[simp]
+lemma mapFixingGenerator_mk (q : G) (f : G →* G) (hf : f q = q) (u : G) :
+    mapFixingGenerator q f hf (u : G ⧸ Subgroup.zpowers q) =
+      (f u : G ⧸ Subgroup.zpowers q) :=
+  rfl
+
+/-- The induced endomorphism on the `N`-torsion of the quotient by `q^ℤ`. -/
+def torsionMapFixingGenerator (q : G) (N : ℕ) (f : G →* G) (hf : f q = q) :
+    AddSubgroup.torsionBy (Additive (G ⧸ Subgroup.zpowers q)) (N : ℤ) →+
+      AddSubgroup.torsionBy (Additive (G ⧸ Subgroup.zpowers q)) (N : ℤ) := by
+  let F : Additive (G ⧸ Subgroup.zpowers q) →+ Additive (G ⧸ Subgroup.zpowers q) :=
+    (mapFixingGenerator q f hf).toAdditive
+  exact (F.domRestrict (AddSubgroup.torsionBy
+      (Additive (G ⧸ Subgroup.zpowers q)) (N : ℤ))).codRestrict
+    (AddSubgroup.torsionBy (Additive (G ⧸ Subgroup.zpowers q)) (N : ℤ)) <| by
+      intro x
+      rw [AddSubgroup.torsionBy.nsmul_iff, ← map_nsmul,
+        AddSubgroup.torsionBy.nsmul, map_zero]
+
+@[simp]
+lemma torsionMapFixingGenerator_coe (q : G) (N : ℕ) (f : G →* G)
+    (hf : f q = q)
+    (x : AddSubgroup.torsionBy (Additive (G ⧸ Subgroup.zpowers q)) (N : ℤ)) :
+    (torsionMapFixingGenerator q N f hf x).1 =
+      Additive.ofMul (mapFixingGenerator q f hf (Additive.toMul x.1)) :=
+  rfl
+
+/-- Automorphisms fixing `q` preserve the Tate exponent. -/
+lemma torsionExponent_torsionMapFixingGenerator (q : G) (N : ℕ)
+    (hq : Function.Injective fun z : ℤ ↦ q ^ z)
+    (f : G →* G) (hf : f q = q)
+    (x : AddSubgroup.torsionBy (Additive (G ⧸ Subgroup.zpowers q)) (N : ℤ)) :
+    torsionExponent q N (torsionMapFixingGenerator q N f hf x) =
+      torsionExponent q N x := by
+  let z := Classical.choose (exists_isTorsionExponent q N x)
+  have hz := Classical.choose_spec (exists_isTorsionExponent q N x)
+  obtain ⟨u, hux, hupow⟩ := hz
+  have hzmap : IsTorsionExponent q N (torsionMapFixingGenerator q N f hf x) z := by
+    refine ⟨f u, ?_, ?_⟩
+    · rw [torsionMapFixingGenerator_coe]
+      apply congrArg Additive.ofMul
+      have huxmul : (u : G ⧸ Subgroup.zpowers q) = Additive.toMul x.1 :=
+        congrArg Additive.toMul hux
+      rw [← huxmul, mapFixingGenerator_mk]
+    · rw [← map_pow, hupow, map_zpow, hf]
+  rw [torsionExponent_eq q N hq _ hzmap,
+    torsionExponent_eq q N hq _ ⟨u, hux, hupow⟩]
+
 end QuotientGroup
+
+namespace WeierstrassCurve
+
+open ValuativeRel
+open scoped WeierstrassCurve.Affine
+
+variable {k : Type*} [Field k] [ValuativeRel k] [TopologicalSpace k]
+  [IsNonarchimedeanLocalField k]
+variable (E : WeierstrassCurve k) [E.IsElliptic]
+  [E.HasSplitMultiplicativeReduction 𝒪[k]]
+variable (Ω : Type*) [Field Ω] [Algebra k Ω] [IsSepClosed Ω]
+  [Algebra.IsSeparable k Ω] [DecidableEq k] [DecidableEq Ω]
+
+/-- The image of the Tate parameter in a separable closure has infinite order. -/
+lemma qUnitSepClosure_zpow_injective :
+    Function.Injective fun z : ℤ ↦ E.qUnitSepClosure Ω ^ z := by
+  intro z w hzw
+  let f : kˣ →* Ωˣ := Units.map (algebraMap k Ω).toMonoidHom
+  have hf : Function.Injective f := Units.map_injective (algebraMap k Ω).injective
+  have hbase : E.qUnit ^ z = E.qUnit ^ w := by
+    apply hf
+    simpa only [f, WeierstrassCurve.qUnitSepClosure, map_zpow] using hzw
+  have hval := congrArg (fun u : kˣ ↦ valuation k (u : k)) hbase
+  simp only [Units.val_zpow_eq_zpow_val, map_zpow₀] at hval
+  have hq0 : 0 < valuation k (E.qUnit : k) :=
+    (valuation k).pos_iff.mpr E.qUnit.ne_zero
+  have hq1 : valuation k (E.qUnit : k) ≠ 1 :=
+    ne_of_lt (by simpa [WeierstrassCurve.qUnit] using E.valuation_q_lt_one)
+  exact (zpow_right_injective₀ hq0 hq1) hval
+
+/-- Tate uniformization restricted to `N`-torsion, upgraded to a `ZMod N`-linear
+equivalence. -/
+noncomputable def tateTorsionLinearEquiv (N : ℕ) :
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy
+          (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    AddSubgroup.torsionBy
+        (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ) ≃ₗ[ZMod N]
+      AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ) := by
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy
+        (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  let e : AddSubgroup.torsionBy
+        (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ) ≃+
+      AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ) := {
+    toFun x := ⟨E.tateEquivSepClosure Ω x.1, by
+      rw [AddSubgroup.torsionBy.nsmul_iff, ← map_nsmul]
+      have hx : N • x.1 = 0 := congrArg Subtype.val (AddSubgroup.torsionBy.nsmul x)
+      rw [hx, map_zero]⟩
+    invFun x := ⟨(E.tateEquivSepClosure Ω).symm x.1, by
+      rw [AddSubgroup.torsionBy.nsmul_iff, ← map_nsmul]
+      have hx : N • x.1 = 0 := congrArg Subtype.val (AddSubgroup.torsionBy.nsmul x)
+      rw [hx, map_zero]⟩
+    left_inv x := Subtype.ext ((E.tateEquivSepClosure Ω).symm_apply_apply x.1)
+    right_inv x := Subtype.ext ((E.tateEquivSepClosure Ω).apply_symm_apply x.1)
+    map_add' x y := Subtype.ext (map_add (E.tateEquivSepClosure Ω) x.1 y.1) }
+  exact LinearEquiv.ofBijective (e.toAddMonoidHom.toZModLinearMap N) e.bijective
+
+@[simp]
+lemma tateTorsionLinearEquiv_coe (N : ℕ)
+    (x : AddSubgroup.torsionBy
+      (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ)) :
+    (E.tateTorsionLinearEquiv Ω N x).1 = E.tateEquivSepClosure Ω x.1 :=
+  rfl
+
+/-- The component quotient `E[N] → Z/NZ` supplied by Tate uniformization. -/
+noncomputable def tateComponentLinearMap (N : ℕ) :
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ) →ₗ[ZMod N] ZMod N := by
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy
+        (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  exact (QuotientGroup.torsionExponentLinearMap (E.qUnitSepClosure Ω) N
+      (E.qUnitSepClosure_zpow_injective Ω)).comp
+    (E.tateTorsionLinearEquiv Ω N).symm.toLinearMap
+
+/-- The component quotient of Tate-curve torsion is surjective. -/
+lemma tateComponentLinearMap_surjective (N : ℕ) [NeZero (N : Ω)] :
+    letI : Module (ZMod N)
+        (AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :=
+      AddSubgroup.torsionBy.zmodModule
+    Function.Surjective (E.tateComponentLinearMap Ω N) := by
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy
+        (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  obtain ⟨r, hr⟩ := IsSepClosed.exists_pow_nat_eq
+    (algebraMap k Ω E.q) N
+  have hN : 0 < N := Nat.pos_of_ne_zero fun hN ↦ by
+    apply NeZero.ne (N : Ω)
+    rw [hN, Nat.cast_zero]
+  have hr0 : r ≠ 0 := by
+    intro hrzero
+    rw [hrzero, zero_pow hN.ne'] at hr
+    exact E.q_ne_zero ((algebraMap k Ω).injective (by simpa using hr.symm))
+  let ru : Ωˣ := Units.mk0 r hr0
+  have hru : ru ^ N = E.qUnitSepClosure Ω := by
+    apply Units.ext
+    change r ^ N = algebraMap k Ω E.q
+    exact hr
+  exact (QuotientGroup.torsionExponentLinearMap_surjective
+      (E.qUnitSepClosure Ω) ru N (E.qUnitSepClosure_zpow_injective Ω) hru).comp
+    (E.tateTorsionLinearEquiv Ω N).symm.surjective
+
+/-- A base-field automorphism of the separable closure fixes the Tate parameter. -/
+lemma unitsMap_qUnitSepClosure (σ : Ω ≃ₐ[k] Ω) :
+    Units.map σ.toAlgHom.toRingHom.toMonoidHom (E.qUnitSepClosure Ω) =
+      E.qUnitSepClosure Ω := by
+  apply Units.ext
+  change σ (algebraMap k Ω E.q) = algebraMap k Ω E.q
+  exact σ.commutes E.q
+
+/-- Pulling the Galois action through Tate uniformization gives the quotient action induced by
+the automorphism of the multiplicative group. -/
+lemma tateTorsionLinearEquiv_symm_nTorsionMap (N : ℕ) (σ : Ω ≃ₐ[k] Ω)
+    (T : AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :
+    (E.tateTorsionLinearEquiv Ω N).symm (E.nTorsionMap N σ.toAlgHom T) =
+      QuotientGroup.torsionMapFixingGenerator (E.qUnitSepClosure Ω) N
+        (Units.map σ.toAlgHom.toRingHom.toMonoidHom)
+        (E.unitsMap_qUnitSepClosure Ω σ)
+        ((E.tateTorsionLinearEquiv Ω N).symm T) := by
+  let e := E.tateTorsionLinearEquiv Ω N
+  let x := e.symm T
+  obtain ⟨u, hu⟩ := QuotientGroup.mk_surjective (Additive.toMul x.1)
+  apply e.injective
+  apply Subtype.ext
+  rw [e.apply_symm_apply]
+  rw [E.nTorsionMap_coe, E.tateTorsionLinearEquiv_coe]
+  have hT : T.1 = E.tatePoint Ω u := by
+    calc
+      T.1 = (e x).1 := congrArg Subtype.val (e.apply_symm_apply T).symm
+      _ = E.tateEquivSepClosure Ω x.1 := E.tateTorsionLinearEquiv_coe Ω N x
+      _ = E.tatePoint Ω u := by
+        rw [WeierstrassCurve.tatePoint]
+        congr 2
+        simpa using (congrArg Additive.ofMul hu).symm
+  rw [hT]
+  change WeierstrassCurve.Affine.Point.map (W' := E) σ.toAlgHom
+      (E.tatePoint Ω u) = E.tateEquivSepClosure Ω
+        (QuotientGroup.torsionMapFixingGenerator (E.qUnitSepClosure Ω) N
+          (Units.map σ.toAlgHom.toRingHom.toMonoidHom)
+          (E.unitsMap_qUnitSepClosure Ω σ) x).1
+  rw [E.tatePoint_galois Ω σ u]
+  rw [show (QuotientGroup.torsionMapFixingGenerator (E.qUnitSepClosure Ω) N
+      (Units.map σ.toAlgHom.toRingHom.toMonoidHom)
+      (E.unitsMap_qUnitSepClosure Ω σ) x).1 =
+        Additive.ofMul
+          (Units.map σ.toAlgHom.toRingHom.toMonoidHom u :
+            Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω)) from by
+      rw [QuotientGroup.torsionMapFixingGenerator_coe]
+      change Additive.ofMul
+          (QuotientGroup.mapFixingGenerator (E.qUnitSepClosure Ω)
+            (Units.map σ.toAlgHom.toRingHom.toMonoidHom)
+            (E.unitsMap_qUnitSepClosure Ω σ) (Additive.toMul x.1)) = _
+      rw [← hu, QuotientGroup.mapFixingGenerator_mk]]
+  rfl
+
+/-- The Tate component quotient is Galois invariant in the split-multiplicative case. -/
+lemma tateComponentLinearMap_nTorsionMap (N : ℕ) (σ : Ω ≃ₐ[k] Ω)
+    (T : AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :
+    E.tateComponentLinearMap Ω N (E.nTorsionMap N σ.toAlgHom T) =
+      E.tateComponentLinearMap Ω N T := by
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy
+        (Additive (Ωˣ ⧸ Subgroup.zpowers (E.qUnitSepClosure Ω))) (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  change QuotientGroup.torsionExponent (E.qUnitSepClosure Ω) N
+      ((E.tateTorsionLinearEquiv Ω N).symm (E.nTorsionMap N σ.toAlgHom T)) =
+    QuotientGroup.torsionExponent (E.qUnitSepClosure Ω) N
+      ((E.tateTorsionLinearEquiv Ω N).symm T)
+  rw [E.tateTorsionLinearEquiv_symm_nTorsionMap Ω N σ T]
+  exact QuotientGroup.torsionExponent_torsionMapFixingGenerator
+    (E.qUnitSepClosure Ω) N (E.qUnitSepClosure_zpow_injective Ω)
+    (Units.map σ.toAlgHom.toRingHom.toMonoidHom)
+    (E.unitsMap_qUnitSepClosure Ω σ) _
+
+end WeierstrassCurve
