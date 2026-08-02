@@ -952,9 +952,11 @@ variable [E.IsElliptic]
 
 open IsLocalRing in
 /-- If `E` has multiplicative reduction which is not split, then `E` has a quadratic twist with
-split multiplicative reduction — namely the twist by the unramified quadratic extension of `K`:
-the reduction of the twist is the same nodal cubic with the Galois action on the two tangent
-directions at the node twisted into triviality.
+split multiplicative reduction — namely the twist by the unramified quadratic extension of `K`.
+In addition to the split twist, this strengthened form retains an integral quadratic generator
+`θ` and integral trace and norm `t`, `n` whose discriminant has nonzero residue.  Those data are
+the explicit certificate that the extension is unramified, and allow local inertia to be proved
+trivial on the extension without appealing to an abstract classification of local extensions.
 
 Mathlib's reduction-type predicates apply to a specific Weierstrass equation and require it to
 be minimal, while our chosen model `E.quadraticTwist L` of the twist need not be; so the
@@ -965,10 +967,17 @@ The nonsplitness hypothesis `h` cannot be dropped: if `E` already has split mult
 reduction then *no* quadratic twist of `E` has split multiplicative reduction, since the
 unramified quadratic twist has nonsplit multiplicative reduction and ramified quadratic twists
 have additive reduction. -/
-theorem exists_quadraticTwist_hasSplitMultiplicativeReduction [E.HasMultiplicativeReduction R]
+theorem exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction
+    [E.HasMultiplicativeReduction R]
     (h : ¬E.HasSplitMultiplicativeReduction R) :
     ∃ (L : Type u) (_ : Field L) (_ : Algebra K L) (_ : Algebra.IsQuadraticExtension K L)
-      (_ : Algebra.IsSeparable K L),
+      (_ : Algebra.IsSeparable K L) (_ : Algebra R L) (_ : IsScalarTower R K L)
+      (θ : L) (t n : R),
+      _root_.IsIntegral R θ ∧
+      θ ∉ Set.range (algebraMap K L) ∧
+      Algebra.trace K L θ = algebraMap R K t ∧
+      Algebra.norm K θ = algebraMap R K n ∧
+      residue R (t ^ 2 - 4 * n) ≠ 0 ∧
       ((E.quadraticTwist L).minimal R).HasSplitMultiplicativeReduction R := by
   -- The node polynomial reduced to the residue field `k`; nonsplitness makes it irreducible
   -- (`irreducible_nodePoly_map`), and multiplicative reduction makes it separable
@@ -988,7 +997,7 @@ theorem exists_quadraticTwist_hasSplitMultiplicativeReduction [E.HasMultiplicati
     exists_unramified_extension_of_residueField (R := R) (K := K) (AdjoinRoot P)
   have : Algebra.IsQuadraticExtension K L := ⟨hLrank.trans hk'rank⟩
   refine ⟨L, ‹Field L›, ‹Algebra K L›, ‹Algebra.IsQuadraticExtension K L›,
-    ‹Algebra.IsSeparable K L›, ?_⟩
+    ‹Algebra.IsSeparable K L›, ‹Algebra R L›, ‹IsScalarTower R K L›, ?_⟩
   -- `S = 𝒪_L` is the integral closure of `R` in `L` (now that `Frac S = L` is proved), so `L` is
   -- the base-change localization of `S`, and `R`-trace/norm are compatible with `K`-trace/norm.
   have : Algebra.IsIntegral R S := Algebra.IsIntegral.of_finite R S
@@ -1010,15 +1019,20 @@ theorem exists_quadraticTwist_hasSplitMultiplicativeReduction [E.HasMultiplicati
   set n' := Algebra.norm R θ'
   -- `root P ∉ k` (its minimal polynomial has degree 2), so `θ'̄ = resIso⁻¹(root P) ∉ k` and, since
   -- `R` is integrally closed, `algebraMap S L θ' ∉ K` — the twist by `θ'` is nontrivial.
-  have hθ' : algebraMap S L θ' ∉ Set.range (algebraMap K L) :=
+  set θ : L := algebraMap S L θ' with hθdef
+  have hθintS : _root_.IsIntegral R θ' := Algebra.IsIntegral.isIntegral θ'
+  have hθint : _root_.IsIntegral R θ := by
+    rw [hθdef]
+    exact hθintS.map (IsScalarTower.toAlgHom R S L)
+  have hθ' : θ ∉ Set.range (algebraMap K L) :=
     notMem_range_algebraMap_of_residue_notMem R (by
       rw [hθ'res]
       exact fun hmem ↦ AdjoinRoot.root_notMem_range_algebraMap hPdeg2.ge
         (resIso.symm.apply_mem_range_algebraMap_iff.mp hmem))
   -- Trace/norm land in `K`, giving the connection to the `R`-model `W = quadraticTwistOf t' n'`.
-  have htr : Algebra.trace K L (algebraMap S L θ') = algebraMap R K t' :=
+  have htr : Algebra.trace K L θ = algebraMap R K t' :=
     Algebra.trace_localization R (nonZeroDivisors R) θ'
-  have hnr : Algebra.norm K (algebraMap S L θ') = algebraMap R K n' :=
+  have hnr : Algebra.norm K θ = algebraMap R K n' :=
     Algebra.norm_localization R (nonZeroDivisors R) θ'
   obtain ⟨C, hC⟩ := E.exists_smul_quadraticTwist_eq_quadraticTwistBy L hθ'
   rw [quadraticTwistBy, htr, hnr, ← baseChange_integralModel_quadraticTwistOf E R t' n'] at hC
@@ -1041,7 +1055,21 @@ theorem exists_quadraticTwist_hasSplitMultiplicativeReduction [E.HasMultiplicati
   have : (((E.integralModel R).quadraticTwistOf t' n')⁄K).IsElliptic :=
     ⟨(Δ_baseChange_quadraticTwistOf_ne_zero E R t' n' fun h0 ↦
       hDne (by rw [h0, map_zero])).isUnit⟩
-  exact HasSplitMultiplicativeReduction.of_isMinimal_smul R _ hD hWsplit
+  exact ⟨θ, t', n', hθint, hθ', htr, hnr, hDne,
+    HasSplitMultiplicativeReduction.of_isMinimal_smul R _ hD hWsplit⟩
+
+/-- If `E` has nonsplit multiplicative reduction, its unramified quadratic twist has split
+multiplicative reduction.  This is the reduction-only projection of
+`exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction`. -/
+theorem exists_quadraticTwist_hasSplitMultiplicativeReduction [E.HasMultiplicativeReduction R]
+    (h : ¬E.HasSplitMultiplicativeReduction R) :
+    ∃ (L : Type u) (_ : Field L) (_ : Algebra K L) (_ : Algebra.IsQuadraticExtension K L)
+      (_ : Algebra.IsSeparable K L),
+      ((E.quadraticTwist L).minimal R).HasSplitMultiplicativeReduction R := by
+  obtain ⟨L, _, _, _, _, _, _, θ, t, n, _, _, _, _, _, hsplit⟩ :=
+    exists_unramified_quadraticTwist_hasSplitMultiplicativeReduction E R h
+  exact ⟨L, ‹Field L›, ‹Algebra K L›, ‹Algebra.IsQuadraticExtension K L›,
+    ‹Algebra.IsSeparable K L›, hsplit⟩
 
 end Reduction
 

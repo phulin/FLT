@@ -7,6 +7,8 @@ module
 
 public import FLT.Deformations.RepresentationTheory.AbsoluteGaloisGroup
 public import FLT.KnownIn1980s.EllipticCurves.MaybeMathlib
+public import FLT.Mathlib.LinearAlgebra.Dimension.IsQuadraticExtension
+public import FLT.Mathlib.RingTheory.Norm.Quotient
 public import FLT.Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
 
 /-!
@@ -23,7 +25,7 @@ root of unity of invertible order.
 
 @[expose] public section
 
-open NumberField
+open NumberField IsLocalRing
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 
@@ -200,5 +202,107 @@ theorem exists_localInertia_fixed_pow_eq_of_eq_pow_mul_unit
   · rw [show r = algebraMap R Ω (π ^ t) * z from rfl, map_mul, hσz]
     change σ (algebraMap R Ω (π ^ t)) * z = _
     rw [IsScalarTower.algebraMap_apply R k Ω, σ.commutes]
+
+/-- Local inertia fixes an integral generator of an unramified quadratic extension.
+
+The generator satisfies `X² - tX + n`, and its discriminant `t² - 4n` is a unit because its
+residue is nonzero.  If inertia moved the generator, the generator and its conjugate would be
+distinct roots with the same residue.  Their squared difference would then be the discriminant,
+putting a unit in the maximal ideal of the integral closure, a contradiction. -/
+theorem localInertia_fixed_of_unramified_quadratic_generator
+    (v : HeightOneSpectrum (𝓞 K))
+    (L : Type*) [Field L] [Algebra (v.adicCompletion K) L]
+    [Algebra.IsQuadraticExtension (v.adicCompletion K) L]
+    [Algebra (v.adicCompletionIntegers K) L]
+    [IsScalarTower (v.adicCompletionIntegers K) (v.adicCompletion K) L]
+    (ι : L →ₐ[v.adicCompletion K] AlgebraicClosure (v.adicCompletion K))
+    (θ : L) (t n : v.adicCompletionIntegers K)
+    (hθint : _root_.IsIntegral (v.adicCompletionIntegers K) θ)
+    (htr : Algebra.trace (v.adicCompletion K) L θ =
+      algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) t)
+    (hnr : Algebra.norm (v.adicCompletion K) θ =
+      algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) n)
+    (hD : residue (v.adicCompletionIntegers K) (t ^ 2 - 4 * n) ≠ 0)
+    (σ : Γ(v.adicCompletion K)) (hσ : σ ∈ localInertiaGroup v) :
+    σ (ι θ) = ι θ := by
+  let k := v.adicCompletion K
+  let R := v.adicCompletionIntegers K
+  let Ω := AlgebraicClosure k
+  let S := IntegralClosure R Ω
+  let z : Ω := ι θ
+  have hzint : _root_.IsIntegral R z := by
+    exact hθint.map (ι.restrictScalars R)
+  let z0 : S := ⟨z, hzint⟩
+  have hθpoly := sq_sub_trace_mul_self_add_norm
+    (Algebra.IsQuadraticExtension.finrank_eq_two k L) θ
+  rw [htr, hnr] at hθpoly
+  have hzpoly : z ^ 2 - algebraMap R Ω t * z + algebraMap R Ω n = 0 := by
+    have hzpoly' := congrArg ι hθpoly
+    simp only [map_add, map_sub, map_mul, map_pow, map_zero] at hzpoly'
+    rw [ι.commutes (algebraMap R k t), ι.commutes (algebraMap R k n)] at hzpoly'
+    simpa only [z, IsScalarTower.algebraMap_apply R k Ω] using hzpoly'
+  have hσzpoly :
+      (σ z) ^ 2 - algebraMap R Ω t * σ z + algebraMap R Ω n = 0 := by
+    have hroot := congrArg σ hzpoly
+    simp only [map_add, map_sub, map_mul, map_pow, map_zero] at hroot
+    have hfixcoeff (r : R) : σ (algebraMap R Ω r) = algebraMap R Ω r := by
+      rw [IsScalarTower.algebraMap_apply R k Ω, σ.commutes]
+    simpa only [hfixcoeff] using hroot
+  by_contra hne
+  have hsum : σ z + z = algebraMap R Ω t := by
+    have hprod : (σ z - z) * (σ z + z - algebraMap R Ω t) = 0 := by
+      linear_combination hσzpoly - hzpoly
+    exact sub_eq_zero.mp ((mul_eq_zero.mp hprod).resolve_left (sub_ne_zero.mpr hne))
+  have hsqΩ : (σ z - z) ^ 2 = algebraMap R Ω (t ^ 2 - 4 * n) := by
+    have hmul : σ z * z = algebraMap R Ω n := by
+      linear_combination (σ z) * hsum - hσzpoly
+    simp only [map_sub, map_pow, map_mul, map_ofNat]
+    calc
+      (σ z - z) ^ 2 = (σ z + z) ^ 2 - 4 * (σ z * z) := by ring
+      _ = (algebraMap R Ω t) ^ 2 - 4 * (σ z * z) := by rw [hsum]
+      _ = (algebraMap R Ω t) ^ 2 - 4 * algebraMap R Ω n := by rw [hmul]
+  have hmem : (σ • z0) - z0 ∈ maximalIdeal S := hσ z0
+  have hsqS : ((σ • z0) - z0) ^ 2 = algebraMap R S (t ^ 2 - 4 * n) := by
+    apply Subtype.ext
+    exact hsqΩ
+  have hpowmem : ((σ • z0) - z0) ^ 2 ∈ maximalIdeal S :=
+    (maximalIdeal S).pow_mem_of_mem hmem 2 (by norm_num)
+  have hunitR : IsUnit (t ^ 2 - 4 * n) :=
+    (residue_ne_zero_iff_isUnit _).mp hD
+  have hunitS : IsUnit (algebraMap R S (t ^ 2 - 4 * n)) :=
+    hunitR.map (algebraMap R S)
+  exact (notMem_maximalIdeal.mpr hunitS) (hsqS ▸ hpowmem)
+
+/-- Every element of an unramified quadratic extension is fixed by local inertia.  Once the
+integral generator is fixed, this follows by writing each element in the basis `1, θ`; the
+non-base-field hypothesis guarantees that `1, θ` is a basis of the quadratic extension. -/
+theorem localInertia_fixed_on_unramified_quadratic_extension
+    (v : HeightOneSpectrum (𝓞 K))
+    (L : Type*) [Field L] [Algebra (v.adicCompletion K) L]
+    [Algebra.IsQuadraticExtension (v.adicCompletion K) L]
+    [Algebra (v.adicCompletionIntegers K) L]
+    [IsScalarTower (v.adicCompletionIntegers K) (v.adicCompletion K) L]
+    (ι : L →ₐ[v.adicCompletion K] AlgebraicClosure (v.adicCompletion K))
+    (θ : L) (t n : v.adicCompletionIntegers K)
+    (hθint : _root_.IsIntegral (v.adicCompletionIntegers K) θ)
+    (hθ : θ ∉ Set.range (algebraMap (v.adicCompletion K) L))
+    (htr : Algebra.trace (v.adicCompletion K) L θ =
+      algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) t)
+    (hnr : Algebra.norm (v.adicCompletion K) θ =
+      algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) n)
+    (hD : residue (v.adicCompletionIntegers K) (t ^ 2 - 4 * n) ≠ 0)
+    (σ : Γ(v.adicCompletion K)) (hσ : σ ∈ localInertiaGroup v) :
+    ∀ x : L, σ (ι x) = ι x := by
+  have hfixθ := localInertia_fixed_of_unramified_quadratic_generator
+    v L ι θ t n hθint htr hnr hD σ hσ
+  intro x
+  by_cases hx : x ∈ Set.range (algebraMap (v.adicCompletion K) L)
+  · obtain ⟨a, rfl⟩ := hx
+    rw [ι.commutes, σ.commutes]
+  · obtain ⟨a, b, _ha, hx⟩ :=
+      Algebra.IsQuadraticExtension.exists_eq_algebraMap_add_algebraMap_mul
+        (v.adicCompletion K) L hθ hx
+    rw [hx]
+    simp only [map_add, map_mul, ι.commutes, σ.commutes, hfixθ]
 
 end IsDedekindDomain.HeightOneSpectrum
