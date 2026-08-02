@@ -240,6 +240,64 @@ namespace GaloisRep
 
 variable {K k : Type*} [Field K] [Field k] [TopologicalSpace k] [IsTopologicalRing k]
 
+/-- An interval in the lattice of invariant additive subgroups is of determinant type when
+the induced action on the subquotient is scalar multiplication through the determinant.
+Equality intervals are included so that blocks of this type form a reflexive relation. -/
+def IsDeterminantInterval
+    {A W : Type*} [CommRing A] [TopologicalSpace A]
+    [AddCommGroup W] [Module A W] (rho : GaloisRep K A W)
+    (U V : Subrepresentation (GaloisRep.toIntRepresentation rho)) : Prop :=
+  U = V ∨ (U ≤ V ∧ ∀ g : Γ K, ∀ x : W, x ∈ V →
+    rho g x - LinearMap.det (rho g) • x ∈ U)
+
+/-- An interval in the lattice of invariant additive subgroups is trivial when Galois acts
+trivially on the corresponding subquotient.  Equality intervals are included explicitly. -/
+def IsTrivialInterval
+    {A W : Type*} [CommRing A] [TopologicalSpace A]
+    [AddCommGroup W] [Module A W] (rho : GaloisRep K A W)
+    (U V : Subrepresentation (GaloisRep.toIntRepresentation rho)) : Prop :=
+  U = V ∨ (U ≤ V ∧ ∀ g : Γ K, ∀ x : W, x ∈ V → rho g x - x ∈ U)
+
+/-- A determinant-type lower block and a trivial upper block imply the canonical
+cross-annihilation relation.  The input cut only has to be an invariant additive subgroup;
+the canonical difference submodule constructed above restores stability under all coefficient
+scalars. -/
+theorem cross_relation_of_interval_cut
+    {A W : Type*} [CommRing A] [TopologicalSpace A]
+    [AddCommGroup W] [Module A W] (rho : GaloisRep K A W)
+    (N : Subrepresentation (GaloisRep.toIntRepresentation rho))
+    (hdet : GaloisRep.IsDeterminantInterval rho ⊥ N)
+    (htriv : GaloisRep.IsTrivialInterval rho N ⊤) :
+    ∀ g h : Γ K,
+      (rho h - LinearMap.det (rho h) • (LinearMap.id : W →ₗ[A] W)).comp
+        (rho g - LinearMap.id) = 0 := by
+  have hquot : ∀ g : Γ K, ∀ x : W, rho g x - x ∈ N := by
+    intro g x
+    rcases htriv with hN | hN
+    · rw [hN]
+      change rho g x - x ∈ (⊤ : Submodule ℤ W)
+      exact Submodule.mem_top
+    · apply hN.2 g x
+      change x ∈ (⊤ : Submodule ℤ W)
+      exact Submodule.mem_top
+  have hsub : ∀ g : Γ K, ∀ x : W, x ∈ N →
+      rho g x = LinearMap.det (rho g) • x := by
+    intro g x hx
+    rcases hdet with hN | hN
+    · rw [← hN] at hx
+      have hxzero : x = 0 := by
+        change x ∈ (⊥ : Submodule ℤ W) at hx
+        simpa using hx
+      simp [hxzero]
+    · have hz := hN.2 g x hx
+      change rho g x - LinearMap.det (rho g) • x ∈ (⊥ : Submodule ℤ W) at hz
+      exact sub_eq_zero.mp (by simpa using hz)
+  intro g h
+  ext x
+  simp only [LinearMap.comp_apply, LinearMap.sub_apply, LinearMap.smul_apply,
+    LinearMap.id_apply, LinearMap.zero_apply]
+  exact sub_eq_zero.mpr (hsub h (rho g x - x) (hquot g x))
+
 /-- A two-dimensional representation with a trivial one-dimensional quotient has character
 `1 + det`. -/
 theorem trace_eq_one_add_det_of_surjective_invariant_quotient

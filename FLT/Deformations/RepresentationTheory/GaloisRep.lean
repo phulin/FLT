@@ -1087,6 +1087,17 @@ theorem Representation.exists_subrepresentation_compositionSeries
     exists_covBy_seq_of_wellFoundedLT_wellFoundedGT (Subrepresentation rho)
   exact ⟨⟨n, fun i ↦ f i, fun i ↦ hn.2 i i.2⟩, f₀.eq_bot, hn.1.eq_top⟩
 
+omit [NumberField K] in
+/-- Forget the coefficient-ring structure of a Galois representation while retaining its
+action on the underlying additive group, regarded as a `ℤ`-module.  This is the correct
+ambient representation for composition series of finite flat group schemes: their closed
+flat subgroup schemes need not be stable under an auxiliary coefficient algebra. -/
+noncomputable def GaloisRep.toIntRepresentation (ρ : GaloisRep K A M) :
+    Representation ℤ (Γ K) M where
+  toFun g := (ρ g).restrictScalars ℤ
+  map_one' := by ext; simp
+  map_mul' g h := by ext; simp
+
 /-- A Galois representation is a representation (note that we
 are forgetting topological information here). -/
 def GaloisRep.toRepresentation (ρ : GaloisRep K A M) : Representation A (Γ K) M :=
