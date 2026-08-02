@@ -883,6 +883,20 @@ theorem GaloisRep.HasFlatProlongationAt.baseChange_of_moduleFinite [IsTopologica
               (fun i ↦ ρ.toLocal v σ (e w i)) := rfl
       rw [hadd, map_add, hz, hw]
 
+/-- Over a discrete local coefficient ring, one finite-flat model already proves the full
+flatness condition.  Every ideal is open, and each quotient representation is obtained by
+the module-finite scalar extension `A → A ⧸ I`. -/
+theorem GaloisRep.HasFlatProlongationAt.isFlatAt_of_discrete
+    [IsLocalRing A] [DiscreteTopology A]
+    (ρ : GaloisRep K A M) (hρ : ρ.HasFlatProlongationAt v) :
+    ρ.IsFlatAt v := by
+  constructor
+  intro I hI
+  letI : DiscreteTopology (A ⧸ I) := QuotientAddGroup.discreteTopology hI
+  letI : ContinuousSMul A (A ⧸ I) :=
+    continuousSMul_of_algebraMap A (A ⧸ I) continuous_quot_mk
+  exact hρ.baseChange_of_moduleFinite v
+
 /-- Finite flatness is preserved by extension of the coefficient ring along a continuous
 local homomorphism.  For an open ideal `J` of `B`, the map `A → B ⧸ J` factors through the
 open quotient by its kernel.  A composition series of the resulting Artinian local
