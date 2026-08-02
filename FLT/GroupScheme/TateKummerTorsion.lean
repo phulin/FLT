@@ -53,6 +53,15 @@ section QuotientTorsion
 variable (R : Type u) [CommRing R]
 variable (S : Type v) [Field S] [Algebra R S]
 
+/-- Two standard representatives in `Fin N` are equal if their natural-number casts in
+`ZMod N` agree. -/
+lemma fin_eq_of_natCast_zmod_eq
+    (N : ℕ) [NeZero N] (i j : Fin N)
+    (h : (i.1 : ZMod N) = (j.1 : ZMod N)) : i = j := by
+  apply Fin.ext
+  have hmod := (ZMod.natCast_eq_natCast_iff' i.1 j.1 N).mp h
+  simpa [Nat.mod_eq_of_lt i.2, Nat.mod_eq_of_lt j.2] using hmod
+
 /-- The representative `a^i x` attached to a Kummer point `(i, x)`. -/
 noncomputable def kummerRepresentative
     (N : ℕ) (u : Rˣ) (a : Sˣ) (x : KummerUnitPoint R S N u) : Sˣ :=
@@ -168,6 +177,75 @@ lemma kummerPointToTorsion_mul
     exact (Subgroup.zpowers q).pow_mem (Subgroup.mem_zpowers q) _
   rw [hqpow] at hrep
   exact (one_mul _).symm.trans hrep.symm
+
+/-- Distinct Kummer points give distinct quotient-torsion classes when the Tate
+parameter has infinite order. -/
+lemma kummerPointToTorsion_injective
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (hqinj : Function.Injective fun z : ℤ ↦ q ^ z) :
+    Function.Injective (kummerPointToTorsion R S N u q a hq) := by
+  rintro ⟨i, x⟩ ⟨j, y⟩ hxy
+  have hiExp := QuotientGroup.torsionExponent_eq q N hqinj
+    (kummerPointToTorsion R S N u q a hq ⟨i, x⟩)
+    (kummerPointToTorsion_isTorsionExponent R S N u q a hq ⟨i, x⟩)
+  have hjExp := QuotientGroup.torsionExponent_eq q N hqinj
+    (kummerPointToTorsion R S N u q a hq ⟨j, y⟩)
+    (kummerPointToTorsion_isTorsionExponent R S N u q a hq ⟨j, y⟩)
+  have hiExp' : QuotientGroup.torsionExponent q N
+      (kummerPointToTorsion R S N u q a hq ⟨i, x⟩) =
+        (i.1 : ZMod N) := by
+    simpa using hiExp
+  have hjExp' : QuotientGroup.torsionExponent q N
+      (kummerPointToTorsion R S N u q a hq ⟨j, y⟩) =
+        (j.1 : ZMod N) := by
+    simpa using hjExp
+  have hijCast : (i.1 : ZMod N) = (j.1 : ZMod N) := by
+    calc
+      (i.1 : ZMod N) = QuotientGroup.torsionExponent q N
+          (kummerPointToTorsion R S N u q a hq ⟨i, x⟩) := hiExp'.symm
+      _ = QuotientGroup.torsionExponent q N
+          (kummerPointToTorsion R S N u q a hq ⟨j, y⟩) := congrArg _ hxy
+      _ = (j.1 : ZMod N) := hjExp'
+  have hij : i = j := fin_eq_of_natCast_zmod_eq N i j hijCast
+  subst j
+  have hquot :
+      (kummerRepresentative R S N u a ⟨i, x⟩ :
+          Sˣ ⧸ Subgroup.zpowers q) =
+        kummerRepresentative R S N u a ⟨i, y⟩ := by
+    exact congrArg (fun t ↦ Additive.toMul t.1) hxy
+  have hmem : kummerRepresentative R S N u a ⟨i, x⟩ /
+      kummerRepresentative R S N u a ⟨i, y⟩ ∈ Subgroup.zpowers q :=
+    QuotientGroup.eq_iff_div_mem.mp hquot
+  obtain ⟨z, hz⟩ := Subgroup.mem_zpowers_iff.mp hmem
+  have hz' : q ^ z = (a ^ i.1 * x.1) / (a ^ i.1 * y.1) := by
+    exact hz
+  have hzxy : x.1 / y.1 = q ^ z := by
+    calc
+      x.1 / y.1 = (a ^ i.1 * x.1) / (a ^ i.1 * y.1) :=
+        (mul_div_mul_left_eq_div x.1 y.1 (a ^ i.1)).symm
+      _ = q ^ z := hz'.symm
+  have hxyPow : (x.1 / y.1) ^ N = 1 := by
+    rw [div_pow, x.2, y.2]
+    change (Units.map (algebraMap R S) (u ^ i.1) : Sˣ) /
+      Units.map (algebraMap R S) (u ^ i.1) = 1
+    simp
+  have hqPow : q ^ (z * (N : ℤ)) = q ^ (0 : ℤ) := by
+    calc
+      q ^ (z * (N : ℤ)) = (q ^ z) ^ N := by
+        rw [zpow_mul, zpow_natCast]
+      _ = (x.1 / y.1) ^ N := congrArg (fun w : Sˣ ↦ w ^ N) hzxy.symm
+      _ = 1 := hxyPow
+      _ = q ^ (0 : ℤ) := (zpow_zero q).symm
+  have hzMul : z * (N : ℤ) = 0 := hqinj hqPow
+  have hNInt : (N : ℤ) ≠ 0 := by exact_mod_cast (NeZero.ne N)
+  have hz0 : z = 0 := (mul_eq_zero.mp hzMul).resolve_right hNInt
+  have hxyUnit : x.1 = y.1 := by
+    apply (div_eq_one.mp)
+    simpa [hz0] using hzxy
+  have hxyRoot : x = y := Subtype.ext hxyUnit
+  subst y
+  rfl
 
 end QuotientTorsion
 
