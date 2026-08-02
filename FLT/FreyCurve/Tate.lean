@@ -166,6 +166,56 @@ theorem exists_tateParameter_uniformizer_factorization (P : FreyPackage) {q : �
       (K := ℚ) v hq0 hqval hpval
   exact ⟨q0, π, m, t, u, rfl, hπ, hfac, hm⟩
 
+/-- Every local inertia element fixes a `p`-th root of the Frey curve's Tate parameter at a
+bad odd split-multiplicative prime.  This is the Kummer conclusion of the preceding
+factorization: inertia fixes the root of the unit factor, while the remaining uniformizer
+power already lies in the base field. -/
+theorem exists_localInertia_fixed_pow_eq_tateParameter (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    let _ : Field (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.adicCompletion.instField ℚ v
+    let _ : CommRing (v.adicCompletion ℚ) :=
+      (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+    let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+      HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+    let K := v.adicCompletion ℚ
+    let R := v.adicCompletionIntegers ℚ
+    let E := P.freyCurve.baseChange K
+    let Ω := AlgebraicClosure K
+    let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+    ∀ [E.HasSplitMultiplicativeReduction R]
+      [NeZero (P.p : IsLocalRing.ResidueField R)]
+      (σ : Field.absoluteGaloisGroup K), σ ∈ localInertiaGroup v →
+      ∃ r : Ω, r ^ P.p = algebraMap K Ω E.q ∧ σ r = r := by
+  let _ : Fact q.Prime := ⟨hq⟩
+  dsimp only
+  intro hsplit hp σ hσ
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let _ : Field (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.adicCompletion.instField ℚ v
+  let _ : CommRing (v.adicCompletion ℚ) :=
+    (HeightOneSpectrum.adicCompletion.instField ℚ v).toCommRing
+  let _ : Algebra ℚ (v.adicCompletion ℚ) :=
+    HeightOneSpectrum.instAlgebraAdicCompletion (𝓞 ℚ) ℚ v
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let Ω := AlgebraicClosure K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.HasSplitMultiplicativeReduction R := hsplit
+  let _ : NeZero (P.p : IsLocalRing.ResidueField R) := hp
+  let _ : Algebra K Ω := AlgebraicClosure.instAlgebra K
+  obtain ⟨q0, π, m, t, u, hq0, _hπ, hfac, hm⟩ :=
+    exists_tateParameter_uniformizer_factorization P hq hqodd hqbad
+  obtain ⟨r, hr, hfix⟩ :=
+    v.exists_localInertia_fixed_pow_eq_of_eq_pow_mul_unit
+      P.p σ hσ q0 π m t u hfac hm
+  refine ⟨r, hr.trans ?_, hfix⟩
+  rw [IsScalarTower.algebraMap_apply R K Ω]
+  change algebraMap K Ω q0.1 = algebraMap K Ω E.q
+  rw [hq0]
+
 end
 
 end FreyCurve
