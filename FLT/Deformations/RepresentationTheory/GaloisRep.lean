@@ -822,6 +822,74 @@ theorem GaloisRep.IsFlatAt.hasFlatProlongationAt_of_discrete
       simp [e]
   | add x y hx hy => simp only [map_add, hx, hy]
 
+/-- For a representation over a discrete field, one finite-flat model proves flatness.
+There are only two coefficient ideals. The zero-ideal quotient is the original
+representation after the canonical scalar equivalence, while the unit-ideal quotient is
+the zero representation and is represented by the trivial group scheme. -/
+theorem GaloisRep.HasFlatProlongationAt.isFlatAt_of_field
+    {C P : Type*} [Field C] [TopologicalSpace C] [DiscreteTopology C]
+    [AddCommGroup P] [Module C P] [Module.Free C P] [Module.Finite C P]
+    (ρ : GaloisRep K C P) (hρ : ρ.HasFlatProlongationAt v) :
+    ρ.IsFlatAt v := by
+  classical
+  constructor
+  intro I _hI
+  rcases Ideal.eq_bot_or_top I with rfl | rfl
+  · let e : ((C ⧸ (⊥ : Ideal C)) ⊗[C] P) ≃ₗ[C] P :=
+      (TensorProduct.congr (AlgEquiv.quotientBot C C).toLinearEquiv
+        (LinearEquiv.refl C P)).trans (TensorProduct.lid C P)
+    apply hρ.of_addEquiv v (ρ.baseChange (C ⧸ (⊥ : Ideal C))) e.symm.toAddEquiv
+    intro g x
+    have htransport (y : (C ⧸ (⊥ : Ideal C)) ⊗[C] P) :
+        e (((ρ.toLocal v).baseChange (C ⧸ (⊥ : Ideal C))) g y) =
+          ρ.toLocal v g (e y) := by
+      induction y using TensorProduct.induction_on with
+      | zero => simp
+      | tmul a m =>
+          rw [GaloisRep.baseChange_tmul]
+          simp [e]
+      | add x y hx hy => simp only [map_add, hx, hy]
+    apply e.injective
+    change e (e.symm (ρ.toLocal v g x)) =
+      e (((ρ.toLocal v).baseChange (C ⧸ (⊥ : Ideal C))) g (e.symm x))
+    rw [e.apply_symm_apply, htransport, e.apply_symm_apply]
+  · let S := Additive (WithConv (Kᵥ ⊗[𝒪ᵥ] 𝒪ᵥ →ₐ[Kᵥ] Kᵥᵃˡᵍ))
+    let T := ((ρ.baseChange (C ⧸ (⊤ : Ideal C))).toLocal v).Space
+    have hS : Subsingleton S := by
+      constructor
+      intro x y
+      apply Additive.toMul.injective
+      apply WithConv.ofConv_injective
+      apply AlgHom.ext
+      intro z
+      obtain ⟨a, rfl⟩ :=
+        (Algebra.TensorProduct.rid 𝒪ᵥ Kᵥ Kᵥ).symm.surjective z
+      change x.toMul.ofConv (algebraMap Kᵥ _ a) =
+        y.toMul.ofConv (algebraMap Kᵥ _ a)
+      exact (x.toMul.ofConv.commutes a).trans
+        (y.toMul.ofConv.commutes a).symm
+    have hT : Subsingleton T := by
+      have hzero (x : (C ⧸ (⊤ : Ideal C)) ⊗[C] P) : x = 0 := by
+        induction x using TensorProduct.induction_on with
+        | zero => rfl
+        | tmul a m =>
+            have ha : a = 0 := Subsingleton.elim _ _
+            simp [ha]
+        | add x y hx hy => simp [hx, hy]
+      constructor
+      intro x y
+      rw [hzero x, hzero y]
+    let f : S →+ T := 0
+    refine ⟨𝒪ᵥ, inferInstance, inferInstance, inferInstance,
+      inferInstance, inferInstance, f, ?_, ?_⟩
+    · constructor
+      · intro x y _
+        exact hS.elim x y
+      · intro y
+        exact ⟨0, hT.elim _ y⟩
+    · intro g x
+      exact hT.elim _ _
+
 /-- The finite-flat group-scheme input behind functoriality of the flat deformation
 condition: finite-flat Galois modules are closed under finite products and equivariant
 quotients. The product model is obtained from a finite product of group schemes; the quotient

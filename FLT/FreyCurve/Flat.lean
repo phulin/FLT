@@ -56,7 +56,7 @@ theorem torsion_isFlatAt_of_not_dvd_abc (P : FreyPackage)
   have hmodel :=
     WeierstrassCurve.galoisRep_hasFlatProlongationAt_of_good_reduction
       v P.freyCurve P.p P.hppos
-  exact hmodel.isFlatAt_of_discrete v _
+  exact hmodel.isFlatAt_of_field v _
 
 end
 
