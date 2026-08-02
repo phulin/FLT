@@ -970,34 +970,6 @@ noncomputable def genericFiberFieldExtendedCoverEquiv (θ : L)
 
 end QuadraticFieldCover
 
-section QuadraticFieldPoints
-
-variable (K L : Type u) [Field K] [Field L]
-  [Algebra R K] [Algebra K L] [Algebra R L] [IsScalarTower R K L]
-  [Algebra.IsQuadraticExtension K L]
-variable (S : Type v) [CommRing S] [IsDomain S]
-  [Algebra R S] [Algebra K S] [Algebra L S]
-  [IsScalarTower R K S] [IsScalarTower K L S] [IsScalarTower R L S]
-
-/-- Geometric points of the descended generic fiber, after choosing its quadratic splitting
-field inside the value field, are the usual Kummer points. -/
-noncomputable def genericFiberAlgHomUnitEquiv (θ : L)
-    (htrace : Algebra.trace K L θ = algebraMap R K t)
-    (hnorm : Algebra.norm K θ = algebraMap R K n)
-    (h2 : IsUnit (2 : R))
-    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
-    (K ⊗[R] fixedSubalgebra R N u t n →ₐ[K] S) ≃
-      TateKummer.KummerUnitPoint R S N u :=
-  (Algebra.TensorProduct.liftEquivRight K L
-      (K ⊗[R] fixedSubalgebra R N u t n) S).trans
-    ((AlgEquiv.arrowCongr
-      (genericFiberFieldExtendedCoverEquiv R N u t n K L θ
-        htrace hnorm h2 hdisc)
-      (AlgEquiv.refl : S ≃ₐ[L] S)).trans
-        (TateKummer.genericFiberAlgHomUnitEquiv R L S N u))
-
-end QuadraticFieldPoints
-
 /-! ## Tensor-square base change -/
 
 /-- Scalar extension of the descended coordinate algebra. -/
@@ -2305,6 +2277,130 @@ noncomputable def baseChangeBialgEquiv
     rw [hmap]
     rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul]
     rw [baseChangeTensorCoverEquiv_one_tmul_comulAlgHom]
+
+/-- Transporting points contravariantly across the quadratic-cover bialgebra equivalence
+preserves convolution. -/
+lemma baseChangeArrowCongr_convMul
+    (S : Type v) [CommRing S]
+    [Algebra (QuadraticDescent.Algebra R t n) S]
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (α β : BaseChangedFixedAlgebra R N u t n →ₐ[
+      QuadraticDescent.Algebra R t n] S) :
+    letI := coordinateBialgebra R N u t n h2 hdisc
+    (AlgEquiv.arrowCongr (baseChangeEquiv R N u t n h2 hdisc)
+      (AlgEquiv.refl : S ≃ₐ[QuadraticDescent.Algebra R t n] S))
+        (WithConv.toConv α * WithConv.toConv β).ofConv =
+      (WithConv.toConv
+          ((AlgEquiv.arrowCongr (baseChangeEquiv R N u t n h2 hdisc)
+            (AlgEquiv.refl : S ≃ₐ[QuadraticDescent.Algebra R t n] S)) α) *
+        WithConv.toConv
+          ((AlgEquiv.arrowCongr (baseChangeEquiv R N u t n h2 hdisc)
+            (AlgEquiv.refl : S ≃ₐ[QuadraticDescent.Algebra R t n] S)) β)).ofConv := by
+  letI := coordinateBialgebra R N u t n h2 hdisc
+  change (WithConv.toConv α * WithConv.toConv β).ofConv.comp
+      (baseChangeEquiv R N u t n h2 hdisc).symm.toAlgHom = _
+  exact AlgHom.convMul_comp_bialgHom_distrib
+    (WithConv.toConv α) (WithConv.toConv β)
+    (baseChangeBialgEquiv R N u t n h2 hdisc).symm.toBialgHom
+
+section QuadraticFieldPoints
+
+variable (K L : Type u) [Field K] [Field L]
+  [Algebra R K] [Algebra K L] [Algebra R L] [IsScalarTower R K L]
+  [Algebra.IsQuadraticExtension K L]
+variable (S : Type v) [CommRing S] [IsDomain S]
+  [Algebra R S] [Algebra K S] [Algebra L S]
+  [IsScalarTower R K S] [IsScalarTower R L S]
+
+/-- Geometric points of the descended generic fiber are Kummer points.  The construction
+restricts a `K`-generic point to the fixed algebra, extends it to the integral quadratic
+cover using the chosen trace--norm generator, transports it across `baseChangeBialgEquiv`,
+and finally restricts it to the split Tate--Kummer coordinate algebra. -/
+noncomputable def genericFiberAlgHomUnitEquiv (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (K ⊗[R] fixedSubalgebra R N u t n →ₐ[K] S) ≃
+      TateKummer.KummerUnitPoint R S N u := by
+  let f := QuadraticDescent.integralFieldAlgHom K L R t n θ htrace hnorm
+  let g : QuadraticDescent.Algebra R t n →+* S :=
+    (algebraMap L S).comp f.toRingHom
+  letI : Algebra (QuadraticDescent.Algebra R t n) S := g.toAlgebra
+  letI : IsScalarTower R (QuadraticDescent.Algebra R t n) S :=
+    IsScalarTower.of_algebraMap_eq fun r ↦ by
+      change algebraMap R S r = algebraMap L S (f (algebraMap R
+        (QuadraticDescent.Algebra R t n) r))
+      rw [f.commutes, IsScalarTower.algebraMap_apply R L S]
+  exact
+    (Algebra.TensorProduct.liftEquivRight R K
+      (fixedSubalgebra R N u t n) S).symm |>.trans
+    ((Algebra.TensorProduct.liftEquivRight R
+      (QuadraticDescent.Algebra R t n)
+      (fixedSubalgebra R N u t n) S).trans
+    ((AlgEquiv.arrowCongr (baseChangeEquiv R N u t n h2 hdisc)
+      (AlgEquiv.refl : S ≃ₐ[QuadraticDescent.Algebra R t n] S)).trans
+    ((Algebra.TensorProduct.liftEquivRight R
+      (QuadraticDescent.Algebra R t n)
+      (TateKummer.CoordinateAlgebra (R := R) N u) S).symm.trans
+      (TateKummer.coordinateAlgHomUnitEquiv R S N u))))
+
+/-- The generic-fiber point classification sends convolution on the descended Hopf algebra
+to carry-corrected Kummer multiplication. -/
+lemma genericFiberAlgHomUnitEquiv_convMul (θ : L)
+    (htrace : Algebra.trace K L θ = algebraMap R K t)
+    (hnorm : Algebra.norm K θ = algebraMap R K n)
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (φ ψ : K ⊗[R] fixedSubalgebra R N u t n →ₐ[K] S) :
+    letI := coordinateBialgebra R N u t n h2 hdisc
+    genericFiberAlgHomUnitEquiv R N u t n K L S θ htrace hnorm h2 hdisc
+        (WithConv.toConv φ * WithConv.toConv ψ).ofConv =
+      TateKummer.kummerUnitPointMul R S N u
+        (genericFiberAlgHomUnitEquiv R N u t n K L S θ
+          htrace hnorm h2 hdisc φ)
+        (genericFiberAlgHomUnitEquiv R N u t n K L S θ
+          htrace hnorm h2 hdisc ψ) := by
+  letI := coordinateBialgebra R N u t n h2 hdisc
+  let f := QuadraticDescent.integralFieldAlgHom K L R t n θ htrace hnorm
+  let g : QuadraticDescent.Algebra R t n →+* S :=
+    (algebraMap L S).comp f.toRingHom
+  letI : Algebra (QuadraticDescent.Algebra R t n) S := g.toAlgebra
+  letI : IsScalarTower R (QuadraticDescent.Algebra R t n) S :=
+    IsScalarTower.of_algebraMap_eq fun r ↦ by
+      change algebraMap R S r = algebraMap L S (f (algebraMap R
+        (QuadraticDescent.Algebra R t n) r))
+      rw [f.commutes, IsScalarTower.algebraMap_apply R L S]
+  let eK := Algebra.TensorProduct.liftEquivRight R K
+    (fixedSubalgebra R N u t n) S
+  let eA := Algebra.TensorProduct.liftEquivRight R
+    (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n) S
+  let eH := Algebra.TensorProduct.liftEquivRight R
+    (QuadraticDescent.Algebra R t n)
+      (TateKummer.CoordinateAlgebra (R := R) N u) S
+  let eCover := AlgEquiv.arrowCongr
+    (baseChangeEquiv R N u t n h2 hdisc)
+    (AlgEquiv.refl : S ≃ₐ[QuadraticDescent.Algebra R t n] S)
+  change TateKummer.coordinateAlgHomUnitEquiv R S N u
+      (eH.symm (eCover (eA (eK.symm
+        (WithConv.toConv φ * WithConv.toConv ψ).ofConv)))) =
+    TateKummer.kummerUnitPointMul R S N u
+      (TateKummer.coordinateAlgHomUnitEquiv R S N u
+        (eH.symm (eCover (eA (eK.symm φ)))))
+      (TateKummer.coordinateAlgHomUnitEquiv R S N u
+        (eH.symm (eCover (eA (eK.symm ψ)))))
+  rw [Algebra.TensorProduct.liftEquivRight_symm_convMul R K
+      (fixedSubalgebra R N u t n) S,
+    Algebra.TensorProduct.liftEquivRight_convMul R
+      (QuadraticDescent.Algebra R t n) (fixedSubalgebra R N u t n) S,
+    baseChangeArrowCongr_convMul R N u t n S h2 hdisc,
+    Algebra.TensorProduct.liftEquivRight_symm_convMul R
+      (QuadraticDescent.Algebra R t n)
+      (TateKummer.CoordinateAlgebra (R := R) N u) S,
+    TateKummer.coordinateAlgHomUnitEquiv_convMul]
+
+end QuadraticFieldPoints
 
 /-! ## Antipode identities -/
 
