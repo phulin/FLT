@@ -1291,6 +1291,57 @@ noncomputable instance coordinateHopfAlgebra (N : ℕ) [NeZero N] (u : Rˣ) :
   HopfAlgebra.ofAlgHom (antipodeAlgHom N u)
     (mul_antipode_rTensor_comul N u) (mul_antipode_lTensor_comul N u)
 
+/-! ## Base change -/
+
+section BaseChange
+
+variable (K : Type u) [CommRing K] [Algebra R K]
+
+/-- The image of the unit parameter after extending scalars. -/
+noncomputable def baseChangeUnit (u : Rˣ) : Kˣ :=
+  Units.map (algebraMap R K) u
+
+@[simp]
+lemma coe_baseChangeUnit (u : Rˣ) :
+    (baseChangeUnit K u : K) = algebraMap R K (u : R) :=
+  rfl
+
+/-- Adjoining a Kummer root commutes with scalar extension. -/
+noncomputable def componentBaseChangeEquiv (N i : ℕ) (u : Rˣ) :
+    K ⊗[R] Component R N i u ≃ₐ[K]
+      Component K N i (baseChangeUnit K u) := by
+  let pR := componentPolynomial R N i u
+  let pT := pR.map
+    (Algebra.TensorProduct.includeRight : R →ₐ[R] K ⊗[R] R).toRingHom
+  let pK := componentPolynomial K N i (baseChangeUnit K u)
+  let e₁ : K ⊗[R] AdjoinRoot pR ≃ₐ[K] AdjoinRoot pT :=
+    AdjoinRoot.tensorAlgEquiv pR pT rfl
+  let e₂ : AdjoinRoot pT ≃ₐ[K] AdjoinRoot pK :=
+    AdjoinRoot.mapAlgEquiv (Algebra.TensorProduct.rid R K K) pT pK
+      (Associated.of_eq (by
+        simp [pT, pK, pR, componentPolynomial, baseChangeUnit,
+          Algebra.smul_def]))
+  exact e₁.trans e₂
+
+/-- Scalar extension of the whole coordinate algebra is the coordinate algebra with
+the unit parameter mapped to the new base ring. -/
+noncomputable def coordinateBaseChangeEquiv (N : ℕ) [NeZero N] (u : Rˣ) :
+    K ⊗[R] CoordinateAlgebra (R := R) N u ≃ₐ[K]
+      CoordinateAlgebra (R := K) N (baseChangeUnit K u) :=
+  (Algebra.TensorProduct.piRight R K K
+      (fun i : Fin N ↦ Component R N i u)).trans
+    (AlgEquiv.piCongrRight fun i ↦ componentBaseChangeEquiv K N i u)
+
+@[simp]
+lemma coordinateBaseChangeEquiv_tmul_apply
+    (N : ℕ) [NeZero N] (u : Rˣ)
+    (x : K) (f : CoordinateAlgebra (R := R) N u) (i : Fin N) :
+    coordinateBaseChangeEquiv K N u (x ⊗ₜ[R] f) i =
+      componentBaseChangeEquiv K N i u (x ⊗ₜ[R] f i) :=
+  rfl
+
+end BaseChange
+
 /-! ## Étaleness over a field -/
 
 section Etale
@@ -1347,6 +1398,13 @@ noncomputable instance coordinateEtale
     (N : ℕ) [NeZero N] [NeZero (N : K)] (u : Kˣ) :
     Algebra.Etale K (CoordinateAlgebra (R := K) N u) :=
   inferInstance
+
+/-- The generic fiber of the Tate--Kummer coordinate algebra is étale whenever the
+torsion order is nonzero in the generic-fiber field. -/
+noncomputable instance coordinateGenericFiberEtale
+    [Algebra R K] (N : ℕ) [NeZero N] [NeZero (N : K)] (u : Rˣ) :
+    Algebra.Etale K (K ⊗[R] CoordinateAlgebra (R := R) N u) :=
+  Algebra.Etale.of_equiv (coordinateBaseChangeEquiv K N u).symm
 
 end Etale
 
