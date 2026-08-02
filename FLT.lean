@@ -59,6 +59,7 @@ public import FLT.GlobalLanglandsConjectures.GLzero
 public import FLT.GroupScheme.FiniteFlat
 public import FLT.GroupScheme.QuadraticDescent
 public import FLT.GroupScheme.TateKummerFlat
+public import FLT.GroupScheme.TateKummerQuadraticTwist
 public import FLT.HaarMeasure.FiniteAdeleRing
 public import FLT.HaarMeasure.HaarChar.AddEquiv
 public import FLT.HaarMeasure.HaarChar.AdeleRing
