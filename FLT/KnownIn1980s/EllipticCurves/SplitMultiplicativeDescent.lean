@@ -416,6 +416,72 @@ theorem not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_residue_ne_zer
     W 𝒪[k] (0 : 𝒪[k]) nR hDres hDresnsq hexplicitSplit
 
 open IsLocalRing in
+/-- In mixed characteristic with dyadic residue field, a nontrivial quadratic twist of a split
+multiplicative curve cannot again be split multiplicative.  The all-primes split criterion makes
+`-c₆` a square for both curves; the twisting law for `c₆` would then make the generator
+discriminant a square, contradicting quadraticity. -/
+theorem not_hasSplitMultiplicativeReduction_quadraticTwist_of_two_ne_zero
+    (W : WeierstrassCurve k) [W.IsElliptic] [W.HasSplitMultiplicativeReduction 𝒪[k]]
+    (L : Type u) [Field L] [Algebra k L] [Algebra.IsQuadraticExtension k L]
+    [Algebra.IsSeparable k L] (W' : WeierstrassCurve k) [W'.IsElliptic]
+    (C : VariableChange k) (hC : C • W' = W.quadraticTwist L)
+    (h2 : (2 : ResidueField 𝒪[k]) = 0) (h2k : (2 : k) ≠ 0) :
+    ¬ W'.HasSplitMultiplicativeReduction 𝒪[k] := by
+  intro hW'split
+  letI : W'.HasSplitMultiplicativeReduction 𝒪[k] := hW'split
+  let θ : L := (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose
+  have hθ : θ ∉ Set.range (algebraMap k L) :=
+    (Algebra.IsQuadraticExtension.exists_notMem_range_algebraMap k L).choose_spec
+  let t : k := Algebra.trace k L θ
+  let n : k := Algebra.norm k θ
+  let d : k := t ^ 2 - 4 * n
+  change C • W' = W.quadraticTwistOf t n at hC
+  letI : NeZero (2 : k) := ⟨h2k⟩
+  have hd0 : d ≠ 0 := Algebra.IsQuadraticExtension.discrim_ne_zero k L hθ
+  have hdnsq : ¬ IsSquare d :=
+    Algebra.IsQuadraticExtension.not_isSquare_discrim k L hθ
+  letI : UniformSpace k := IsTopologicalAddGroup.rightUniformSpace k
+  letI : IsUniformAddGroup k := isUniformAddGroup_of_addCommGroup
+  have hsW : IsSquare (-W.c₆) :=
+    isSquare_neg_c₆_of_hasSplitMultiplicativeReduction_of_two_residue_eq_zero W 𝒪[k] h2
+  have hsW' : IsSquare (-W'.c₆) :=
+    isSquare_neg_c₆_of_hasSplitMultiplicativeReduction_of_two_residue_eq_zero W' 𝒪[k] h2
+  obtain ⟨x, hx⟩ := hsW
+  obtain ⟨y, hy⟩ := hsW'
+  have hx0 : x ≠ 0 := by
+    intro h
+    have hc₆ : W.c₆ ≠ 0 := c₆_ne_zero_of_one_lt_valuation_j W W.one_lt_valuation_j
+    apply hc₆
+    have : -W.c₆ = 0 := by rw [hx, h, zero_mul]
+    exact neg_eq_zero.mp this
+  have hc₆eq := congrArg WeierstrassCurve.c₆ hC
+  rw [variableChange_c₆, c₆_quadraticTwistOf] at hc₆eq
+  have hc₆W : W.c₆ = -(x * x) := by
+    calc
+      W.c₆ = -(-W.c₆) := by ring
+      _ = -(x * x) := by rw [hx]
+  have hc₆W' : W'.c₆ = -(y * y) := by
+    calc
+      W'.c₆ = -(-W'.c₆) := by ring
+      _ = -(y * y) := by rw [hy]
+  rw [hc₆W, hc₆W'] at hc₆eq
+  have hcore : (↑(C.u⁻¹) : k) ^ 6 * y ^ 2 = d ^ 3 * x ^ 2 := by
+    rw [mul_neg, mul_neg] at hc₆eq
+    have h := neg_inj.mp hc₆eq
+    simpa only [d, pow_two] using h
+  apply hdnsq
+  let z : k := (↑(C.u⁻¹) : k) ^ 3 * y
+  have hz : z * z = d ^ 3 * x ^ 2 := by
+    calc
+      z * z = (↑(C.u⁻¹) : k) ^ 6 * y ^ 2 := by dsimp only [z]; ring
+      _ = d ^ 3 * x ^ 2 := hcore
+  refine ⟨z / (d * x), ?_⟩
+  rw [div_mul_div_comm]
+  apply (eq_div_iff (mul_ne_zero (mul_ne_zero hd0 hx0) (mul_ne_zero hd0 hx0))).mpr
+  rw [hz]
+  ring
+
+open IsLocalRing in
 /-- In residue characteristic `2`, the `a₁` coefficient of a minimal equation with
 multiplicative reduction is a unit.  Indeed, modulo the maximal ideal the discriminant of the
 node polynomial is
