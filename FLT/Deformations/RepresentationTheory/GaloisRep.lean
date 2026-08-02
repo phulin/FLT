@@ -8,6 +8,7 @@ module
 public import FLT.Deformations.RepresentationTheory.AbsoluteGaloisGroup
 public import FLT.Deformations.RepresentationTheory.Etale
 public import FLT.Deformations.IsProartinian
+public import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 public import Mathlib.LinearAlgebra.Charpoly.Basic
 public import Mathlib.LinearAlgebra.Matrix.Unique
 public import Mathlib.RingTheory.Bialgebra.TensorProduct
@@ -72,6 +73,136 @@ noncomputable nonrec
 abbrev GaloisRep.ker (ρ : GaloisRep K A M) : Subgroup (Γ K) :=
   letI := moduleTopology A (Module.End A M)
   ρ.ker
+
+/-- A Galois representation over a discrete coefficient ring has open kernel. Equivalently,
+it factors through a finite quotient of the absolute Galois group. -/
+theorem GaloisRep.isOpen_ker_of_discrete [DiscreteTopology A] (ρ : GaloisRep K A M) :
+    IsOpen (ρ.ker : Set (Γ K)) := by
+  letI : TopologicalSpace (Module.End A M) := moduleTopology A _
+  letI : DiscreteTopology (Module.End A M) :=
+    ModuleTopology.discreteTopology_of_discrete A _
+  exact (isOpen_discrete {1}).preimage ρ.continuous
+
+/-- The finite normal extension of `K` cut out by a discrete Galois representation: the
+fixed field of its kernel inside the chosen algebraic closure. -/
+noncomputable def GaloisRep.fieldCutOut (ρ : GaloisRep K A M) :
+    IntermediateField K (AlgebraicClosure K) :=
+  IntermediateField.fixedField ρ.ker
+
+/-- The fixing subgroup of the field cut out by a discrete representation is exactly the
+kernel of the representation. -/
+theorem GaloisRep.fieldCutOut_fixingSubgroup [PerfectField K] [DiscreteTopology A]
+    (ρ : GaloisRep K A M) : ρ.fieldCutOut.fixingSubgroup = ρ.ker := by
+  unfold GaloisRep.fieldCutOut
+  exact InfiniteGalois.fixingSubgroup_fixedField
+    ⟨ρ.ker, Subgroup.isClosed_of_isOpen _ ρ.isOpen_ker_of_discrete⟩
+
+/-- The field cut out by a discrete Galois representation is finite over the base field. -/
+theorem GaloisRep.fieldCutOut_finiteDimensional [PerfectField K] [DiscreteTopology A]
+    (ρ : GaloisRep K A M) : FiniteDimensional K ρ.fieldCutOut := by
+  apply (InfiniteGalois.isOpen_iff_finite ρ.fieldCutOut).mp
+  rw [ρ.fieldCutOut_fixingSubgroup]
+  exact ρ.isOpen_ker_of_discrete
+
+/-- The field cut out by a Galois representation is normal and separable over the base field. -/
+noncomputable instance GaloisRep.fieldCutOut_isGalois [PerfectField K]
+    (ρ : GaloisRep K A M) : IsGalois K ρ.fieldCutOut := by
+  unfold GaloisRep.fieldCutOut
+  infer_instance
+
+/-- Every value of a Galois representation is a linear equivalence, with inverse given by
+the value at the inverse Galois element. -/
+noncomputable def GaloisRep.linearEquiv (ρ : GaloisRep K A M) (σ : Γ K) : M ≃ₗ[A] M :=
+  LinearEquiv.ofLinear (ρ σ) (ρ σ⁻¹) (by
+    ext x
+    change ρ σ (ρ σ⁻¹ x) = x
+    simpa only [← LinearMap.comp_apply, ← Module.End.mul_eq_comp, ← map_mul,
+      mul_inv_cancel, map_one, Module.End.one_apply]) (by
+    ext x
+    change ρ σ⁻¹ (ρ σ x) = x
+    simpa only [← LinearMap.comp_apply, ← Module.End.mul_eq_comp, ← map_mul,
+      inv_mul_cancel, map_one, Module.End.one_apply])
+
+@[simp]
+theorem GaloisRep.linearEquiv_apply (ρ : GaloisRep K A M) (σ : Γ K) (x : M) :
+    ρ.linearEquiv σ x = ρ σ x := rfl
+
+/-- The group-valued form of a Galois representation. -/
+noncomputable def GaloisRep.toLinearEquivMonoidHom (ρ : GaloisRep K A M) :
+    Γ K →* (M ≃ₗ[A] M) where
+  toFun := ρ.linearEquiv
+  map_one' := by
+    ext x
+    simp
+  map_mul' σ τ := by
+    ext x
+    change ρ (σ * τ) x = ρ σ (ρ τ x)
+    rw [map_mul]
+    rfl
+
+/-- The faithful finite-level representation through which a discrete absolute-Galois
+representation factors. -/
+noncomputable def GaloisRep.finiteQuotientRepresentation [PerfectField K] [DiscreteTopology A]
+    (ρ : GaloisRep K A M) :
+    (ρ.fieldCutOut ≃ₐ[K] ρ.fieldCutOut) →* (M ≃ₗ[A] M) := by
+  let res : Γ K →* (ρ.fieldCutOut ≃ₐ[K] ρ.fieldCutOut) :=
+    AlgEquiv.restrictNormalHom ρ.fieldCutOut
+  let ρlin : Γ K →* (M ≃ₗ[A] M) := ρ.toLinearEquivMonoidHom
+  refine (res.liftOfSurjective (G₃ := (M ≃ₗ[A] M))
+    (AlgEquiv.restrictNormalHom_surjective (AlgebraicClosure K))) ⟨ρlin, ?_⟩
+  change res.ker ≤ ρlin.ker
+  rw [show res.ker = ρ.fieldCutOut.fixingSubgroup from
+      IntermediateField.restrictNormalHom_ker ρ.fieldCutOut,
+    ρ.fieldCutOut_fixingSubgroup]
+  intro σ hσ
+  change ρ.linearEquiv σ = 1
+  ext x
+  change ρ σ x = x
+  change ρ σ = 1 at hσ
+  rw [hσ]
+  rfl
+
+/-- Pulling the finite-level representation back to the absolute Galois group recovers the
+original representation. -/
+@[simp]
+theorem GaloisRep.finiteQuotientRepresentation_restrict [PerfectField K] [DiscreteTopology A]
+    (ρ : GaloisRep K A M) (σ : Γ K) :
+  ρ.finiteQuotientRepresentation
+        (AlgEquiv.restrictNormalHom ρ.fieldCutOut σ) = ρ.linearEquiv σ := by
+  simp [GaloisRep.finiteQuotientRepresentation]
+  rfl
+
+/-- The representation of the finite Galois group of the field cut out by `ρ` is faithful. -/
+theorem GaloisRep.finiteQuotientRepresentation_injective
+    [PerfectField K] [DiscreteTopology A] (ρ : GaloisRep K A M) :
+    Function.Injective ρ.finiteQuotientRepresentation := by
+  letI : TopologicalSpace (Module.End A M) := moduleTopology A _
+  intro σ τ hστ
+  obtain ⟨g, rfl⟩ := AlgEquiv.restrictNormalHom_surjective (AlgebraicClosure K) σ
+  obtain ⟨h, rfl⟩ := AlgEquiv.restrictNormalHom_surjective (AlgebraicClosure K) τ
+  rw [ρ.finiteQuotientRepresentation_restrict,
+    ρ.finiteQuotientRepresentation_restrict] at hστ
+  have hστ' : ρ g = ρ h := by
+    ext x
+    exact DFunLike.congr_fun hστ x
+  have hkerρ : g⁻¹ * h ∈ ρ.ker := by
+    change ρ (g⁻¹ * h) = 1
+    calc
+      ρ (g⁻¹ * h) = ρ g⁻¹ * ρ h := map_mul ρ g⁻¹ h
+      _ = ρ g⁻¹ * ρ g := by rw [hστ']
+      _ = ρ (g⁻¹ * g) := (map_mul ρ g⁻¹ g).symm
+      _ = 1 := by simp
+  have hkerres : g⁻¹ * h ∈
+      (AlgEquiv.restrictNormalHom ρ.fieldCutOut).ker := by
+    rwa [IntermediateField.restrictNormalHom_ker, ρ.fieldCutOut_fixingSubgroup]
+  have heq := MonoidHom.mem_ker.mp hkerres
+  simpa only [map_mul, map_inv, inv_mul_eq_one] using heq
+
+/-- The Galois group through which a discrete representation factors is finite. -/
+noncomputable instance GaloisRep.finite_fieldCutOut_aut [PerfectField K] [DiscreteTopology A]
+    (ρ : GaloisRep K A M) : Finite (ρ.fieldCutOut ≃ₐ[K] ρ.fieldCutOut) := by
+  letI : FiniteDimensional K ρ.fieldCutOut := ρ.fieldCutOut_finiteDimensional
+  infer_instance
 
 /-- A field extension induces a map between galois reps.
 Note that this relies on an arbitrarily chosen embedding of the algebraic closures. -/

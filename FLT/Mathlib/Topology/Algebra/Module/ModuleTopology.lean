@@ -31,6 +31,19 @@ theorem ModuleTopology.isModuleTopology (R : Type*) [TopologicalSpace R] (S : Ty
   __ := moduleTopology R S
   eq_moduleTopology' := rfl
 
+/-- The module topology over a discrete ring is discrete. -/
+theorem ModuleTopology.discreteTopology_of_discrete
+    (R M : Type*) [CommRing R] [TopologicalSpace R] [DiscreteTopology R]
+    [AddCommGroup M] [Module R M] : @DiscreteTopology M (moduleTopology R M) := by
+  letI : TopologicalSpace M := moduleTopology R M
+  change DiscreteTopology M
+  exact ⟨by
+    apply bot_unique
+    letI : TopologicalSpace M := ⊥
+    letI : DiscreteTopology M := ⟨rfl⟩
+    letI : ContinuousSMul R M := ⟨continuous_of_discreteTopology⟩
+    exact @moduleTopology_le R _ M _ _ _ inferInstance inferInstance⟩
+
 -- should be in Mathlib
 lemma ModuleTopology.iff (R M : Type*) [Add M] [SMul R M] [TopologicalSpace R]
     [τ : TopologicalSpace M] : IsModuleTopology R M ↔ τ = moduleTopology R M :=
