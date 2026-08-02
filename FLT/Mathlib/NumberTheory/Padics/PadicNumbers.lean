@@ -6,7 +6,9 @@ Authors: FLT Project
 module
 
 public import Mathlib.NumberTheory.Padics.PadicIntegers
+public import Mathlib.NumberTheory.Padics.ProperSpace
 public import Mathlib.NumberTheory.Padics.ValuativeRel
+public import Mathlib.NumberTheory.LocalField.Basic
 public import Mathlib.RingTheory.DedekindDomain.AdicValuation
 public import Mathlib.RingTheory.Valuation.Discrete.IsDiscreteValuationRing
 public import Mathlib.Topology.Algebra.Valued.ValuativeRel
@@ -27,6 +29,49 @@ open scoped WithZero
 namespace Padic
 
 open ValuativeRel
+open scoped NormedField
+
+/-- The norm valuation is compatible with the canonical p-adic valuative relation. -/
+noncomputable instance instNormValuationCompatible {p : ℕ} [Fact p.Prime] :
+    (NormedField.valuation : Valuation ℚ_[p] NNReal).Compatible := by
+  constructor
+  intro x y
+  rw [Valuation.Compatible.vle_iff_le (v := Padic.mulValuation)]
+  change Padic.mulValuation x ≤ Padic.mulValuation y ↔ ‖x‖₊ ≤ ‖y‖₊
+  rw [← NNReal.coe_le_coe]
+  by_cases hx : x = 0
+  · simp [hx]
+  by_cases hy : y = 0
+  · simp [hy, hx]
+  rw [show Padic.mulValuation x = WithZero.exp (-x.valuation) by
+        simp [Padic.mulValuation, hx],
+    show Padic.mulValuation y = WithZero.exp (-y.valuation) by
+        simp [Padic.mulValuation, hy]]
+  change WithZero.exp (-x.valuation) ≤ WithZero.exp (-y.valuation) ↔ ‖x‖ ≤ ‖y‖
+  rw [Padic.norm_eq_zpow_neg_valuation hx, Padic.norm_eq_zpow_neg_valuation hy,
+    WithZero.exp_le_exp, zpow_le_zpow_iff_right₀]
+  exact_mod_cast (Fact.out : p.Prime).one_lt
+
+/-- The usual topology on `ℚ_[p]` is the topology induced by its canonical valuative
+relation. -/
+noncomputable instance instIsValuativeTopology {p : ℕ} [Fact p.Prime] :
+    IsValuativeTopology ℚ_[p] :=
+  IsValuativeTopology.of_mem_nhds_zero_iff_vle
+    (NormedField.valuation : Valuation ℚ_[p] NNReal) (fun {_} => by
+      have hv : (Valued.v : Valuation ℚ_[p] NNReal) = NormedField.valuation := by
+        apply Valuation.ext
+        intro x
+        exact NormedField.v_eq_valuation x
+      rw [← hv]
+      simpa only [true_and] using
+        (Valued.hasBasis_nhds_zero ℚ_[p] NNReal).mem_iff)
+
+/-- The standard rational p-adic field satisfies the valuative-relation local-field API. -/
+noncomputable instance instIsNonarchimedeanLocalField {p : ℕ} [Fact p.Prime] :
+    IsNonarchimedeanLocalField ℚ_[p] :=
+  { toIsValuativeTopology := inferInstance
+    toLocallyCompactSpace := inferInstance
+    toIsNontrivial := inferInstance }
 
 /-- The canonical valuative-relation integer subring of `ℚ_[p]` has the same carrier as
 `PadicInt`: both say that the p-adic norm is at most one. -/

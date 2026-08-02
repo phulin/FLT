@@ -20,10 +20,14 @@ used by `GaloisRep.HasTameQuadraticQuotientAtTwo`.
 @[expose] public section
 
 open WeierstrassCurve.Affine
+open ValuativeRel
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 
 noncomputable local instance : DecidableEq (AlgebraicClosure ℚ_[2]) :=
+  Classical.typeDecidableEq _
+
+noncomputable local instance : DecidableEq ℚ_[2] :=
   Classical.typeDecidableEq _
 
 namespace WeierstrassCurve
@@ -169,7 +173,7 @@ theorem twoAdicLocalTorsionLinearEquiv_galois (n : ℕ) [NeZero n]
               WeierstrassCurve.Affine.Point.map (σ.toAlgHom.restrictScalars ℚ)
                 (reassoc (0 : ((E.baseChange ℚ_[2])⁄
                   (AlgebraicClosure ℚ_[2])).Point))
-            simp only [map_zero, WeierstrassCurve.Affine.Point.map_zero]
+            simp only [map_zero]
         | some x y hxy =>
             change (Affine.Point.equivOfEq
                 (E.baseChange_map_algebraMap ℚ_[2] (AlgebraicClosure ℚ_[2])))
@@ -192,5 +196,45 @@ theorem twoAdicLocalTorsionLinearEquiv_galois (n : ℕ) [NeZero n]
           (reassoc.symm (E.twoAdicTorsionLinearEquiv n P).1)
       apply reassoc.injective
       rw [reassoc.apply_symm_apply, hnat, reassoc.apply_symm_apply]
+
+/-- In the split-multiplicative branch, the Tate component map gives a surjective quotient
+with trivial rank-one Galois action. -/
+theorem twoAdicTorsion_hasTameQuadraticQuotient_of_split
+    (n : ℕ) [NeZero n] [NeZero (n : ℚ)] (hn : 0 < n)
+    [(E.baseChange ℚ_[2]).HasSplitMultiplicativeReduction 𝒪[ℚ_[2]]] :
+    GaloisRepresentation.GaloisRep.HasTameQuadraticQuotientAtTwo
+      (E.galoisRep n hn) := by
+  let Ω := AlgebraicClosure ℚ_[2]
+  let Elocal := E.baseChange ℚ_[2]
+  letI : NeZero (n : Ω) := ⟨by exact_mod_cast NeZero.ne n⟩
+  letI : Module (ZMod n)
+      (AddSubgroup.torsionBy (E⁄(AlgebraicClosure ℚ)).Point (n : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod n)
+      (AddSubgroup.torsionBy (Elocal⁄Ω).Point (n : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  let e := E.twoAdicLocalTorsionLinearEquiv n
+  let q := Elocal.tateComponentLinearMap Ω n
+  let π : AddSubgroup.torsionBy (E⁄(AlgebraicClosure ℚ)).Point (n : ℤ) →ₗ[ZMod n]
+      ZMod n := q.comp e.toLinearMap
+  let δ := trivialRankOneGaloisRep ℚ_[2] n
+  refine ⟨π, ?_, δ, ?_⟩
+  · exact (Elocal.tateComponentLinearMap_surjective Ω n).comp e.surjective
+  · intro σ P
+    refine ⟨?_, ?_, ?_⟩
+    · change q (e (E.nTorsionMap n
+          (Field.absoluteGaloisGroup.map (algebraMap ℚ ℚ_[2]) σ).toAlgHom P)) =
+        δ σ (q (e P))
+      rw [E.twoAdicLocalTorsionLinearEquiv_galois n σ P]
+      exact Elocal.tateComponentLinearMap_nTorsionMap Ω n σ (e P)
+    · intro τ _hτ
+      change δ τ = 1
+      apply LinearMap.ext
+      intro x
+      rfl
+    · intro τ
+      apply LinearMap.ext
+      intro x
+      rfl
 
 end WeierstrassCurve

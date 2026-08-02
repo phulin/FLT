@@ -20,6 +20,19 @@ Galois representation over `ZMod N`.
 
 noncomputable section
 
+/-- The trivial rank-one representation over `ZMod N`. -/
+def trivialRankOneGaloisRep (K : Type*) [Field K] (N : ℕ) :
+    GaloisRep K (ZMod N) (ZMod N) := by
+  letI : TopologicalSpace (Module.End (ZMod N) (ZMod N)) :=
+    moduleTopology (ZMod N) (Module.End (ZMod N) (ZMod N))
+  exact ⟨1, continuous_const⟩
+
+@[simp]
+theorem trivialRankOneGaloisRep_apply (K : Type*) [Field K] (N : ℕ)
+    (σ : Field.absoluteGaloisGroup K) (x : ZMod N) :
+    trivialRankOneGaloisRep K N σ x = x :=
+  rfl
+
 variable (K L : Type*) [Field K] [Field L] [Algebra K L]
 variable [Algebra.IsQuadraticExtension K L] [Algebra.IsSeparable K L]
 variable [Algebra L (AlgebraicClosure K)] [IsScalarTower K L (AlgebraicClosure K)]
