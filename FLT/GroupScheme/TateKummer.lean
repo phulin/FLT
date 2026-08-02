@@ -297,6 +297,55 @@ lemma tensorCoordinateEquiv_tmul (N : ℕ) [NeZero N] (u : Rˣ)
     tensorCoordinateEquiv N u (x ⊗ₜ[R] y) j i = x i ⊗ₜ[R] y j := by
   rfl
 
+/-- Tensoring a finite product on the left distributes over its factors. -/
+noncomputable def piTensorLeftEquiv
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (A : Type*) [CommRing A] [Algebra R A]
+    (B : ι → Type*) [∀ i, CommRing (B i)] [∀ i, Algebra R (B i)] :
+    (∀ i, B i) ⊗[R] A ≃ₐ[R] ∀ i, (B i) ⊗[R] A :=
+  (Algebra.TensorProduct.comm R (∀ i, B i) A).trans
+    ((Algebra.TensorProduct.piRight R R A B).trans
+      (AlgEquiv.piCongrRight fun i =>
+        Algebra.TensorProduct.comm R A (B i)))
+
+@[simp]
+lemma piTensorLeftEquiv_tmul
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (A : Type*) [CommRing A] [Algebra R A]
+    (B : ι → Type*) [∀ i, CommRing (B i)] [∀ i, Algebra R (B i)]
+    (x : ∀ i, B i) (y : A) (i : ι) :
+    piTensorLeftEquiv (R := R) A B (x ⊗ₜ[R] y) i = x i ⊗ₜ[R] y := by
+  rfl
+
+/-- Decompose a triple tensor product into its componentwise triple tensor products. -/
+noncomputable def tripleCoordinateEquiv (N : ℕ) [NeZero N] (u : Rˣ) :
+    (CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u) ⊗[R]
+        CoordinateAlgebra (R := R) N u ≃ₐ[R]
+      ∀ k : Fin N, ∀ j : Fin N, ∀ i : Fin N,
+        ((Component R N i.1 u) ⊗[R] (Component R N j.1 u)) ⊗[R]
+          Component R N k.1 u :=
+  (Algebra.TensorProduct.piRight R R
+      (CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u)
+      (Components (R := R) N u)).trans
+    (AlgEquiv.piCongrRight fun k =>
+      (Algebra.TensorProduct.congr (tensorCoordinateEquiv N u)
+        (AlgEquiv.refl : Component R N k.1 u ≃ₐ[R]
+          Component R N k.1 u)).trans
+        ((piTensorLeftEquiv (R := R) (Component R N k.1 u)
+          (fun j : Fin N => ∀ i : Fin N,
+            (Component R N i.1 u) ⊗[R] (Component R N j.1 u))).trans
+          (AlgEquiv.piCongrRight fun j =>
+            piTensorLeftEquiv (R := R) (Component R N k.1 u)
+              (fun i : Fin N =>
+                (Component R N i.1 u) ⊗[R] (Component R N j.1 u)))))
+
+@[simp]
+lemma tripleCoordinateEquiv_tmul (N : ℕ) [NeZero N] (u : Rˣ)
+    (x y z : CoordinateAlgebra (R := R) N u) (k j i : Fin N) :
+    tripleCoordinateEquiv N u ((x ⊗ₜ[R] y) ⊗ₜ[R] z) k j i =
+      (x i ⊗ₜ[R] y j) ⊗ₜ[R] z k := by
+  rfl
+
 /-- The coordinate map for multiplication, after decomposing the target into pairs of
 components. -/
 noncomputable def comulCoordinates (N : ℕ) [NeZero N] (u : Rˣ) :
