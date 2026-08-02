@@ -268,6 +268,122 @@ theorem GaloisRep.comp_genericEtaleAntipode
     (GaloisRep.GenericEtaleAlgebra rho)
       (B := GaloisRep.GenericEtaleAlgebra rho) (GaloisRep.genericEtaleNegPoints rho) q
 
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+theorem GaloisRep.genericEtaleAddPoints_symm
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W)
+    (q : (GaloisRep.GenericEtaleAlgebra rho ⊗[ℚ]
+      GaloisRep.GenericEtaleAlgebra rho) →ₐ[ℚ] AlgebraicClosure ℚ) :
+    (GaloisRep.genericEtalePointsEquiv rho).symm
+        (GaloisRep.genericEtaleAddPoints rho q) =
+      (GaloisRep.genericEtalePointsEquiv rho).symm
+          (q.comp Algebra.TensorProduct.includeLeft) +
+        (GaloisRep.genericEtalePointsEquiv rho).symm
+          (q.comp Algebra.TensorProduct.includeRight) := by
+  exact (GaloisRep.genericEtalePointsEquiv rho).symm_apply_apply _
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+theorem GaloisRep.genericEtaleZeroPoints_symm
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) (q : ℚ →ₐ[ℚ] AlgebraicClosure ℚ) :
+    (GaloisRep.genericEtalePointsEquiv rho).symm
+        (GaloisRep.genericEtaleZeroPoints rho q) = 0 := by
+  exact (GaloisRep.genericEtalePointsEquiv rho).symm_apply_apply 0
+
+set_option backward.isDefEq.respectTransparency false in
+@[simp]
+theorem GaloisRep.genericEtaleNegPoints_symm
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W)
+    (q : GaloisRep.GenericEtaleAlgebra rho →ₐ[ℚ] AlgebraicClosure ℚ) :
+    (GaloisRep.genericEtalePointsEquiv rho).symm
+        (GaloisRep.genericEtaleNegPoints rho q) =
+      - (GaloisRep.genericEtalePointsEquiv rho).symm q := by
+  exact (GaloisRep.genericEtalePointsEquiv rho).symm_apply_apply _
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The counit obtained from the zero geometric point is a right counit for addition. -/
+theorem GaloisRep.genericEtale_rTensor_counit
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    (Algebra.TensorProduct.map (GaloisRep.genericEtaleCounit rho)
+      (.id ℚ (GaloisRep.GenericEtaleAlgebra rho))).comp
+        (GaloisRep.genericEtaleComul rho) =
+      (Algebra.TensorProduct.lid ℚ
+        (GaloisRep.GenericEtaleAlgebra rho)).symm.toAlgHom := by
+  let E := GaloisRep.GenericEtaleAlgebra rho
+  letI : Algebra.Etale ℚ E := GaloisRep.genericEtaleAlgebra_isEtale rho
+  letI : Algebra.Etale ℚ (ℚ ⊗[ℚ] E) := Algebra.Etale.of_equiv
+    (Algebra.TensorProduct.lid ℚ E).symm
+  apply InfiniteGalois.algHom_ext_of_comp_eq ℚ (AlgebraicClosure ℚ) E
+  intro q
+  rw [← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleComul]
+  apply (GaloisRep.genericEtalePointsEquiv rho).symm.injective
+  rw [GaloisRep.genericEtaleAddPoints_symm]
+  have h_left :
+      ((q.comp (Algebra.TensorProduct.map (GaloisRep.genericEtaleCounit rho)
+        (.id ℚ E))).comp Algebra.TensorProduct.includeLeft) =
+        GaloisRep.genericEtaleZeroPoints rho
+          (q.comp Algebra.TensorProduct.includeLeft) := by
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.map_comp_includeLeft,
+      ← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleCounit]
+  have h_right :
+      ((q.comp (Algebra.TensorProduct.map (GaloisRep.genericEtaleCounit rho)
+        (.id ℚ E))).comp Algebra.TensorProduct.includeRight) =
+        q.comp (Algebra.TensorProduct.lid ℚ E).symm.toAlgHom := by
+    ext x
+    simp only [AlgHom.comp_apply, Algebra.TensorProduct.includeRight_apply,
+      Algebra.TensorProduct.map_tmul, map_one]
+    change q (1 ⊗ₜ[ℚ] x) = q ((Algebra.TensorProduct.lid ℚ E).symm x)
+    rw [Algebra.TensorProduct.lid_symm_apply]
+  rw [h_left, h_right, GaloisRep.genericEtaleZeroPoints_symm, zero_add]
+
+set_option backward.isDefEq.respectTransparency false in
+/-- The counit obtained from the zero geometric point is a left counit for addition. -/
+theorem GaloisRep.genericEtale_lTensor_counit
+    {A W : Type} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [AddCommGroup W] [Module A W] [Finite W]
+    (rho : GaloisRep ℚ A W) :
+    (Algebra.TensorProduct.map (.id ℚ (GaloisRep.GenericEtaleAlgebra rho))
+      (GaloisRep.genericEtaleCounit rho)).comp
+        (GaloisRep.genericEtaleComul rho) =
+      (Algebra.TensorProduct.rid ℚ ℚ
+        (GaloisRep.GenericEtaleAlgebra rho)).symm.toAlgHom := by
+  let E := GaloisRep.GenericEtaleAlgebra rho
+  letI : Algebra.Etale ℚ E := GaloisRep.genericEtaleAlgebra_isEtale rho
+  letI : Algebra.Etale ℚ (E ⊗[ℚ] ℚ) := Algebra.Etale.of_equiv
+    (Algebra.TensorProduct.rid ℚ ℚ E).symm
+  apply InfiniteGalois.algHom_ext_of_comp_eq ℚ (AlgebraicClosure ℚ) E
+  intro q
+  rw [← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleComul]
+  apply (GaloisRep.genericEtalePointsEquiv rho).symm.injective
+  rw [GaloisRep.genericEtaleAddPoints_symm]
+  have h_left :
+      ((q.comp (Algebra.TensorProduct.map (.id ℚ E)
+        (GaloisRep.genericEtaleCounit rho))).comp
+          Algebra.TensorProduct.includeLeft) =
+        q.comp (Algebra.TensorProduct.rid ℚ ℚ E).symm.toAlgHom := by
+    ext x
+    simp only [AlgHom.comp_apply, Algebra.TensorProduct.includeLeft_apply,
+      Algebra.TensorProduct.map_tmul, map_one]
+    change q (x ⊗ₜ[ℚ] 1) = q ((Algebra.TensorProduct.rid ℚ ℚ E).symm x)
+    rw [Algebra.TensorProduct.rid_symm_apply]
+  have h_right :
+      ((q.comp (Algebra.TensorProduct.map (.id ℚ E)
+        (GaloisRep.genericEtaleCounit rho))).comp
+          Algebra.TensorProduct.includeRight) =
+        GaloisRep.genericEtaleZeroPoints rho
+          (q.comp Algebra.TensorProduct.includeRight) := by
+    rw [AlgHom.comp_assoc, Algebra.TensorProduct.map_comp_includeRight,
+      ← AlgHom.comp_assoc, GaloisRep.comp_genericEtaleCounit]
+  rw [h_left, h_right, GaloisRep.genericEtaleZeroPoints_symm, add_zero]
+
 /-- The generic-fiber conditions satisfied by an object of Schoof's `(2, 3)` category.
 
 The last field states tameness in the finite Galois extension cut out by the representation:
