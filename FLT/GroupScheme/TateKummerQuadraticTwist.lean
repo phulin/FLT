@@ -24,7 +24,7 @@ is the coordinate algebra of the quadratic twist.
 
 open scoped TensorProduct
 
-universe u
+universe u v
 
 namespace HopfAlgebra
 
@@ -818,6 +818,44 @@ lemma baseChangeEquiv_apply (h2 : IsUnit (2 : R))
     (z : QuadraticDescent.Algebra R t n ⊗[R] fixedSubalgebra R N u t n) :
     baseChangeEquiv R N u t n h2 hdisc z = baseChangeToCover R N u t n z :=
   rfl
+
+section ScalarExtendedCover
+
+variable (S : Type v) [CommRing S] [Algebra R S]
+  [Algebra (QuadraticDescent.Algebra R t n) S]
+  [IsScalarTower R (QuadraticDescent.Algebra R t n) S]
+
+/-- After any further scalar extension of the quadratic cover, the descended coordinate
+algebra becomes the ordinary Tate--Kummer coordinate algebra. -/
+noncomputable def scalarExtendedCoverEquiv
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    S ⊗[R] fixedSubalgebra R N u t n ≃ₐ[S]
+      S ⊗[R] TateKummer.CoordinateAlgebra (R := R) N u :=
+  (Algebra.TensorProduct.cancelBaseChange R
+    (QuadraticDescent.Algebra R t n) S S
+      (fixedSubalgebra R N u t n)).symm.trans
+    ((Algebra.TensorProduct.congr (AlgEquiv.refl : S ≃ₐ[S] S)
+      (baseChangeEquiv R N u t n h2 hdisc)).trans
+        (Algebra.TensorProduct.cancelBaseChange R
+          (QuadraticDescent.Algebra R t n) S S
+            (TateKummer.CoordinateAlgebra (R := R) N u)))
+
+@[simp]
+lemma scalarExtendedCoverEquiv_tmul
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (s : S) (z : fixedSubalgebra R N u t n) :
+    scalarExtendedCoverEquiv R N u t n S h2 hdisc (s ⊗ₜ[R] z) =
+      (Algebra.TensorProduct.cancelBaseChange R
+        (QuadraticDescent.Algebra R t n) S S
+          (TateKummer.CoordinateAlgebra (R := R) N u))
+        (s ⊗ₜ[QuadraticDescent.Algebra R t n]
+          baseChangeEquiv R N u t n h2 hdisc
+            ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] z)) := by
+  rfl
+
+end ScalarExtendedCover
 
 /-! ## Tensor-square base change -/
 
