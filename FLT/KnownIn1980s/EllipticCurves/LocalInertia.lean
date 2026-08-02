@@ -90,4 +90,53 @@ theorem localInertia_fixed_of_pow_eq_one
     _ = z0 := by simpa using hu
   exact congrArg Subtype.val hfix
 
+/-- Local inertia fixes an `n`-th root of a unit of the base valuation ring when `n` is
+nonzero in the residue field.
+
+The root is integral and a unit.  Its conjugate has the same `n`-th power and the same
+reduction, so tame Hensel uniqueness applies.  This is the unit-Kummer step in the standard
+proof that the Frey representation is unramified at its bad odd primes. -/
+theorem localInertia_fixed_of_pow_eq_algebraMap_unit
+    (v : HeightOneSpectrum (𝓞 K)) (n : ℕ)
+    [NeZero (n : IsLocalRing.ResidueField (v.adicCompletionIntegers K))]
+    (σ : Γ(v.adicCompletion K)) (hσ : σ ∈ localInertiaGroup v)
+    (u : (v.adicCompletionIntegers K)ˣ)
+    (z : AlgebraicClosure (v.adicCompletion K))
+    (hz : z ^ n = algebraMap (v.adicCompletionIntegers K)
+      (AlgebraicClosure (v.adicCompletion K)) (u : v.adicCompletionIntegers K)) :
+    σ z = z := by
+  let k := v.adicCompletion K
+  let R := v.adicCompletionIntegers K
+  let Ω := AlgebraicClosure k
+  let S := IntegralClosure R Ω
+  have hn0 : n ≠ 0 := by
+    intro hn
+    apply NeZero.ne (n : IsLocalRing.ResidueField R)
+    simp [hn]
+  have hzint : _root_.IsIntegral R z :=
+    IsIntegral.of_pow (Nat.pos_of_ne_zero hn0) (hz ▸ isIntegral_algebraMap)
+  let z0 : S := ⟨z, hzint⟩
+  have hz0pow : z0 ^ n = algebraMap R S (u : R) := by
+    apply Subtype.ext
+    change z ^ n = algebraMap R Ω (u : R)
+    exact hz
+  have hz0unit : IsUnit z0 := (isUnit_pow_iff hn0).mp <| by
+    rw [hz0pow]
+    exact u.isUnit.map (algebraMap R S)
+  have hσzpow : (σ • z0) ^ n = z0 ^ n := by
+    apply Subtype.ext
+    change (σ z) ^ n = z ^ n
+    rw [← map_pow, hz]
+    change σ (algebraMap R Ω (u : R)) = algebraMap R Ω (u : R)
+    rw [IsScalarTower.algebraMap_apply R k Ω, σ.commutes]
+  have hnR : IsUnit (n : R) := IsLocalRing.notMem_maximalIdeal.mp fun hn ↦ by
+    apply NeZero.ne (n : IsLocalRing.ResidueField R)
+    simpa using (IsLocalRing.residue_eq_zero_iff (n : R)).mpr hn
+  have hnS : IsUnit (n : S) := by
+    simpa only [map_natCast] using hnR.map (algebraMap R S)
+  have hfix : σ • z0 = z0 :=
+    IsLocalRing.eq_of_pow_eq_pow_of_isUnit_of_sub_mem_maximalIdeal
+      hnS hz0unit hσzpow (hσ z0)
+  exact congrArg Subtype.val hfix
+
 end IsDedekindDomain.HeightOneSpectrum
