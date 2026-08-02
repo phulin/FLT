@@ -9,6 +9,7 @@ public import Mathlib.RingTheory.AdjoinRoot
 public import Mathlib.RingTheory.Flat.Basic
 public import Mathlib.RingTheory.Finiteness.Basic
 public import Mathlib.LinearAlgebra.StdBasis
+public import Mathlib.RingTheory.TensorProduct.Pi
 
 /-!
 # The component algebras of the finite-flat Tate--Kummer model
@@ -177,5 +178,77 @@ lemma componentMulAlgHom_root (N : ℕ) [NeZero N] (u : Rˣ) (i j : Fin N) :
   by
     unfold componentMulAlgHom
     apply AdjoinRoot.liftAlgHom_root
+
+/-! ## The global comultiplication and counit maps -/
+
+abbrev Components (N : ℕ) (u : Rˣ) (i : Fin N) :=
+  Component R N i.1 u
+
+/-- Decompose the tensor product of the two finite products into the product of all
+componentwise tensor products. The outer index is the right component. -/
+noncomputable def tensorCoordinateEquiv (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u ≃ₐ[R]
+      ∀ j : Fin N, ∀ i : Fin N,
+        (Component R N i.1 u) ⊗[R] (Component R N j.1 u) :=
+  (Algebra.TensorProduct.piRight R R
+      (CoordinateAlgebra (R := R) N u) (Components (R := R) N u)).trans
+    (AlgEquiv.piCongrRight fun j =>
+      (Algebra.TensorProduct.comm R
+        (CoordinateAlgebra (R := R) N u) (Component R N j.1 u)).trans
+        ((Algebra.TensorProduct.piRight R R
+          (Component R N j.1 u) (Components (R := R) N u)).trans
+            (AlgEquiv.piCongrRight fun i =>
+              Algebra.TensorProduct.comm R
+                (Component R N j.1 u) (Component R N i.1 u))))
+
+/-- The coordinate map for multiplication, after decomposing the target into pairs of
+components. -/
+noncomputable def comulCoordinates (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u →ₐ[R]
+      ∀ j : Fin N, ∀ i : Fin N,
+        (Component R N i.1 u) ⊗[R] (Component R N j.1 u) :=
+  AlgHom.pi fun j =>
+    AlgHom.pi fun i =>
+      (componentMulAlgHom N u i j).comp
+        (Pi.evalAlgHom R (Components (R := R) N u) (addIndex N i j))
+
+/-- Comultiplication on the coordinate algebra of the Tate--Kummer model. -/
+noncomputable def comulAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u →ₐ[R]
+      CoordinateAlgebra (R := R) N u ⊗[R] CoordinateAlgebra (R := R) N u :=
+  (tensorCoordinateEquiv N u).symm.toAlgHom.comp (comulCoordinates N u)
+
+@[simp]
+lemma tensorCoordinateEquiv_comulAlgHom_apply
+    (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) (j i : Fin N) :
+    tensorCoordinateEquiv N u (comulAlgHom N u f) j i =
+      componentMulAlgHom N u i j (f (addIndex N i j)) := by
+  change tensorCoordinateEquiv N u
+      ((tensorCoordinateEquiv N u).symm (comulCoordinates N u f)) j i = _
+  rw [AlgEquiv.apply_symm_apply]
+  rfl
+
+/-- Evaluation at the identity point on component zero. -/
+noncomputable def identityComponentAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
+    Component R N (0 : Fin N).1 u →ₐ[R] R :=
+  AdjoinRoot.liftAlgHom
+    (componentPolynomial R N (0 : Fin N).1 u)
+    (.id R R) 1 (by
+      rw [show componentPolynomial R N (0 : Fin N).1 u =
+        X ^ N - C ((u : R) ^ (0 : Fin N).1) from rfl]
+      simp)
+
+/-- Counit on the coordinate algebra: evaluate on the identity point. -/
+noncomputable def counitAlgHom (N : ℕ) [NeZero N] (u : Rˣ) :
+    CoordinateAlgebra (R := R) N u →ₐ[R] R :=
+  (identityComponentAlgHom N u).comp
+    (Pi.evalAlgHom R (Components (R := R) N u) 0)
+
+@[simp]
+lemma counitAlgHom_apply (N : ℕ) [NeZero N] (u : Rˣ)
+    (f : CoordinateAlgebra (R := R) N u) :
+    counitAlgHom N u f = identityComponentAlgHom N u (f 0) :=
+  rfl
 
 end TateKummer
