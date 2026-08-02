@@ -580,6 +580,30 @@ lemma quadraticTwistTateTorsionLinearEquiv_symm_nTorsionMap
   · simp [hχ]
   · simp [hχ]
 
+/-- The Tate component quotient of a multiplicative curve transforms under Galois by the
+quadratic character of any quadratic extension over which the curve becomes split
+multiplicative. -/
+lemma quadraticTwistTateComponentLinearMap_nTorsionMap
+    (N : ℕ) (σ : Ω ≃ₐ[k] Ω)
+    (T : AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :
+    quadraticTwistTateComponentLinearMap (L := L) Ω E₀ C N
+        (E₀.nTorsionMap N σ.toAlgHom T) =
+      (quadraticCharacter k L Ω σ : ℤ) •
+        quadraticTwistTateComponentLinearMap (L := L) Ω E₀ C N T := by
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (((C • E₀.quadraticTwist L))⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  letI : Module (ZMod N)
+      (AddSubgroup.torsionBy (E₀⁄Ω).Point (N : ℤ)) :=
+    AddSubgroup.torsionBy.zmodModule
+  change (C • E₀.quadraticTwist L).tateComponentLinearMap Ω N
+      ((quadraticTwistTateTorsionLinearEquiv (L := L) Ω E₀ C N).symm
+        (E₀.nTorsionMap N σ.toAlgHom T)) = _
+  rw [quadraticTwistTateTorsionLinearEquiv_symm_nTorsionMap]
+  rw [map_zsmul]
+  rw [(C • E₀.quadraticTwist L).tateComponentLinearMap_nTorsionMap]
+  rfl
+
 end QuadraticTwist
 
 end WeierstrassCurve
