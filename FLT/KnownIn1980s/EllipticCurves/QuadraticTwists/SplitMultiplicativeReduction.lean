@@ -61,6 +61,107 @@ models (`WeierstrassCurve.HasSplitMultiplicativeReduction.of_isMinimal_smul`) �
 
 @[expose] public section
 
+open Polynomial IsLocalRing in
+/-- In residue characteristic `2`, a quadratic with unit leading and linear coefficients has
+square discriminant if it splits after reduction.  A reduced root is simple because the linear
+coefficient is a unit, so Hensel lifting gives an actual root `x`; the identity
+`B² - 4Aq = (2Ax + B)²` then proves the claim. -/
+lemma isSquare_discrim_of_splits_residue_of_two_eq_zero
+    {R : Type*} [CommRing R] [IsLocalRing R]
+    [HenselianRing R (maximalIdeal R)] (A B q : R)
+    (hA : IsUnit A) (hB : IsUnit B) (h2 : residue R (2 : R) = 0)
+    (hs : ((C A * X ^ 2 + C B * X + C q).map (residue R)).Splits) :
+    IsSquare (B ^ 2 - 4 * A * q) := by
+  let Au : Rˣ := hA.unit
+  have hAu : (Au : R) = A := hA.unit_spec
+  let g : R[X] := C A * X ^ 2 + C B * X + C q
+  let f : R[X] := X ^ 2 + C ((↑(Au⁻¹) : R) * B) * X + C ((↑(Au⁻¹) : R) * q)
+  have hf : f.Monic := by
+    dsimp only [f]
+    rw [show X ^ 2 + C ((↑(Au⁻¹) : R) * B) * X + C ((↑(Au⁻¹) : R) * q) =
+      X ^ 2 + (C ((↑(Au⁻¹) : R) * B) * X + C ((↑(Au⁻¹) : R) * q)) by ring]
+    apply monic_X_pow_add
+    compute_degree!
+  have hAres : residue R A ≠ 0 := (residue_ne_zero_iff_isUnit A).mpr hA
+  have hgnat : (g.map (residue R)).natDegree = 2 := by
+    have hglead : g.leadingCoeff = A := by
+      dsimp only [g]
+      exact leadingCoeff_quadratic hA.ne_zero
+    rw [natDegree_map_of_leadingCoeff_ne_zero (residue R) (by rwa [hglead])]
+    dsimp only [g]
+    exact natDegree_quadratic hA.ne_zero
+  have hg0 : g.map (residue R) ≠ 0 := by
+    intro h
+    rw [h, natDegree_zero] at hgnat
+    norm_num at hgnat
+  obtain ⟨z, hz⟩ := hs.exists_eval_eq_zero (by
+    rw [degree_eq_natDegree hg0, hgnat]
+    norm_num)
+  obtain ⟨z₀, hz₀⟩ := residue_surjective z
+  have hfroot : f.eval z₀ ∈ maximalIdeal R := by
+    rw [← residue_eq_zero_iff]
+    have hz' : (g.map (residue R)).eval z = 0 := hz
+    simp only [g, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_C,
+      Polynomial.map_X, eval_add, eval_mul, eval_pow, eval_C, eval_X] at hz'
+    simp only [f, eval_add, eval_mul, eval_pow, eval_X, eval_C, map_add, map_mul, map_pow,
+      hz₀]
+    rw [← hAu] at hz'
+    have hAuRes0 : residue R (Au : R) ≠ 0 :=
+      (residue_ne_zero_iff_isUnit (Au : R)).mpr Au.isUnit
+    have hAuResInv : residue R (Au : R) * residue R (↑(Au⁻¹) : R) = 1 := by
+      simpa only [map_mul, map_one] using congrArg (residue R) Au.mul_inv
+    have hBResCancel : residue R (Au : R) *
+        (residue R (↑(Au⁻¹) : R) * residue R B * z) = residue R B * z := by
+      rw [show residue R (↑(Au⁻¹) : R) * residue R B * z =
+          residue R (↑(Au⁻¹) : R) * (residue R B * z) by ring,
+        ← mul_assoc (residue R (Au : R)) (residue R (↑(Au⁻¹) : R)),
+        hAuResInv, one_mul]
+    apply mul_left_cancel₀ hAuRes0
+    rw [mul_zero, mul_add, mul_add]
+    calc
+      residue R (Au : R) * z ^ 2
+            + residue R (Au : R) * (residue R (↑(Au⁻¹) : R) * residue R B * z)
+            + residue R (Au : R) * (residue R (↑(Au⁻¹) : R) * residue R q)
+          = residue R (Au : R) * z ^ 2 + residue R B * z + residue R q := by
+              rw [hBResCancel,
+                ← mul_assoc (residue R (Au : R)) (residue R (↑(Au⁻¹) : R)),
+                hAuResInv, one_mul]
+      _ = 0 := hz'
+  have hderiv : IsUnit (Ideal.Quotient.mk (maximalIdeal R) (f.derivative.eval z₀)) := by
+    apply IsUnit.map
+    rw [← residue_ne_zero_iff_isUnit]
+    have hBres : residue R B ≠ 0 := (residue_ne_zero_iff_isUnit B).mpr hB
+    have h2' : (2 : ResidueField R) = 0 := by simpa only [map_ofNat] using h2
+    have hdeval : f.derivative.eval z₀ = 2 * z₀ + (↑(Au⁻¹) : R) * B := by
+      dsimp only [f]
+      simp only [derivative_add, derivative_pow, derivative_X, derivative_mul, derivative_C,
+        Nat.cast_ofNat, C_0, zero_mul, add_zero, eval_add, eval_mul, eval_C, eval_X,
+        Nat.reduceSub, pow_one, eval_zero, zero_add, eval_ofNat, eval_one, mul_one]
+    rw [hdeval, map_add, map_mul, map_ofNat, h2', zero_mul, zero_add, map_mul]
+    exact mul_ne_zero
+      ((residue_ne_zero_iff_isUnit (↑(Au⁻¹) : R)).mpr (Au⁻¹).isUnit) hBres
+  obtain ⟨x, hx, -⟩ := HenselianRing.is_henselian f hf z₀ hfroot hderiv
+  have hfx : f.eval x = 0 := by rwa [IsRoot.def] at hx
+  refine ⟨2 * A * x + B, ?_⟩
+  have hrel : A * x ^ 2 + B * x + q = 0 := by
+    simp only [f, eval_add, eval_mul, eval_pow, eval_X, eval_C] at hfx
+    have hcancel : (Au : R) * (↑(Au⁻¹) : R) = 1 := by
+      exact Au.mul_inv
+    have hBcancel : (Au : R) * ((↑(Au⁻¹) : R) * B * x) = B * x := by
+      rw [show (↑(Au⁻¹) : R) * B * x = (↑(Au⁻¹) : R) * (B * x) by ring,
+        ← mul_assoc (Au : R) (↑(Au⁻¹) : R), hcancel, one_mul]
+    have hqcancel : (Au : R) * ((↑(Au⁻¹) : R) * q) = q := by
+      rw [← mul_assoc (Au : R) (↑(Au⁻¹) : R), hcancel, one_mul]
+    rw [← hAu]
+    calc
+      (Au : R) * x ^ 2 + B * x + q
+          = (Au : R) * (x ^ 2 + (↑(Au⁻¹) : R) * B * x
+              + (↑(Au⁻¹) : R) * q) := by rw [mul_add, mul_add, hBcancel, hqcancel]
+      _ = 0 := by rw [hfx, mul_zero]
+  have hq : q = -(A * x ^ 2 + B * x) := by linear_combination hrel
+  rw [hq]
+  ring
+
 namespace WeierstrassCurve
 
 universe u
