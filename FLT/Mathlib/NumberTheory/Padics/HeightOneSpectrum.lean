@@ -7,6 +7,8 @@ module
 
 public import Mathlib.NumberTheory.Padics.HeightOneSpectrum
 public import Mathlib.NumberTheory.NumberField.Completion.FinitePlace
+public import FLT.Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas
+public import Mathlib.RingTheory.Valuation.Discrete.IsDiscreteValuationRing
 import FLT.Mathlib.RingTheory.DedekindDomain.AdicValuation
 
 /-!
@@ -95,6 +97,22 @@ theorem valuation_apply_eq_padicValuation (v : HeightOneSpectrum R) (x : ℚ) :
   simp [IsFractionRing.mk'_eq_div, map_div₀, valuation_apply_coe_eq_padicValuation,
     IsIntegralClosure.intEquiv, RingOfIntegers.equiv]
 
+/-- The height-one place of `ℚ` constructed from a prime natural number is sent back to that
+prime by `primesEquiv`. -/
+lemma primesEquiv_toHeightOneSpectrumRingOfIntegersRat {q : ℕ} (hq : q.Prime) :
+    primesEquiv hq.toHeightOneSpectrumRingOfIntegersRat = (⟨q, hq⟩ : Nat.Primes) := by
+  let p : Nat.Primes := ⟨q, hq⟩
+  change primesEquiv hq.toHeightOneSpectrumRingOfIntegersRat = p
+  rw [← (primesEquiv (R := 𝓞 ℚ)).apply_symm_apply p]
+  congr 1
+  ext x
+  change Rat.ringOfIntegersEquiv x ∈ Ideal.span {(q : ℤ)} ↔
+    x ∈ (Ideal.span {(q : ℤ)}).map (Rat.IsIntegralClosure.intEquiv (𝓞 ℚ)).symm
+  rw [← Rat.IsIntegralClosure.intEquiv_apply_eq_ringOfIntegersEquiv]
+  exact Ideal.symm_apply_mem_of_equiv_iff
+    (I := Ideal.span {(q : ℤ)})
+    (f := (Rat.IsIntegralClosure.intEquiv (𝓞 ℚ)).symm) (y := x)
+
 theorem adicCompletion.padicEquiv_cast
     (v : IsDedekindDomain.HeightOneSpectrum R) (x : WithVal (v.valuation ℚ)) :
     (padicEquiv v) x = Padic.withValRingEquiv (mapEquiv (withValEquiv v) x) := by
@@ -135,3 +153,37 @@ lemma adicCompletion.padicEquiv_norm_eq
     congr 1
 
 end Rat.HeightOneSpectrum
+
+namespace IsDedekindDomain.HeightOneSpectrum.adicCompletion
+
+variable {A K : Type*} [CommRing A] [IsDedekindDomain A] [Field K] [Algebra A K]
+  [IsFractionRing A K]
+
+/-- The adic valuation of an integral element in a completed fraction field is one when its
+canonical completed valuation is one. -/
+lemma adicValuation_eq_one_of_valued_eq_one (v : HeightOneSpectrum A)
+    (x : v.adicCompletionIntegers K) (hx : Valued.v x.1 = 1) :
+    (IsDiscreteValuationRing.maximalIdeal (v.adicCompletionIntegers K)).valuation
+      (v.adicCompletion K) (algebraMap (v.adicCompletionIntegers K)
+        (v.adicCompletion K) x) = 1 := by
+  rw [HeightOneSpectrum.valuation_eq_one_iff_notMem]
+  intro hmem
+  apply mem_nonunits_iff.mp ((IsLocalRing.mem_maximalIdeal _).mp hmem)
+  rw [HeightOneSpectrum.adicCompletionIntegers.isUnit_iff_valued_eq_one]
+  exact hx
+
+/-- The adic valuation of an integral element in a completed fraction field is less than one
+when its canonical completed valuation is less than one. -/
+lemma adicValuation_lt_one_of_valued_lt_one (v : HeightOneSpectrum A)
+    (x : v.adicCompletionIntegers K) (hx : Valued.v x.1 < 1) :
+    (IsDiscreteValuationRing.maximalIdeal (v.adicCompletionIntegers K)).valuation
+      (v.adicCompletion K) (algebraMap (v.adicCompletionIntegers K)
+        (v.adicCompletion K) x) < 1 := by
+  rw [HeightOneSpectrum.valuation_lt_one_iff_mem]
+  apply (IsLocalRing.mem_maximalIdeal _).mpr
+  apply mem_nonunits_iff.mpr
+  intro hunit
+  have heq := HeightOneSpectrum.adicCompletionIntegers.isUnit_iff_valued_eq_one.mp hunit
+  exact hx.ne heq
+
+end IsDedekindDomain.HeightOneSpectrum.adicCompletion

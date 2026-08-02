@@ -8,6 +8,7 @@ module
 public import FLT.FreyCurve.Basic
 public import FLT.Mathlib.AlgebraicGeometry.EllipticCurve.Reduction
 public import FLT.Mathlib.NumberTheory.Padics.PadicNumbers
+public import FLT.Mathlib.NumberTheory.Padics.HeightOneSpectrum
 
 /-!
 # Reduction of the Frey curve
@@ -105,5 +106,92 @@ theorem hasMultiplicativeReduction_of_dvd_abc (P : FreyPackage) {q : ℕ}
   let _ : IsMinimal (Rat.padicValuation q).valuationSubring P.freyCurve :=
     isMinimal_of_valuation_c₄_eq_one _ _ hc₄
   exact { badReduction := hΔ, multiplicativeReduction := hc₄ }
+
+/-! ### Reduction over completed rational local fields -/
+
+/-- The integral Frey equation gives an integral model after base change to the completion of
+`ℚ` at a rational prime. -/
+theorem freyCurve_baseChange_isIntegral (P : FreyPackage) {q : ℕ} (hq : q.Prime) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    IsIntegral (v.adicCompletionIntegers ℚ)
+      (P.freyCurve.baseChange (v.adicCompletion ℚ)) := by
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  refine ⟨P.freyCurveInt⁄(v.adicCompletionIntegers ℚ), ?_⟩
+  rw [← FreyCurve.map P]
+  exact (P.freyCurveInt.map_baseChange
+    (IsScalarTower.toAlgHom ℤ (v.adicCompletionIntegers ℚ) (v.adicCompletion ℚ))).symm
+
+/-- At an odd prime not dividing `abc`, the Frey curve has good reduction over the completed
+local field. -/
+theorem hasGoodReduction_at_completion_of_not_dvd_abc (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqgood : ¬(q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    (P.freyCurve.baseChange (v.adicCompletion ℚ)).HasGoodReduction
+      (v.adicCompletionIntegers ℚ) := by
+  let _ : Fact q.Prime := ⟨hq⟩
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.IsIntegral R := freyCurve_baseChange_isIntegral P hq
+  have hΔcanonical : Valued.v E.Δ = 1 := by
+    rw [show E.Δ = algebraMap ℚ K P.freyCurve.Δ from P.freyCurve.map_Δ _]
+    rw [IsDedekindDomain.HeightOneSpectrum.algebraMap_adicCompletion,
+      Function.comp_apply]
+    rw [IsDedekindDomain.HeightOneSpectrum.valuedAdicCompletion_eq_valuation',
+      Rat.HeightOneSpectrum.valuation_apply_eq_padicValuation,
+      Rat.HeightOneSpectrum.primesEquiv_toHeightOneSpectrumRingOfIntegersRat hq]
+    exact padicValuation_Δ_eq_one_of_not_dvd P hq hqodd hqgood
+  have hΔadic :
+      (IsDiscreteValuationRing.maximalIdeal R).valuation K E.Δ = 1 := by
+    rw [← integralModel_Δ_eq R E] at hΔcanonical ⊢
+    apply IsDedekindDomain.HeightOneSpectrum.adicCompletion.adicValuation_eq_one_of_valued_eq_one
+    exact hΔcanonical
+  let _ : E.IsMinimal R := isMinimal_of_valuation_Δ_eq_one R E hΔadic
+  exact { goodReduction := hΔadic }
+
+/-- At an odd prime dividing `abc`, the Frey curve has multiplicative reduction over the
+completed local field. -/
+theorem hasMultiplicativeReduction_at_completion_of_dvd_abc (P : FreyPackage) {q : ℕ}
+    (hq : q.Prime) (hqodd : 2 < q) (hqbad : (q : ℤ) ∣ P.a * P.b * P.c) :
+    let v := hq.toHeightOneSpectrumRingOfIntegersRat
+    (P.freyCurve.baseChange (v.adicCompletion ℚ)).HasMultiplicativeReduction
+      (v.adicCompletionIntegers ℚ) := by
+  let _ : Fact q.Prime := ⟨hq⟩
+  let v := hq.toHeightOneSpectrumRingOfIntegersRat
+  let K := v.adicCompletion ℚ
+  let R := v.adicCompletionIntegers ℚ
+  let E := P.freyCurve.baseChange K
+  let _ : E.IsElliptic := inferInstance
+  let _ : E.IsIntegral R := freyCurve_baseChange_isIntegral P hq
+  have hc₄canonical : Valued.v E.c₄ = 1 := by
+    rw [show E.c₄ = algebraMap ℚ K P.freyCurve.c₄ from P.freyCurve.map_c₄ _]
+    rw [IsDedekindDomain.HeightOneSpectrum.algebraMap_adicCompletion,
+      Function.comp_apply]
+    rw [IsDedekindDomain.HeightOneSpectrum.valuedAdicCompletion_eq_valuation',
+      Rat.HeightOneSpectrum.valuation_apply_eq_padicValuation,
+      Rat.HeightOneSpectrum.primesEquiv_toHeightOneSpectrumRingOfIntegersRat hq]
+    exact padicValuation_c₄_eq_one_of_dvd P hq hqbad
+  have hΔcanonical : Valued.v E.Δ < 1 := by
+    rw [show E.Δ = algebraMap ℚ K P.freyCurve.Δ from P.freyCurve.map_Δ _]
+    rw [IsDedekindDomain.HeightOneSpectrum.algebraMap_adicCompletion,
+      Function.comp_apply]
+    rw [IsDedekindDomain.HeightOneSpectrum.valuedAdicCompletion_eq_valuation',
+      Rat.HeightOneSpectrum.valuation_apply_eq_padicValuation,
+      Rat.HeightOneSpectrum.primesEquiv_toHeightOneSpectrumRingOfIntegersRat hq]
+    exact padicValuation_Δ_lt_one_of_dvd P hq hqodd hqbad
+  have hc₄adic :
+      (IsDiscreteValuationRing.maximalIdeal R).valuation K E.c₄ = 1 := by
+    rw [← integralModel_c₄_eq R E] at hc₄canonical ⊢
+    apply IsDedekindDomain.HeightOneSpectrum.adicCompletion.adicValuation_eq_one_of_valued_eq_one
+    exact hc₄canonical
+  have hΔadic :
+      (IsDiscreteValuationRing.maximalIdeal R).valuation K E.Δ < 1 := by
+    rw [← integralModel_Δ_eq R E] at hΔcanonical ⊢
+    apply IsDedekindDomain.HeightOneSpectrum.adicCompletion.adicValuation_lt_one_of_valued_lt_one
+    exact hΔcanonical
+  let _ : E.IsMinimal R := isMinimal_of_valuation_c₄_eq_one R E hc₄adic
+  exact { badReduction := hΔadic, multiplicativeReduction := hc₄adic }
 
 end FreyCurve
