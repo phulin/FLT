@@ -188,6 +188,21 @@ lemma AlgebraicClosure.map_algebraMap {K L : Type*} [Field K] [Field L] (f : K �
     letI := f.toAlgebra
     (IsAlgClosed.lift : AlgebraicClosure K →ₐ[K] AlgebraicClosure L).commutes _
 
+/-- The chosen map of algebraic closures attached to an algebra extension, bundled as an
+algebra homomorphism over the source field. -/
+noncomputable def AlgebraicClosure.mapAlgHom
+    (K L : Type*) [Field K] [Field L] [Algebra K L] :
+    AlgebraicClosure K →ₐ[K] AlgebraicClosure L :=
+  { toRingHom := AlgebraicClosure.map (algebraMap K L)
+    commutes' := fun x => by
+      calc
+        AlgebraicClosure.map (algebraMap K L)
+            (algebraMap K (AlgebraicClosure K) x) =
+            algebraMap L (AlgebraicClosure L) (algebraMap K L x) :=
+          AlgebraicClosure.map_algebraMap (algebraMap K L) x
+        _ = algebraMap K (AlgebraicClosure L) x :=
+          (IsScalarTower.algebraMap_apply K L (AlgebraicClosure L) x).symm }
+
 nonrec
 lemma IsModuleTopology.continuous_det {A : Type*} [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] {M : Type*} [AddCommGroup M] [Module A M]
