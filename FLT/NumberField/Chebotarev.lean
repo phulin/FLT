@@ -8,8 +8,10 @@ module
 public import FLT.Deformations.RepresentationTheory.AbsoluteGaloisGroup
 public import FLT.Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas
 public import Mathlib.NumberTheory.Cyclotomic.CyclotomicCharacter
+public import CebotarevDensity.Main
 
 import FLT.DedekindDomain.AdicValuation
+import FLT.Mathlib.NumberTheory.Padics.HeightOneSpectrum
 import Mathlib.RingTheory.Ideal.Int
 import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 
@@ -212,6 +214,50 @@ noncomputable def rationalFrobeniusConjugates
   {g | ∃ (q : ℕ) (hq : q.Prime), 5 ≤ q ∧
     let w := hq.toHeightOneSpectrumRingOfIntegersRat
     w ∉ S ∧ (p : 𝓞 ℚ) ∉ w.asIdeal ∧ (3 : 𝓞 ℚ) ∉ w.asIdeal ∧ IsConj (Frob w) g}
+
+/-- An infinite set of prime ideals of `𝓞 ℚ` contains a nonzero prime outside the ideals
+underlying any prescribed finite set of rational places. -/
+lemma exists_heightOneSpectrum_not_mem_of_infinite
+    (S : Set (Ideal (𝓞 ℚ))) (hS : S.Infinite)
+    (hprime : ∀ 𝔭 ∈ S, 𝔭.IsPrime)
+    (T : Finset (HeightOneSpectrum (𝓞 ℚ))) :
+    ∃ w : HeightOneSpectrum (𝓞 ℚ), w ∉ T ∧ w.asIdeal ∈ S := by
+  classical
+  let U : Finset (Ideal (𝓞 ℚ)) := insert ⊥ (T.image fun w ↦ w.asIdeal)
+  have hnot : ¬S ⊆ (U : Set (Ideal (𝓞 ℚ))) := by
+    intro hsub
+    exact hS (U.finite_toSet.subset hsub)
+  obtain ⟨𝔭, h𝔭S, h𝔭U⟩ := Set.not_subset.mp hnot
+  have h𝔭ne : 𝔭 ≠ ⊥ := by
+    intro h𝔭
+    apply h𝔭U
+    exact Finset.mem_insert.mpr (.inl h𝔭)
+  let w : HeightOneSpectrum (𝓞 ℚ) :=
+    ⟨𝔭, hprime 𝔭 h𝔭S, h𝔭ne⟩
+  have hwT : w ∉ T := by
+    intro hw
+    apply h𝔭U
+    apply Finset.mem_insert.mpr
+    right
+    exact Finset.mem_image.mpr ⟨w, hw, rfl⟩
+  exact ⟨w, hwT, h𝔭S⟩
+
+/-- The rational-prime form of `exists_heightOneSpectrum_not_mem_of_infinite`. -/
+lemma exists_rationalPrime_not_mem_of_infinite
+    (S : Set (Ideal (𝓞 ℚ))) (hS : S.Infinite)
+    (hprime : ∀ 𝔭 ∈ S, 𝔭.IsPrime)
+    (T : Finset (HeightOneSpectrum (𝓞 ℚ))) :
+    ∃ (q : ℕ) (hq : q.Prime),
+      let w := hq.toHeightOneSpectrumRingOfIntegersRat
+      w ∉ T ∧ w.asIdeal ∈ S := by
+  obtain ⟨w, hwT, hwS⟩ :=
+    exists_heightOneSpectrum_not_mem_of_infinite S hS hprime T
+  let q : Nat.Primes := Rat.HeightOneSpectrum.primesEquiv w
+  have hwq : q.2.toHeightOneSpectrumRingOfIntegersRat = w := by
+    apply Rat.HeightOneSpectrum.primesEquiv.injective
+    rw [Rat.HeightOneSpectrum.primesEquiv_toHeightOneSpectrumRingOfIntegersRat]
+    rfl
+  exact ⟨q.1, q.2, by simpa only [hwq] using And.intro hwT hwS⟩
 
 /-- Weak Chebotarev for a finite normal subextension of `AlgebraicClosure ℚ`: outside any
 finite set of rational places, some arithmetic Frobenius has a conjugate agreeing with a
