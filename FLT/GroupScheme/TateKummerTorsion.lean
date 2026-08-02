@@ -393,6 +393,113 @@ lemma kummerPointToTorsion_map
 
 end QuotientTorsion
 
+section CoordinateTorsion
+
+variable (R : Type u) [CommRing R]
+variable (S : Type v) [Field S] [Algebra R S]
+
+/-- A point of the integral Tate--Kummer coordinate algebra, interpreted as quotient
+torsion. -/
+noncomputable def coordinatePointToTorsion
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (φ : CoordinateAlgebra (R := R) N u →ₐ[R] S) :
+    AddSubgroup.torsionBy (Additive (Sˣ ⧸ Subgroup.zpowers q)) (N : ℤ) :=
+  kummerPointToTorsion R S N u q a hq
+    (coordinateAlgHomUnitEquiv R S N u φ)
+
+/-- Convolution of integral coordinate-algebra points becomes addition of quotient
+torsion. -/
+lemma coordinatePointToTorsion_convMul
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (φ ψ : CoordinateAlgebra (R := R) N u →ₐ[R] S) :
+    coordinatePointToTorsion R S N u q a hq
+        (WithConv.toConv φ * WithConv.toConv ψ).ofConv =
+      coordinatePointToTorsion R S N u q a hq φ +
+        coordinatePointToTorsion R S N u q a hq ψ := by
+  rw [coordinatePointToTorsion, coordinateAlgHomUnitEquiv_convMul,
+    kummerPointToTorsion_mul]
+  rfl
+
+/-- The quotient-torsion interpretation of integral coordinate-algebra points as an
+additive homomorphism. -/
+noncomputable def coordinateToTorsionAddHom
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q) :
+    Additive (WithConv
+      (CoordinateAlgebra (R := R) N u →ₐ[R] S)) →+
+        AddSubgroup.torsionBy
+          (Additive (Sˣ ⧸ Subgroup.zpowers q)) (N : ℤ) where
+  toFun φ := coordinatePointToTorsion R S N u q a hq φ.toMul.ofConv
+  map_zero' := by
+    let φ₁ : CoordinateAlgebra (R := R) N u →ₐ[R] S :=
+      (1 : WithConv (CoordinateAlgebra (R := R) N u →ₐ[R] S)).ofConv
+    have h := coordinatePointToTorsion_convMul R S N u q a hq φ₁ φ₁
+    have hmul : (WithConv.toConv φ₁ * WithConv.toConv φ₁).ofConv = φ₁ := by
+      change (1 * 1 : WithConv
+        (CoordinateAlgebra (R := R) N u →ₐ[R] S)).ofConv =
+          (1 : WithConv
+            (CoordinateAlgebra (R := R) N u →ₐ[R] S)).ofConv
+      exact congrArg WithConv.ofConv (one_mul (1 : WithConv
+        (CoordinateAlgebra (R := R) N u →ₐ[R] S)))
+    rw [hmul] at h
+    change coordinatePointToTorsion R S N u q a hq φ₁ = 0
+    exact add_left_cancel
+      (a := coordinatePointToTorsion R S N u q a hq φ₁) (by
+        calc
+          coordinatePointToTorsion R S N u q a hq φ₁ +
+              coordinatePointToTorsion R S N u q a hq φ₁ =
+            coordinatePointToTorsion R S N u q a hq φ₁ := h.symm
+          _ = coordinatePointToTorsion R S N u q a hq φ₁ + 0 :=
+            (add_zero _).symm)
+  map_add' := fun φ ψ ↦ coordinatePointToTorsion_convMul R S N u q a hq
+    φ.toMul.ofConv ψ.toMul.ofConv
+
+/-- Precomposing a Tate--Kummer point with the antipode negates its associated quotient
+torsion class. -/
+lemma coordinatePointToTorsion_antipode
+    (N : ℕ) [NeZero N] (u : Rˣ) (q a : Sˣ)
+    (hq : a ^ N * Units.map (algebraMap R S) u = q)
+    (φ : CoordinateAlgebra (R := R) N u →ₐ[R] S) :
+    coordinatePointToTorsion R S N u q a hq
+        (φ.comp (TateKummer.antipodeAlgHom N u)) =
+      -coordinatePointToTorsion R S N u q a hq φ := by
+  let H := CoordinateAlgebra (R := R) N u
+  let φinv : H →ₐ[R] S := φ.comp (TateKummer.antipodeAlgHom N u)
+  have hconv :
+      (WithConv.toConv φinv * WithConv.toConv φ).ofConv =
+        (1 : WithConv (H →ₐ[R] S)).ofConv := by
+    apply AlgHom.ext
+    intro x
+    rw [AlgHom.convMul_apply, AlgHom.convOne_apply]
+    have hlift (z : H ⊗[R] H) :
+        Algebra.TensorProduct.lift φinv φ (fun _ _ ↦ Commute.all _ _) z =
+          φ (TateKummer.applyAntipodeLeft N u z) := by
+      induction z using TensorProduct.induction_on with
+      | zero => simp
+      | add x y hx hy => simp only [map_add, hx, hy]
+      | tmul x y =>
+          change φ (TateKummer.antipodeAlgHom N u x) * φ y =
+            φ (TateKummer.antipodeAlgHom N u x * y)
+          rw [map_mul]
+    rw [hlift]
+    have hc := DFunLike.congr_fun
+      (TateKummer.mul_antipode_rTensor_comul N u) x
+    change TateKummer.applyAntipodeLeft N u
+        (Bialgebra.comulAlgHom R H x) =
+      algebraMap R H (Bialgebra.counitAlgHom R H x) at hc
+    exact (congrArg φ hc).trans (φ.commutes _)
+  have hsum := coordinatePointToTorsion_convMul R S N u q a hq φinv φ
+  rw [hconv] at hsum
+  have hzero := (coordinateToTorsionAddHom R S N u q a hq).map_zero
+  change coordinatePointToTorsion R S N u q a hq
+    (1 : WithConv (H →ₐ[R] S)).ofConv = 0 at hzero
+  rw [hzero] at hsum
+  exact eq_neg_of_add_eq_zero_left hsum.symm
+
+end CoordinateTorsion
+
 section GenericFiber
 
 variable (R : Type u) [CommRing R]
