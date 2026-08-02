@@ -12,6 +12,9 @@ public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
 import Mathlib.RingTheory.RootsOfUnity.Complex
 import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
+import Mathlib.NumberTheory.Padics.ProperSpace
+import Mathlib.Topology.MetricSpace.Ultra.TotallySeparated
+import FLT.Deformations.CharacteristicZeroPoint
 import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 
 /-!
@@ -132,6 +135,43 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
     ρ.toRepresentation hρirred hc_fixed
 
 /--
+The finite-flat deformation-ring input to the minimal lifting argument.  It packages the
+weight-two, level-two minimal deformation problem as a finite flat local `R`-algebra carrying
+its universal framed representation.  Khare--Wintenberger, Theorem 3.7, proves the required
+finite flatness (in fact, the ring is a complete intersection); the reductions from the
+hardly-ramified hypotheses to their deformation problem are included here.
+
+The passage from this finite flat ring to a characteristic-zero domain and an actual lift is
+commutative algebra and is proved in `exists_minimalLift_over_coefficientRing` below.
+-/
+theorem exists_finiteFlat_minimalDeformation [CharP k p] (hp : 3 < p)
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
+    [TopologicalSpace R] [IsTopologicalRing R]
+    [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
+    [Module.Finite ℤ_[p] R] [Module.Free ℤ_[p] R]
+    [IsModuleTopology ℤ_[p] R]
+    [Algebra R k] [IsLocalHom (algebraMap R k)] [IsScalarTower ℤ_[p] R k]
+    [ContinuousSMul R k]
+    (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (hresidueEquiv : ∀ r, residueEquiv (IsLocalRing.residue R r) = algebraMap R k r)
+    (ρ : FramedGaloisRep ℚ k (Fin 2))
+    [Representation.IsAbsolutelyIrreducible.{u} ρ.toRepresentation]
+    (hρirred : ρ.IsIrreducible)
+    (hρ : IsHardlyRamified hpodd (by simp) ρ) :
+    ∃ (D : Type u) (_ : CommRing D) (_ : IsLocalRing D)
+      (_ : Algebra R D) (_ : Algebra ℤ_[p] D) (_ : IsScalarTower ℤ_[p] R D)
+      (_ : IsLocalHom (algebraMap R D))
+      (_ : Module.Finite R D) (_ : Module.Flat R D)
+      (_ : TopologicalSpace D) (_ : IsTopologicalRing D) (_ : IsModuleTopology R D)
+      (_ : Algebra D k) (_ : IsLocalHom (algebraMap D k))
+      (_ : IsScalarTower R D k) (_ : IsScalarTower ℤ_[p] D k)
+      (_ : ContinuousSMul D k) (_ : Function.Surjective (algebraMap D k))
+      (τ : FramedGaloisRep ℚ D (Fin 2))
+      (r : k ⊗[D] (Fin 2 → D) ≃ₗ[k] (Fin 2 → k)),
+      IsHardlyRamified hpodd (by simp) τ ∧
+        (GaloisRep.baseChange k (τ : GaloisRep ℚ D (Fin 2 → D))).conj r = ρ := sorry
+
+/--
 The arithmetic input to the hardly-ramified lifting theorem, after fixing an unramified
 coefficient DVR `R` with residue field `k`.  The lift is allowed to have coefficients in a
 finite free local `R`-algebra `S` with the same residue field.  This extension is essential:
@@ -170,10 +210,125 @@ theorem exists_minimalLift_over_coefficientRing [CharP k p] (hp : 3 < p)
       (_ : Module.Finite R S) (_ : Module.Free R S) (_ : IsModuleTopology R S)
       (_ : Algebra S k) (_ : IsLocalHom (algebraMap S k))
       (_ : IsScalarTower R S k) (_ : IsScalarTower ℤ_[p] S k) (_ : ContinuousSMul S k)
-      (W : Type v) (_ : AddCommGroup W) (_ : Module S W) (_ : Module.Finite S W)
+      (W : Type u) (_ : AddCommGroup W) (_ : Module S W) (_ : Module.Finite S W)
       (_ : Module.Free S W) (hW : Module.rank S W = 2)
       (σ : GaloisRep ℚ S W) (r : k ⊗[S] W ≃ₗ[k] (Fin 2 → k)),
-    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := sorry
+    IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
+  obtain ⟨D, hDcomm, hDlocal, hRDAlg, hZpDAlg, hZpRDTower, hRDlocalHom,
+      hRDfinite, hRDflat, hDtop, hDtopRing, hRDmoduleTopology, hDkAlg,
+      hDklocalHom, hRDkTower, hZpDkTower, hDkContinuous, hDksurj, τ, rD,
+      hτ, hτred⟩ :=
+    exists_finiteFlat_minimalDeformation hpodd hp R residueEquiv hresidueEquiv
+      ρ hρirred hρ
+  letI : CommRing D := hDcomm
+  letI : IsLocalRing D := hDlocal
+  letI : Algebra R D := hRDAlg
+  letI : Algebra ℤ_[p] D := hZpDAlg
+  letI : IsScalarTower ℤ_[p] R D := hZpRDTower
+  letI : IsLocalHom (algebraMap R D) := hRDlocalHom
+  letI : Module.Finite R D := hRDfinite
+  letI : Module.Flat R D := hRDflat
+  letI : Module.Free R D := Module.free_of_flat_of_isLocalRing
+  letI : TopologicalSpace D := hDtop
+  letI : IsTopologicalRing D := hDtopRing
+  letI : IsModuleTopology R D := hRDmoduleTopology
+  letI : Algebra D k := hDkAlg
+  letI : IsLocalHom (algebraMap D k) := hDklocalHom
+  letI : IsScalarTower R D k := hRDkTower
+  letI : IsScalarTower ℤ_[p] D k := hZpDkTower
+  letI : ContinuousSMul D k := hDkContinuous
+  obtain ⟨P, hPmin, hRinj, hRSfinite, hRSfree⟩ :=
+    Deformation.exists_finiteFree_characteristicZero_minimalPrime_of_dvr R D
+  letI : P.IsPrime := hPmin.1.1
+  let S := D ⧸ P
+  letI : CommRing S := inferInstance
+  letI : IsDomain S := inferInstance
+  letI : IsLocalRing S := inferInstance
+  letI : Algebra D S := inferInstance
+  letI : Algebra R S := inferInstance
+  letI : Algebra ℤ_[p] S := inferInstance
+  letI : IsScalarTower R D S := inferInstance
+  letI : IsScalarTower ℤ_[p] R S := inferInstance
+  letI : IsScalarTower ℤ_[p] D S := inferInstance
+  letI : IsLocalHom (algebraMap D S) :=
+    IsLocalHom.of_surjective _ Ideal.Quotient.mk_surjective
+  letI : IsLocalHom (algebraMap R S) := by
+    rw [IsScalarTower.algebraMap_eq R D S]
+    infer_instance
+  letI : Module.Finite R S := hRSfinite
+  letI : Module.Free R S := hRSfree
+  letI : TopologicalSpace S := moduleTopology R S
+  letI : IsModuleTopology R S := ⟨rfl⟩
+  letI : IsTopologicalRing S := IsModuleTopology.isTopologicalRing R S
+  letI : IsModuleTopology D S := (IsModuleTopology.trans R D S).mp inferInstance
+  letI : IsResidueAlgebra D S := inferInstance
+  letI : Module.Finite ℤ_[p] D := Module.Finite.trans R D
+  letI : Module.Free ℤ_[p] D :=
+    Module.Free.trans (R := ℤ_[p]) (S := R) (M := D)
+  letI : IsModuleTopology ℤ_[p] D :=
+    (IsModuleTopology.trans ℤ_[p] R D).mpr inferInstance
+  letI : IsProartinian D :=
+    Deformation.isProartinian_of_finiteFree_moduleTopology ℤ_[p] D
+  letI : Module.Finite ℤ_[p] S := Module.Finite.trans R S
+  letI : Module.Free ℤ_[p] S :=
+    Module.Free.trans (R := ℤ_[p]) (S := R) (M := S)
+  letI : IsModuleTopology ℤ_[p] S :=
+    (IsModuleTopology.trans ℤ_[p] R S).mpr inferInstance
+  letI : IsProartinian S :=
+    Deformation.isProartinian_of_finiteFree_moduleTopology ℤ_[p] S
+  have hPker : P ≤ RingHom.ker (algebraMap D k) := by
+    rw [IsLocalRing.ker_eq_maximalIdeal (algebraMap D k) hDksurj]
+    exact IsLocalRing.le_maximalIdeal_of_isPrime P
+  let fSk : S →+* k := Ideal.Quotient.lift P (algebraMap D k) hPker
+  letI : Algebra S k := fSk.toAlgebra
+  have hSksurj : Function.Surjective (algebraMap S k) := by
+    intro x
+    obtain ⟨d, rfl⟩ := hDksurj x
+    exact ⟨Ideal.Quotient.mk P d, rfl⟩
+  letI : IsLocalHom (algebraMap S k) :=
+    IsLocalHom.of_surjective _ hSksurj
+  letI : IsScalarTower D S k := IsScalarTower.of_algebraMap_eq fun d ↦ by
+    rfl
+  letI : IsScalarTower R S k := IsScalarTower.of_algebraMap_eq fun r ↦ by
+    change algebraMap R k r = algebraMap D k (algebraMap R D r)
+    exact IsScalarTower.algebraMap_apply R D k r
+  letI : IsScalarTower ℤ_[p] S k := IsScalarTower.of_algebraMap_eq fun z ↦ by
+    change algebraMap ℤ_[p] k z = algebraMap D k (algebraMap ℤ_[p] D z)
+    exact IsScalarTower.algebraMap_apply ℤ_[p] D k z
+  have hSkcont : Continuous (algebraMap S k) :=
+    IsModuleTopology.continuous_of_ringHom (R := R) (A := S) (B := k)
+      (algebraMap S k) (by
+        rw [show (algebraMap S k).comp (algebraMap R S) = algebraMap R k by
+          ext r
+          exact (IsScalarTower.algebraMap_apply R S k r).symm]
+        exact continuous_algebraMap R k)
+  letI : ContinuousSMul S k :=
+    continuousSMul_of_algebraMap S k hSkcont
+  let W := S ⊗[D] (Fin 2 → D)
+  letI : AddCommGroup W := inferInstance
+  letI : Module S W := inferInstance
+  letI : Module.Finite S W := inferInstance
+  letI : Module.Free S W := inferInstance
+  have hW : Module.rank S W = 2 := rank_two_baseChange (by simp)
+  let σ : GaloisRep ℚ S W :=
+    GaloisRep.baseChange S (τ : GaloisRep ℚ D (Fin 2 → D))
+  have hσ : IsHardlyRamified hpodd hW σ :=
+    IsHardlyRamified.baseChange hpodd (by simp) hW τ hτ
+  let e : k ⊗[S] W ≃ₗ[k] k ⊗[D] (Fin 2 → D) :=
+    TensorProduct.AlgebraTensorModule.cancelBaseChange D S k k (Fin 2 → D)
+  let r : k ⊗[S] W ≃ₗ[k] (Fin 2 → k) := e.trans rD
+  have hσred : (σ.baseChange k).conj r = ρ := by
+    dsimp [σ]
+    rw [GaloisRep.baseChange_baseChange, GaloisRep.conj_trans]
+    have heq : e.symm.trans (e.trans rD) = rD := by
+      ext
+      simp [e]
+    rw [heq]
+    exact hτred
+  exact ⟨S, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    W, inferInstance, inferInstance, inferInstance, inferInstance, hW, σ, r, hσ, hσred⟩
 
 /--
 The arithmetic core of the lifting theorem in residue characteristic greater than three,
@@ -193,7 +348,7 @@ theorem lifts_framed_of_three_lt_of_charP_of_isAbsolutelyIrreducible [CharP k p]
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
       (_ : IsModuleTopology ℤ_[p] R)
       (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
-      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (W : Type u) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
@@ -256,7 +411,7 @@ theorem lifts_framed_of_three_lt_of_charP [CharP k p] (hp : 3 < p)
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
       (_ : IsModuleTopology ℤ_[p] R)
       (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
-      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (W : Type u) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
@@ -276,7 +431,7 @@ theorem lifts_framed_of_three_lt (hp : 3 < p)
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
       (_ : IsModuleTopology ℤ_[p] R)
       (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
-      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (W : Type u) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
@@ -293,7 +448,7 @@ theorem lifts_framed (ρ : FramedGaloisRep ℚ k (Fin 2)) (hρirred : ρ.IsIrred
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
       (_ : IsModuleTopology ℤ_[p] R)
       (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
-      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (W : Type u) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] (Fin 2 → k)),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
@@ -316,7 +471,7 @@ theorem lifts (ρ : GaloisRep ℚ k V) (hρirred : ρ.IsIrreducible)
       (_ : Module.Finite ℤ_[p] R) (_ : Module.Free ℤ_[p] R)
       (_ : IsModuleTopology ℤ_[p] R)
       (_ : Algebra R k) (_ : IsScalarTower ℤ_[p] R k) (_ : ContinuousSMul R k)
-      (W : Type v) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
+      (W : Type u) (_ : AddCommGroup W) (_ : Module R W) (_ : Module.Finite R W)
       (_ : Module.Free R W) (hW : Module.rank R W = 2)
       (σ : GaloisRep ℚ R W) (r : k ⊗[R] W ≃ₗ[k] V),
     IsHardlyRamified hpodd hW σ ∧ (σ.baseChange k).conj r = ρ := by
