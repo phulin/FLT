@@ -8,6 +8,8 @@ module
 public import FLT.GaloisRepresentation.HardlyRamified.Defs
 public import FLT.FreyCurve.Basic
 public import FLT.KnownIn1980s.EllipticCurves.WeilPairing
+import FLT.FreyCurve.Flat
+import FLT.FreyCurve.Unramified
 import FLT.GaloisRepresentation.HardlyRamified.Reduction
 import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
 import Mathlib.Data.Nat.Factorial.DoubleFactorial
@@ -46,6 +48,50 @@ theorem FreyCurve.torsion_det (g : Field.absoluteGaloisGroup ℚ) :
   letI : Fact (P.p.Prime) := ⟨P.pp⟩
   rw [show algebraMap ℤ_[P.p] (ZMod P.p) = PadicInt.toZMod from rfl]
   exact (P.freyCurve.weilPairingData P.p).galoisRep_det_eq_cyclotomic g
+
+/-- Assemble the Frey hardly-ramified representation once its two genuinely local inputs have
+been supplied: finite flatness at the exponent and the tame quadratic quotient at `2`.
+The determinant and all odd-prime unramifiedness fields are discharged by the global theorems
+proved above. -/
+theorem FreyCurve.torsion_isHardlyRamified_of_local_conditions :
+    haveI : Fact (P.p.Prime) := ⟨P.pp⟩
+    (P.freyCurve.galoisRep P.p P.hppos).IsFlatAt
+        P.pp.toHeightOneSpectrumRingOfIntegersRat →
+      GaloisRep.HasTameQuadraticQuotientAtTwo
+        (P.freyCurve.galoisRep P.p P.hppos) →
+      IsHardlyRamified P.hp_odd (by
+        apply WeierstrassCurve.n_torsion_rank
+        · exact P.pp
+        · exact_mod_cast P.pp.ne_zero)
+        (P.freyCurve.galoisRep P.p P.hppos) := by
+  letI : Fact (P.p.Prime) := ⟨P.pp⟩
+  intro hflat htame
+  refine {
+    det := FreyCurve.torsion_det P
+    isUnramified := ?_
+    isFlat := hflat
+    isTameAtTwo := htame }
+  intro q hq hqne
+  have hqge := hq.two_le
+  exact FreyCurve.torsion_isUnramifiedAt_of_odd_ne_exponent
+    P hq (by omega) hqne.2
+
+/-- In the good-reduction case at the Frey exponent, only the local quotient at `2` remains
+to obtain the full hardly-ramified conclusion. -/
+theorem FreyCurve.torsion_isHardlyRamified_of_not_dvd_abc
+    (hgood : ¬(P.p : ℤ) ∣ P.a * P.b * P.c) :
+    haveI : Fact (P.p.Prime) := ⟨P.pp⟩
+    GaloisRep.HasTameQuadraticQuotientAtTwo
+        (P.freyCurve.galoisRep P.p P.hppos) →
+      IsHardlyRamified P.hp_odd (by
+        apply WeierstrassCurve.n_torsion_rank
+        · exact P.pp
+        · exact_mod_cast P.pp.ne_zero)
+        (P.freyCurve.galoisRep P.p P.hppos) := by
+  letI : Fact (P.p.Prime) := ⟨P.pp⟩
+  intro htame
+  exact FreyCurve.torsion_isHardlyRamified_of_local_conditions P
+    (FreyCurve.torsion_isFlatAt_of_not_dvd_abc P hgood) htame
 
 theorem FreyCurve.torsion_isHardlyRamified :
     haveI : Fact (P.p.Prime) := ⟨P.pp⟩
