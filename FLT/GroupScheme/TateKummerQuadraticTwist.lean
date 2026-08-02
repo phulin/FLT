@@ -1411,6 +1411,216 @@ lemma coverAntipodeAlgHom_coe (z : fixedSubalgebra R N u t n) :
       (antipodeAlgHom R N u t n z : CoverCoordinateAlgebra R N u t n) := by
   rfl
 
+/-! ## Counit identities -/
+
+noncomputable def rightCounitContraction (h2 : IsUnit (2 : R)) :
+    fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n →ₐ[R]
+      fixedSubalgebra R N u t n :=
+  (Algebra.TensorProduct.lid R (fixedSubalgebra R N u t n)).toAlgHom.comp
+    (Algebra.TensorProduct.map (counitAlgHom R N u t n h2)
+      (AlgHom.id R (fixedSubalgebra R N u t n)))
+
+@[simp]
+lemma rightCounitContraction_tmul (h2 : IsUnit (2 : R))
+    (x y : fixedSubalgebra R N u t n) :
+    rightCounitContraction R N u t n h2 (x ⊗ₜ[R] y) =
+      counitAlgHom R N u t n h2 x • y := by
+  rfl
+
+noncomputable def coverRightCounitContraction :
+    CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n :=
+  (Algebra.TensorProduct.lid (QuadraticDescent.Algebra R t n)
+    (CoverCoordinateAlgebra R N u t n)).toAlgHom.comp
+      (Algebra.TensorProduct.map (coverCounitAlgHom R N u t n)
+        (AlgHom.id (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n)))
+
+@[simp]
+lemma coverRightCounitContraction_tmul
+    (x y : CoverCoordinateAlgebra R N u t n) :
+    coverRightCounitContraction R N u t n
+        (x ⊗ₜ[QuadraticDescent.Algebra R t n] y) =
+      coverCounitAlgHom R N u t n x • y := by
+  rfl
+
+lemma baseChangeEquiv_rightCounitContraction
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          rightCounitContraction R N u t n h2 q) =
+      coverRightCounitContraction R N u t n
+        (baseChangeTensorCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q)) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [rightCounitContraction_tmul, baseChangeTensorCoverEquiv_tmul,
+        coverRightCounitContraction_tmul,
+        baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul]
+      simp only [baseChangeEquiv_apply]
+      rw [baseChangeToCover_tmul, baseChangeToCover_tmul, map_one, one_mul,
+        coverCounitAlgHom_eq_algebraMap_counitAlgHom R N u t n h2 x]
+      rw [IsScalarTower.algebraMap_smul, one_mul]
+      exact (Subalgebra.val (fixedSubalgebra R N u t n)).toLinearMap.map_smul
+        (counitAlgHom R N u t n h2 x) y
+  | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+
+lemma coverRightCounitContraction_comul (z : CoverCoordinateAlgebra R N u t n) :
+    coverRightCounitContraction R N u t n
+        (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) z) = z := by
+  change TensorProduct.lid (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n)
+      ((Coalgebra.counit (R := QuadraticDescent.Algebra R t n)).rTensor
+        (CoverCoordinateAlgebra R N u t n)
+        (Coalgebra.comul (R := QuadraticDescent.Algebra R t n) z)) = z
+  rw [Coalgebra.rTensor_counit_comul]
+  simp
+
+lemma rightCounitContraction_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    rightCounitContraction R N u t n h2
+        (comulAlgHom R N u t n h2 hdisc z) = z := by
+  have h := baseChangeEquiv_rightCounitContraction R N u t n h2 hdisc
+    (comulAlgHom R N u t n h2 hdisc z)
+  rw [baseChangeTensorCoverEquiv_one_tmul_comulAlgHom,
+    coverRightCounitContraction_comul] at h
+  change baseChangeEquiv R N u t n h2 hdisc
+      ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+        rightCounitContraction R N u t n h2
+          (comulAlgHom R N u t n h2 hdisc z)) =
+        (z : CoverCoordinateAlgebra R N u t n) at h
+  rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul] at h
+  exact Subtype.ext h
+
+lemma rightCounit_comp_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (Algebra.TensorProduct.map (counitAlgHom R N u t n h2)
+      (AlgHom.id R (fixedSubalgebra R N u t n))).comp
+        (comulAlgHom R N u t n h2 hdisc) =
+      (Algebra.TensorProduct.lid R (fixedSubalgebra R N u t n)).symm.toAlgHom := by
+  apply AlgHom.ext
+  intro z
+  apply (Algebra.TensorProduct.lid R (fixedSubalgebra R N u t n)).injective
+  simp only [AlgHom.comp_apply, AlgEquiv.coe_toAlgHom]
+  rw [(Algebra.TensorProduct.lid R
+    (fixedSubalgebra R N u t n)).apply_symm_apply]
+  change rightCounitContraction R N u t n h2
+    (comulAlgHom R N u t n h2 hdisc z) = z
+  exact rightCounitContraction_comulAlgHom R N u t n h2 hdisc z
+
+noncomputable def leftCounitContraction (h2 : IsUnit (2 : R)) :
+    fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n →ₐ[R]
+      fixedSubalgebra R N u t n :=
+  (Algebra.TensorProduct.rid R R (fixedSubalgebra R N u t n)).toAlgHom.comp
+    (Algebra.TensorProduct.map (AlgHom.id R (fixedSubalgebra R N u t n))
+      (counitAlgHom R N u t n h2))
+
+@[simp]
+lemma leftCounitContraction_tmul (h2 : IsUnit (2 : R))
+    (x y : fixedSubalgebra R N u t n) :
+    leftCounitContraction R N u t n h2 (x ⊗ₜ[R] y) =
+      counitAlgHom R N u t n h2 y • x := by
+  rfl
+
+noncomputable def coverLeftCounitContraction :
+    CoverCoordinateAlgebra R N u t n ⊗[QuadraticDescent.Algebra R t n]
+        CoverCoordinateAlgebra R N u t n →ₐ[QuadraticDescent.Algebra R t n]
+      CoverCoordinateAlgebra R N u t n :=
+  (Algebra.TensorProduct.rid (QuadraticDescent.Algebra R t n)
+    (QuadraticDescent.Algebra R t n)
+    (CoverCoordinateAlgebra R N u t n)).toAlgHom.comp
+      (Algebra.TensorProduct.map
+        (AlgHom.id (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n))
+        (coverCounitAlgHom R N u t n))
+
+@[simp]
+lemma coverLeftCounitContraction_tmul
+    (x y : CoverCoordinateAlgebra R N u t n) :
+    coverLeftCounitContraction R N u t n
+        (x ⊗ₜ[QuadraticDescent.Algebra R t n] y) =
+      coverCounitAlgHom R N u t n y • x := by
+  rfl
+
+lemma baseChangeEquiv_leftCounitContraction
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (q : fixedSubalgebra R N u t n ⊗[R] fixedSubalgebra R N u t n) :
+    baseChangeEquiv R N u t n h2 hdisc
+        ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+          leftCounitContraction R N u t n h2 q) =
+      coverLeftCounitContraction R N u t n
+        (baseChangeTensorCoverEquiv R N u t n h2 hdisc
+          ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R] q)) := by
+  induction q using TensorProduct.induction_on with
+  | zero => simp
+  | tmul x y =>
+      rw [leftCounitContraction_tmul, baseChangeTensorCoverEquiv_tmul,
+        coverLeftCounitContraction_tmul,
+        baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul]
+      simp only [baseChangeEquiv_apply]
+      rw [baseChangeToCover_tmul, baseChangeToCover_tmul, map_one, one_mul,
+        coverCounitAlgHom_eq_algebraMap_counitAlgHom R N u t n h2 y]
+      rw [IsScalarTower.algebraMap_smul, one_mul]
+      exact (Subalgebra.val (fixedSubalgebra R N u t n)).toLinearMap.map_smul
+        (counitAlgHom R N u t n h2 y) x
+  | add x y hx hy => simp only [TensorProduct.tmul_add, map_add, hx, hy]
+
+lemma coverLeftCounitContraction_comul (z : CoverCoordinateAlgebra R N u t n) :
+    coverLeftCounitContraction R N u t n
+        (Bialgebra.comulAlgHom (QuadraticDescent.Algebra R t n)
+          (CoverCoordinateAlgebra R N u t n) z) = z := by
+  change TensorProduct.rid (QuadraticDescent.Algebra R t n)
+      (CoverCoordinateAlgebra R N u t n)
+      ((Coalgebra.counit (R := QuadraticDescent.Algebra R t n)).lTensor
+        (CoverCoordinateAlgebra R N u t n)
+        (Coalgebra.comul (R := QuadraticDescent.Algebra R t n) z)) = z
+  rw [Coalgebra.lTensor_counit_comul]
+  simp
+
+lemma leftCounitContraction_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n))
+    (z : fixedSubalgebra R N u t n) :
+    leftCounitContraction R N u t n h2
+        (comulAlgHom R N u t n h2 hdisc z) = z := by
+  have h := baseChangeEquiv_leftCounitContraction R N u t n h2 hdisc
+    (comulAlgHom R N u t n h2 hdisc z)
+  rw [baseChangeTensorCoverEquiv_one_tmul_comulAlgHom,
+    coverLeftCounitContraction_comul] at h
+  change baseChangeEquiv R N u t n h2 hdisc
+      ((1 : QuadraticDescent.Algebra R t n) ⊗ₜ[R]
+        leftCounitContraction R N u t n h2
+          (comulAlgHom R N u t n h2 hdisc z)) =
+        (z : CoverCoordinateAlgebra R N u t n) at h
+  rw [baseChangeEquiv_apply, baseChangeToCover_tmul, map_one, one_mul] at h
+  exact Subtype.ext h
+
+lemma leftCounit_comp_comulAlgHom
+    (h2 : IsUnit (2 : R))
+    (hdisc : IsUnit (QuadraticDescent.discriminant R t n)) :
+    (Algebra.TensorProduct.map (AlgHom.id R (fixedSubalgebra R N u t n))
+      (counitAlgHom R N u t n h2)).comp
+        (comulAlgHom R N u t n h2 hdisc) =
+      (Algebra.TensorProduct.rid R R (fixedSubalgebra R N u t n)).symm.toAlgHom := by
+  apply AlgHom.ext
+  intro z
+  apply (Algebra.TensorProduct.rid R R (fixedSubalgebra R N u t n)).injective
+  simp only [AlgHom.comp_apply, AlgEquiv.coe_toAlgHom]
+  rw [(Algebra.TensorProduct.rid R R
+    (fixedSubalgebra R N u t n)).apply_symm_apply]
+  change leftCounitContraction R N u t n h2
+    (comulAlgHom R N u t n h2 hdisc z) = z
+  exact leftCounitContraction_comulAlgHom R N u t n h2 hdisc z
+
 /-- The fixed algebra is projective because it is a direct summand of the finite-free
 cover algebra. -/
 theorem fixedModuleProjective (h2 : IsUnit (2 : R)) :
