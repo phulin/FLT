@@ -179,6 +179,10 @@ theorem hardlyRamifiedUniversalRing_finiteFlat_arithmetic (hp : 3 < p)
     Module.Finite R D ∧ Module.Flat R D := by
   let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
   obtain ⟨h⟩ := exists_hardlyRamifiedBockleArithmeticData hpodd hp R rhoRes hrhoRes
+  letI : CompactSpace R := Module.Finite.compactSpace ℤ_[p] R
+  letI : T2Space R := IsModuleTopology.t2Space ℤ_[p]
+  letI : IsLocalRing.IsAdicTopology R :=
+    Deformation.isAdicTopology_of_finiteFree_moduleTopology ℤ_[p] R
   let hBockle := h.toBockleFinitenessData
   change Module.Finite R D ∧ Module.Flat R D
   exact ⟨hBockle.finite, hBockle.flat⟩
