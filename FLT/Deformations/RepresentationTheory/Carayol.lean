@@ -5,6 +5,7 @@ Authors: The FLT Project
 -/
 module
 
+public import FLT.Deformations.IsProartinian
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import Mathlib.LinearAlgebra.Matrix.BilinearForm
 public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
@@ -35,6 +36,106 @@ these lemmas, so that the eventual use of Carayol's theorem does not conceal thi
 open LinearMap (BilinForm)
 open Module
 open scoped TensorProduct
+
+namespace Subalgebra
+
+/-- A unit of a closed coefficient subalgebra of a local pro-Artinian residue algebra already
+has its inverse in that subalgebra.  The inverse is obtained as a convergent geometric series
+after multiplying by a scalar with the same residue. -/
+theorem isUnit_mk_of_isUnit_of_isClosed_of_isResidueAlgebra
+    {k A : Type*} [CommRing k] [CommRing A] [IsLocalRing k] [IsLocalRing A]
+    [Algebra k A] [IsLocalHom (algebraMap k A)] [IsResidueAlgebra k A]
+    [TopologicalSpace A] [IsTopologicalRing A] [IsProartinian A]
+    (S : Subalgebra k A) (hS : IsClosed (S : Set A))
+    (x : A) (hx : x ∈ S) (hxu : IsUnit x) : IsUnit (⟨x, hx⟩ : S) := by
+  let a : k := IsResidueAlgebra.preimage k x
+  have hdiff : x - algebraMap k A a ∈ IsLocalRing.maximalIdeal A :=
+    IsResidueAlgebra.preimage_spec k x
+  have hmapa : IsUnit (algebraMap k A a) := by
+    rw [← IsLocalRing.notMem_maximalIdeal]
+    intro ha
+    have hxmax : x ∈ IsLocalRing.maximalIdeal A := by
+      simpa only [sub_add_cancel] using
+        (IsLocalRing.maximalIdeal A).add_mem hdiff ha
+    exact (IsLocalRing.notMem_maximalIdeal.mpr hxu) hxmax
+  have ha : IsUnit a := isUnit_of_map_unit (algebraMap k A) a hmapa
+  let u : Aˣ := Units.map (algebraMap k A) ha.unit
+  let uinv : A := ((u⁻¹ : Aˣ) : A)
+  let z : A := 1 - x * uinv
+  have huval : (u : A) = algebraMap k A a := by
+    simp [u]
+  have huinvS : uinv ∈ S := by
+    change algebraMap k A ((ha.unit⁻¹ : kˣ) : k) ∈ S
+    exact S.algebraMap_mem ((ha.unit⁻¹ : kˣ) : k)
+  have hzS : z ∈ S := S.sub_mem S.one_mem (S.mul_mem hx huinvS)
+  have hzmax : z ∈ IsLocalRing.maximalIdeal A := by
+    have hmul := (IsLocalRing.maximalIdeal A).mul_mem_right uinv hdiff
+    have hxmul : x * uinv - 1 ∈ IsLocalRing.maximalIdeal A := by
+      convert hmul using 1
+      rw [sub_mul, ← huval]
+      simp [uinv]
+    simpa only [z, neg_sub] using (IsLocalRing.maximalIdeal A).neg_mem hxmul
+  have hztn : IsTopologicallyNilpotent z :=
+    isTopologicallyNilpotent_of_mem_maximalIdeal hzmax
+  have h1z : IsUnit (1 - z) := by
+    simpa only [z, sub_sub_cancel] using hxu.mul (u⁻¹ : Aˣ).isUnit
+  let w : A := ((h1z.unit⁻¹ : Aˣ) : A)
+  have hgeom : Filter.Tendsto
+      (fun N : ℕ ↦ ∑ i ∈ Finset.range N, z ^ i) Filter.atTop (nhds w) := by
+    have hone : Filter.Tendsto (fun _ : ℕ ↦ (1 : A)) Filter.atTop (nhds 1) :=
+      tendsto_const_nhds
+    have hlim := (hone.sub hztn).mul_const w
+    convert hlim using 1
+    · funext N
+      calc
+        (∑ i ∈ Finset.range N, z ^ i) =
+            (∑ i ∈ Finset.range N, z ^ i) * ((1 - z) * w) := by
+          rw [show (1 - z) * w = 1 by exact h1z.mul_val_inv, mul_one]
+        _ = ((∑ i ∈ Finset.range N, z ^ i) * (1 - z)) * w := by
+          rw [mul_assoc]
+        _ = (1 - z ^ N) * w := by rw [geom_sum_mul_neg]
+    · simp
+  have hwS : w ∈ S := by
+    apply hS.mem_of_tendsto hgeom
+    filter_upwards [] with N
+    exact S.sum_mem fun i _ ↦ S.pow_mem hzS i
+  let y : S := ⟨uinv * w, S.mul_mem huinvS hwS⟩
+  refine ⟨{ val := ⟨x, hx⟩
+            inv := y
+            val_inv := ?_
+            inv_val := ?_ }, rfl⟩
+  · apply Subtype.ext
+    change x * (uinv * w) = 1
+    rw [← mul_assoc, show x * uinv = 1 - z by simp [z]]
+    exact h1z.mul_val_inv
+  · apply Subtype.ext
+    change (uinv * w) * x = 1
+    rw [mul_comm]
+    rw [← mul_assoc, show x * uinv = 1 - z by simp [z]]
+    exact h1z.mul_val_inv
+
+/-- A closed coefficient subalgebra of a local pro-Artinian residue algebra is local. -/
+theorem isLocalRing_of_isClosed_of_isResidueAlgebra
+    {k A : Type*} [CommRing k] [CommRing A] [IsLocalRing k] [IsLocalRing A]
+    [Algebra k A] [IsLocalHom (algebraMap k A)] [IsResidueAlgebra k A]
+    [TopologicalSpace A] [IsTopologicalRing A] [IsProartinian A]
+    (S : Subalgebra k A) (hS : IsClosed (S : Set A)) : IsLocalRing S :=
+  S.toSubring.isLocalRing_of_unit fun x hx hxu ↦
+    isUnit_mk_of_isUnit_of_isClosed_of_isResidueAlgebra S hS x hx hxu
+
+/-- The inclusion of a closed coefficient subalgebra into a local pro-Artinian residue algebra
+is a local homomorphism. -/
+theorem isLocalHom_val_of_isClosed_of_isResidueAlgebra
+    {k A : Type*} [CommRing k] [CommRing A] [IsLocalRing k] [IsLocalRing A]
+    [Algebra k A] [IsLocalHom (algebraMap k A)] [IsResidueAlgebra k A]
+    [TopologicalSpace A] [IsTopologicalRing A] [IsProartinian A]
+    (S : Subalgebra k A) (hS : IsClosed (S : Set A))
+    [IsLocalRing S] : IsLocalHom S.val := by
+  constructor
+  intro x hx
+  exact isUnit_mk_of_isUnit_of_isClosed_of_isResidueAlgebra S hS x x.2 hx
+
+end Subalgebra
 
 namespace Matrix
 
