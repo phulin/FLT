@@ -86,16 +86,34 @@ lemma det_dualNumberOfParts_zero {S : Type u} [CommRing S] (A : Matrix n n S) :
   rw [dualNumberOfParts_zero_eq_map]
   exact ((algebraMap S (DualNumber S)).map_det A).symm
 
-/-- The first-order factor `1 + ε C` has determinant one when `C` has trace zero. -/
-lemma det_dualNumberOfParts_one {S : Type u} [CommRing S]
-    (C : Matrix (Fin 2) (Fin 2) S) (hC : C.trace = 0) :
-    (dualNumberOfParts 1 C).det = 1 := by
+/-- Exact first-order determinant formula in rank two. -/
+lemma det_dualNumberOfParts_one_eq {S : Type u} [CommRing S]
+    (C : Matrix (Fin 2) (Fin 2) S) :
+    (dualNumberOfParts 1 C).det = ((1, C.trace) : DualNumber S) := by
   rw [Matrix.det_fin_two]
   apply TrivSqZeroExt.ext
   · rw [TrivSqZeroExt.fst_sub, TrivSqZeroExt.fst_mul, TrivSqZeroExt.fst_mul]
     norm_num [dualNumberOfParts, Matrix.one_apply]
   · rw [TrivSqZeroExt.snd_sub, DualNumber.snd_mul, DualNumber.snd_mul]
-    change (1 * C 1 1 + C 0 0 * 1) - (0 * C 1 0 + C 0 1 * 0) = 0
-    simpa [Matrix.trace_fin_two, add_comm] using hC
+    change (1 * C 1 1 + C 0 0 * 1) - (0 * C 1 0 + C 0 1 * 0) = C.trace
+    simp [Matrix.trace_fin_two, add_comm]
+
+/-- The first-order factor `1 + ε C` has determinant one exactly when `C` has trace
+zero. -/
+lemma det_dualNumberOfParts_one_eq_one_iff {S : Type u} [CommRing S]
+    (C : Matrix (Fin 2) (Fin 2) S) :
+    (dualNumberOfParts 1 C).det = 1 ↔ C.trace = 0 := by
+  rw [det_dualNumberOfParts_one_eq]
+  constructor
+  · intro h
+    exact congrArg TrivSqZeroExt.snd h
+  · intro h
+    apply TrivSqZeroExt.ext <;> simp [h]
+
+/-- The first-order factor `1 + ε C` has determinant one when `C` has trace zero. -/
+lemma det_dualNumberOfParts_one {S : Type u} [CommRing S]
+    (C : Matrix (Fin 2) (Fin 2) S) (hC : C.trace = 0) :
+    (dualNumberOfParts 1 C).det = 1 :=
+  (det_dualNumberOfParts_one_eq_one_iff C).2 hC
 
 end Matrix
