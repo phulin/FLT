@@ -69,9 +69,9 @@ end Subalgebra
 
 namespace FramedGaloisRep
 
-universe u un
+universe u uK un
 
-variable {q A K : Type u} {n : Type un}
+variable {q A : Type u} {K : Type uK} {n : Type un}
   [CommRing q] [IsLocalRing q]
   [Finite (IsLocalRing.ResidueField q)]
   [CommRing A] [TopologicalSpace A] [IsTopologicalRing A] [IsLocalRing A]
@@ -323,10 +323,12 @@ noncomputable section UnrestrictedUniversal
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
 
+universe uK
+
 variable (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞] [IsNoetherianRing 𝓞]
   [Finite (IsLocalRing.ResidueField 𝓞)]
   [IsAdicComplete (IsLocalRing.maximalIdeal 𝓞) 𝓞]
-variable (K : Type u) [Field K] [NumberField K]
+variable (K : Type uK) [Field K] [NumberField K]
 variable (n : Type) [Fintype n] [DecidableEq n]
 variable (rho : (repnFunctor n (Γ K) 𝓞).obj .residueField)
 variable [Representation.IsAbsolutelyIrreducible.{u} (toRepresentation rho)]

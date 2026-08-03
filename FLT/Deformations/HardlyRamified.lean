@@ -262,6 +262,33 @@ def hardlyRamifiedUniversalElement :
   (hardlyRamifiedUniversalRingCorepresentableBy 𝓞 p hpodd ρ hρ).homEquiv
     (𝟙 (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ))
 
+/-- The universal hardly ramified class after forgetting its additional deformation
+conditions. -/
+def hardlyRamifiedUniversalElementAsDeformation :
+    (deformationFunctor (Fin 2) (Γ ℚ) 𝓞 ρ).toFunctor.obj
+      (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ) :=
+  (hardlyRamifiedDeformationToDeformation 𝓞 p hpodd ρ).app
+    (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ)
+    (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ)
+
+/-- The morphism from the unrestricted universal deformation ring to the universal hardly
+ramified deformation ring induced by forgetting the hardly ramified conditions. -/
+def unrestrictedToHardlyRamifiedMap :
+    unrestrictedUniversalRing 𝓞 ℚ (Fin 2) ρ ⟶
+      hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ :=
+  unrestrictedClassifyingMap 𝓞 ℚ (Fin 2) ρ
+    (hardlyRamifiedUniversalElementAsDeformation 𝓞 p hpodd ρ hρ)
+
+/-- Base change along the unrestricted-to-minimal morphism carries the unrestricted
+universal class to the underlying class of the hardly ramified universal deformation. -/
+theorem unrestrictedUniversalElement_map_unrestrictedToHardlyRamifiedMap :
+    (deformationFunctor (Fin 2) (Γ ℚ) 𝓞 ρ).toFunctor.map
+        (unrestrictedToHardlyRamifiedMap 𝓞 p hpodd ρ hρ)
+        (unrestrictedUniversalElement 𝓞 ℚ (Fin 2) ρ) =
+      hardlyRamifiedUniversalElementAsDeformation 𝓞 p hpodd ρ hρ :=
+  unrestrictedUniversalElement_map_classifyingMap 𝓞 ℚ (Fin 2) ρ
+    (hardlyRamifiedUniversalElementAsDeformation 𝓞 p hpodd ρ hρ)
+
 /-- The unique classifying morphism attached to a hardly ramified deformation class over a
 pro-Artinian coefficient algebra. -/
 def hardlyRamifiedClassifyingMap {A : ProartinianCat 𝓞}
