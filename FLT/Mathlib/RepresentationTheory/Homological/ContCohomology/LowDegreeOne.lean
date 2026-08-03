@@ -141,6 +141,84 @@ lemma Cocycles₁.map_inv (X : TopRep k G) (σ : Cocycles₁ X) (g : G) :
   rw [← add_eq_zero_iff_eq_neg, ← Cocycles₁.map_one X σ, ← mul_inv_cancel g,
     Cocycles₁.map_mul X σ]
 
+/-- Construct a homogeneous degree-one cocycle from a continuous crossed homomorphism.
+The separate continuity hypothesis on the action is automatic in the finite-dimensional discrete
+representations used below, while keeping this constructor useful beyond that setting. -/
+noncomputable def Cocycles₁.ofInhomogeneous
+    (X : TopRep k G) (c : C(G, X))
+    (hact : Continuous (fun z : G × X ↦ X.ρ z.1 z.2))
+    (hc : ∀ g h, c (g * h) = X.ρ g (c h) + c g) :
+    Cocycles₁ X := by
+  let F₀ : C(G, C(G, X)) :=
+    ContinuousMap.curry
+      ⟨fun z : G × G ↦ X.ρ z.1 (c (z.1⁻¹ * z.2)), by
+        change Continuous ((fun z : G × X ↦ X.ρ z.1 z.2) ∘
+          (fun z : G × G ↦ (z.1, c (z.1⁻¹ * z.2))))
+        exact hact.comp
+          (continuous_fst.prodMk
+            (c.continuous.comp (continuous_fst.inv.mul continuous_snd)))⟩
+  let F : (homogeneousCochains X).X 1 :=
+    ⟨F₀, fun g ↦ by
+      apply ContinuousMap.ext
+      intro x
+      apply ContinuousMap.ext
+      intro y
+      change (X.ρ g * X.ρ (g⁻¹ * x))
+          (c ((g⁻¹ * x)⁻¹ * (g⁻¹ * y))) =
+        X.ρ x (c (x⁻¹ * y))
+      have hρ := congrArg
+        (fun f ↦ f (c ((g⁻¹ * x)⁻¹ * (g⁻¹ * y))))
+        (X.ρ.toMonoidHom.map_mul g (g⁻¹ * x))
+      calc
+        (X.ρ g * X.ρ (g⁻¹ * x))
+            (c ((g⁻¹ * x)⁻¹ * (g⁻¹ * y))) =
+          X.ρ (g * (g⁻¹ * x)) (c ((g⁻¹ * x)⁻¹ * (g⁻¹ * y))) := by
+            simpa only [ContRepresentation.toMonoidHom_apply] using hρ.symm
+        _ = X.ρ x (c (x⁻¹ * y)) := by
+          congr 2
+          · simp
+          · simp⟩
+  refine ⟨F, ?_⟩
+  rw [LinearMap.mem_ker]
+  apply Subtype.ext
+  apply ContinuousMap.ext
+  intro x
+  apply ContinuousMap.ext
+  intro y
+  apply ContinuousMap.ext
+  intro z
+  change X.ρ y (c (y⁻¹ * z)) -
+      (X.ρ x (c (x⁻¹ * z)) - X.ρ x (c (x⁻¹ * y))) = 0
+  have hcross := hc (x⁻¹ * y) (y⁻¹ * z)
+  simp only [mul_assoc, mul_inv_cancel_left] at hcross
+  have hacted := congrArg (X.ρ x) hcross
+  rw [map_add] at hacted
+  have hρ := congrArg
+    (fun f ↦ f (c (y⁻¹ * z)))
+    (X.ρ.toMonoidHom.map_mul x (x⁻¹ * y))
+  have hcomp :
+      X.ρ x (X.ρ (x⁻¹ * y) (c (y⁻¹ * z))) =
+        X.ρ y (c (y⁻¹ * z)) := by
+    change (X.ρ x * X.ρ (x⁻¹ * y)) (c (y⁻¹ * z)) =
+      X.ρ y (c (y⁻¹ * z))
+    calc
+      _ = X.ρ (x * (x⁻¹ * y)) (c (y⁻¹ * z)) := by
+        simpa only [ContRepresentation.toMonoidHom_apply] using hρ.symm
+      _ = _ := by rw [mul_inv_cancel_left]
+  rw [hcomp] at hacted
+  rw [hacted]
+  abel
+
+@[simp]
+theorem Cocycles₁.ofInhomogeneous_apply
+    (X : TopRep k G) (c : C(G, X))
+    (hact : Continuous (fun z : G × X ↦ X.ρ z.1 z.2))
+    (hc : ∀ g h, c (g * h) = X.ρ g (c h) + c g) (g : G) :
+    Cocycles₁.ofInhomogeneous X c hact hc g = c g := by
+  rw [Cocycles₁.coe_apply]
+  unfold Cocycles₁.ofInhomogeneous
+  simp
+
 /-- A degree-one continuous cocycle is a coboundary if it is the differential of a homogeneous
 degree-zero cochain. -/
 def IsCoboundary₁ (X : TopRep k G) (σ : Cocycles₁ X) : Prop :=
