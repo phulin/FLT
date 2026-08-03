@@ -7,6 +7,9 @@ module
 
 public import FLT.Patching.System
 
+import Mathlib.RingTheory.Finiteness.NilpotentKer
+import Mathlib.RingTheory.Flat.TorsionFree
+
 /-!
 # `R = T` from a successful patching argument
 
@@ -77,7 +80,7 @@ variable (H₀ : ringKrullDim Rₒₒ < ⊤) (H : .some (Module.depth Λ Λ) = r
 
 -- Let `T₀` be a ring that acts on `M₀`, `R₀ →+* T₀` be a ring homomorphism compatible with
 -- the module structure.
-variable {T₀ : Type*} [Ring T₀] [Module T₀ M₀]
+variable {T₀ : Type*} [CommRing T₀] [Module T₀ M₀]
 variable (RtoT : R₀ →+* T₀) (hRtoT : ∀ r (m : M₀), RtoT r • m = r • m)
 
 -- Then `R₀ →+* T₀` has nilpotent kernel.
@@ -99,3 +102,45 @@ theorem ker_RtoT_le_nilradical : RingHom.ker RtoT ≤ nilradical R₀ := by
   intro x hx
   refine Module.mem_annihilator.mpr fun m ↦ ?_
   rw [← hRtoT, show RtoT x = 0 from hx, zero_smul]
+
+include F HCompat hfRₒₒ hfRₒₒ' H₀ H hRtoT in
+/-- A successful patching argument makes the minimal deformation ring finite over the
+coefficient ring as soon as the corresponding Hecke algebra is finite.  The patching theorem
+puts the kernel in the nilradical; Noetherianity makes that kernel finitely generated, so
+finiteness descends through the nilpotent thickening. -/
+theorem moduleFinite_of_patching
+    [Algebra Λ T₀] [Module.Finite Λ T₀]
+    (hΛ : ∀ x : Λ, RtoT (algebraMap Λ R₀ x) = algebraMap Λ T₀ x)
+    (hRtoTsurj : Function.Surjective RtoT) : Module.Finite Λ R₀ := by
+  let f : R₀ →ₐ[Λ] T₀ :=
+    { RtoT with
+      commutes' := hΛ }
+  apply Module.finite_of_surjective_of_ker_le_nilradical f hRtoTsurj
+  · change RingHom.ker RtoT ≤ nilradical R₀
+    exact ker_RtoT_le_nilradical Λ R M F 𝔫 sR sM HCompat fRₒₒ hfRₒₒ hfRₒₒ' H₀ H
+      RtoT hRtoT
+  · exact IsNoetherian.noetherian _
+
+include F HCompat hfRₒₒ hfRₒₒ' H₀ H hRtoT in
+/-- If patching identifies the minimal deformation ring with a finite flat Hecke algebra over
+a Dedekind coefficient ring, then the deformation ring is finite flat as well.  Finiteness only
+needs the nilpotent-kernel conclusion and surjectivity, via `moduleFinite_of_patching`.
+Injectivity transfers torsion-freeness back from the Hecke algebra, and torsion-free modules
+over a Dedekind domain are flat. -/
+theorem moduleFinite_flat_of_patching
+    [IsDedekindDomain Λ]
+    [Algebra Λ T₀] [Module.Finite Λ T₀] [Module.Flat Λ T₀]
+    (hΛ : ∀ x : Λ, RtoT (algebraMap Λ R₀ x) = algebraMap Λ T₀ x)
+    (hRtoTsurj : Function.Surjective RtoT)
+    (hRtoTinj : Function.Injective RtoT) :
+    Module.Finite Λ R₀ ∧ Module.Flat Λ R₀ := by
+  let f : R₀ →ₐ[Λ] T₀ :=
+    { RtoT with
+      commutes' := hΛ }
+  letI : Module.IsTorsionFree Λ R₀ :=
+    Function.Injective.moduleIsTorsionFree f hRtoTinj fun r x ↦ by
+      simp [Algebra.smul_def]
+  have hfinite := moduleFinite_of_patching Λ R M F 𝔫 sR sM HCompat
+    fRₒₒ hfRₒₒ hfRₒₒ' H₀ H RtoT hRtoT hΛ hRtoTsurj
+  letI : Module.Finite Λ R₀ := hfinite
+  exact ⟨hfinite, inferInstance⟩
