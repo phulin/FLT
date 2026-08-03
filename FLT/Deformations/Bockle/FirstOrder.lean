@@ -872,6 +872,46 @@ theorem bockleFirstOrderRepnFunctor_mem_liftFunctor
     (ProartinianCat.dualNumberToResidueField R)]
   exact bockleFirstOrderRepnFunctor_reduces rhoRes σ
 
+set_option backward.isDefEq.respectTransparency false in
+/-- Equality of first-order strict-equivalence classes forces equality of the corresponding
+adjoint tangent classes in characteristic different from two. -/
+theorem bockleTangentπ_eq_of_firstOrderRepnFunctor_toRepnQuot_eq
+    [NeZero (2 : ProartinianCat.residueFieldType R)]
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ τ : BockleAdjointCocycles₁ (toRepresentation rhoRes))
+    (h : (toRepnQuot (Fin 2) G R).app (ProartinianCat.dualNumber R)
+          (bockleFirstOrderRepnFunctor rhoRes σ) =
+        (toRepnQuot (Fin 2) G R).app (ProartinianCat.dualNumber R)
+          (bockleFirstOrderRepnFunctor rhoRes τ)) :
+    bockleTangentπ (toRepresentation rhoRes) σ =
+      bockleTangentπ (toRepresentation rhoRes) τ := by
+  obtain ⟨P, hP⟩ := Quotient.exact h
+  let P0 : GL (Fin 2)
+      (DualNumber (ProartinianCat.residueFieldType R)) := P.1.ofConjAct
+  have hPker : Matrix.GeneralLinearGroup.map (n := Fin 2)
+      (ProartinianCat.toResidueField (ProartinianCat.dualNumber R)).hom.toRingHom P0 = 1 :=
+    MonoidHom.mem_ker.mp P.2
+  rw [← ProartinianCat.dualNumberToResidueField_eq_toResidueField] at hPker
+  have hPval := congrArg Units.val hPker
+  change (P0 : Matrix (Fin 2) (Fin 2)
+      (DualNumber (ProartinianCat.residueFieldType R))).map
+        (TrivSqZeroExt.fstHom R
+          (ProartinianCat.residueFieldType R)
+          (ProartinianCat.residueFieldType R)).toRingHom = 1 at hPval
+  obtain ⟨a, hPa⟩ :=
+    exists_firstOrderConjugatingMatrixUnit_eq_of_map_fst_eq_one P0 hPval
+  apply bockleTangentπ_eq_of_firstOrderMatrixMonoidHom_eq_conj
+    (toRepresentation rhoRes) σ τ a
+  intro g
+  have hg := congrArg Units.val (DFunLike.congr_fun hP g)
+  change (P0 : Matrix (Fin 2) (Fin 2)
+      (DualNumber (ProartinianCat.residueFieldType R))) *
+        bockleFirstOrderMatrixMonoidHom (toRepresentation rhoRes) τ g *
+          (↑(P0⁻¹) : Matrix (Fin 2) (Fin 2)
+            (DualNumber (ProartinianCat.residueFieldType R))) =
+      bockleFirstOrderMatrixMonoidHom (toRepresentation rhoRes) σ g at hg
+  rw [hPa] at hg
+  exact hg.symm
 /-- The strict-equivalence class of the first-order representation, regarded as an
 unrestricted deformation over the dual numbers. -/
 noncomputable def bockleFirstOrderDeformationClass
@@ -891,6 +931,20 @@ lemma bockleFirstOrderDeformationClass_val
       (toRepnQuot (Fin 2) G R).app (ProartinianCat.dualNumber R)
         (bockleFirstOrderRepnFunctor rhoRes σ) :=
   rfl
+
+/-- Equality of the packaged first-order deformation classes detects equality in the adjoint
+tangent space. -/
+theorem bockleTangentπ_eq_of_firstOrderDeformationClass_eq
+    [NeZero (2 : ProartinianCat.residueFieldType R)]
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ τ : BockleAdjointCocycles₁ (toRepresentation rhoRes))
+    (h : bockleFirstOrderDeformationClass rhoRes σ =
+      bockleFirstOrderDeformationClass rhoRes τ) :
+    bockleTangentπ (toRepresentation rhoRes) σ =
+      bockleTangentπ (toRepresentation rhoRes) τ := by
+  apply bockleTangentπ_eq_of_firstOrderRepnFunctor_toRepnQuot_eq
+  exact congrArg Subtype.val h
+
 
 /-- The chosen tangent basis gives a family of points of the residual lifting functor over
 the dual numbers. -/
