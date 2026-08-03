@@ -6,6 +6,7 @@ Authors: The FLT Project
 module
 
 public import FLT.Deformations.Bockle
+public import FLT.Deformations.Bockle.Cohomology
 public import FLT.Deformations.FiniteImage
 public import FLT.Deformations.IsProartinian
 public import FLT.KnownIn1980s.CommutativeAlgebra.PowerSeries
@@ -250,6 +251,35 @@ structure BockleArithmeticData (rho : FramedGaloisRep K D n) where
   uniformizer : R
   /-- Potential modularity and Carayol trace generation data. -/
   finiteImage : ModScalarFiniteImageData rho uniformizer
+
+/-- Assemble the full arithmetic package from adjoint tangent--obstruction parameters and
+the finite-image-after-restriction input.  Trace generation is deliberately supplied before
+scalar reduction; the general quotient theorem performs that formal step here. -/
+theorem BockleAdjointParameterInput.exists_bockleArithmeticData
+    {k G : Type u} [Field k] [TopologicalSpace k] [DiscreteTopology k]
+    [Group G] [TopologicalSpace G] [IsTopologicalGroup G]
+    {rhoBar : Representation k G (Fin 2 → k)}
+    [Module.Finite k (BockleObstructionSpace rhoBar)]
+    [ContinuousSMul R D]
+    {residueEquiv : IsLocalRing.ResidueField R ≃+* k}
+    (P : BockleAdjointParameterInput (R := R) (D := D) residueEquiv rhoBar)
+    (rho : FramedGaloisRep K D n) (pi : R) (hpi : Irreducible pi)
+    (hfinite : (rho.quotient (scalarIdeal (D := D) pi)).FiniteImageAfterRestriction)
+    (htrace : rho.IsTopologicallyTraceGenerated (k := R)) :
+    Nonempty (BockleArithmeticData (R := R) rho) := by
+  obtain ⟨presentation⟩ := P.exists_bocklePresentation
+  letI : IsNoetherianRing D := presentation.isNoetherianRing
+  letI : Finite (IsLocalRing.ResidueField D) :=
+    Finite.of_equiv (IsLocalRing.ResidueField R)
+      (IsResidueAlgebra.algEquiv R D).toEquiv
+  exact ⟨{
+    presentation := presentation
+    uniformizer := pi
+    finiteImage := {
+      uniformizer_irreducible := hpi
+      afterRestriction := hfinite
+      traceGenerated :=
+        FramedGaloisRep.IsTopologicallyTraceGenerated.quotientScalar rho htrace pi } }⟩
 
 /-- Assemble the usual Böckle finiteness data after deriving finiteness modulo the uniformizer
 from the finite-image criterion. -/
