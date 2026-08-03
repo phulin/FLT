@@ -84,6 +84,63 @@ lemma firstOrderEndMonoidHom_apply (rho : Representation k G V)
     (hc_mul : ∀ g h, c (g * h) = rho g * c h * rho g⁻¹ + c g) (g : G) :
     firstOrderEndMonoidHom rho c hc_one hc_mul g = firstOrderEndValue rho c g := rfl
 
+/-- A named constructor for dual numbers of endomorphisms, avoiding reducibility-sensitive
+elaboration of product notation in multiplicative expressions. -/
+def endDualNumber (x y : Module.End k V) : DualNumber (Module.End k V) :=
+  (x, y)
+
+@[simp]
+lemma endDualNumber_fst (x y : Module.End k V) : (endDualNumber x y).fst = x := rfl
+
+@[simp]
+lemma endDualNumber_snd (x y : Module.End k V) : (endDualNumber x y).snd = y := rfl
+
+/-- The strict first-order change of basis `1 - ε a`.  Its inverse is `1 + ε a`. -/
+def firstOrderConjugatingUnit (a : Module.End k V) : Units (DualNumber (Module.End k V)) where
+  val := endDualNumber 1 (-a)
+  inv := endDualNumber 1 a
+  val_inv := by
+    apply TrivSqZeroExt.ext
+    · change 1 * 1 = 1
+      simp
+    · change 1 * a + (-a) * 1 = 0
+      simp
+  inv_val := by
+    apply TrivSqZeroExt.ext
+    · change 1 * 1 = 1
+      simp
+    · change 1 * (-a) + a * 1 = 0
+      simp
+
+@[simp]
+lemma firstOrderConjugatingUnit_val (a : Module.End k V) :
+    (firstOrderConjugatingUnit a : DualNumber (Module.End k V)) = endDualNumber 1 (-a) :=
+  rfl
+
+@[simp]
+lemma firstOrderConjugatingUnit_inv_val (a : Module.End k V) :
+    (↑((firstOrderConjugatingUnit a)⁻¹) : DualNumber (Module.End k V)) = endDualNumber 1 a :=
+  rfl
+
+/-- An inner adjoint cocycle changes the constant first-order lift by strict conjugation. -/
+lemma firstOrderEndValue_eq_conj_of_inner (rho : Representation k G V)
+    (a : Module.End k V) (g : G) :
+    firstOrderEndValue rho (fun h ↦ rho h * a * rho h⁻¹ - a) g =
+      (firstOrderConjugatingUnit a : DualNumber (Module.End k V)) *
+        firstOrderEndValue rho 0 g *
+          (↑((firstOrderConjugatingUnit a)⁻¹) : DualNumber (Module.End k V)) := by
+  have hexplicit :
+      firstOrderEndValue rho (fun h ↦ rho h * a * rho h⁻¹ - a) g =
+        endDualNumber 1 (-a) * firstOrderEndValue rho 0 g * endDualNumber 1 a := by
+    apply TrivSqZeroExt.ext
+    · change rho g = (1 * rho g) * 1
+      simp
+    · change (rho g * a * rho g⁻¹ - a) * rho g =
+        (1 * rho g) * a + (1 * 0 + (-a) * rho g) * 1
+      rw [sub_mul, mul_assoc (rho g * a), ← map_mul]
+      simp [sub_eq_add_neg]
+  simpa only [firstOrderConjugatingUnit_val, firstOrderConjugatingUnit_inv_val] using hexplicit
+
 end General
 
 section RankTwo
@@ -119,6 +176,57 @@ lemma bockleFirstOrderEndMonoidHom_snd
     (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
     (bockleFirstOrderEndMonoidHom rho σ g).snd =
       Representation.traceZeroAdjointTopRepToEnd rho (σ g) * rho g := rfl
+
+@[simp]
+lemma bockleFirstOrderEndMonoidHom_apply
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    bockleFirstOrderEndMonoidHom rho σ g =
+      firstOrderEndValue rho
+        (fun h ↦ Representation.traceZeroAdjointTopRepToEnd rho (σ h)) g :=
+  rfl
+
+/-- In endomorphism coordinates, a homogeneous degree-one boundary is the inner cocycle
+`rho(g) a rho(g)⁻¹ - a`. -/
+lemma bockleBoundary_toEnd
+    (rho : Representation k G (Fin 2 → k))
+    (a : (TopRep.homogeneousCochains
+      (Representation.traceZeroAdjointTopRep rho)).X 0) (g : G) :
+    Representation.traceZeroAdjointTopRepToEnd rho
+        ((ContinuousCohomology.bdryKer
+          (Representation.traceZeroAdjointTopRep rho) 1 a : BockleAdjointCocycles₁ rho) g) =
+      rho g * Representation.traceZeroAdjointTopRepToEnd rho (a.1 1) * rho g⁻¹ -
+        Representation.traceZeroAdjointTopRepToEnd rho (a.1 1) := by
+  rw [ContinuousCohomology.bdryKer_one_apply_eq_action_sub, map_sub,
+    Representation.traceZeroAdjointTopRepToEnd_action]
+
+/-- A cocycle representing zero in `H¹` gives a strict conjugate of the constant
+first-order lift. -/
+theorem bockleFirstOrderEndMonoidHom_eq_conj_of_isCoboundary
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hσ : ContinuousCohomology.IsCoboundary₁
+      (Representation.traceZeroAdjointTopRep rho) σ) :
+    ∃ a : Module.End k (Fin 2 → k), ∀ g,
+      bockleFirstOrderEndMonoidHom rho σ g =
+        (firstOrderConjugatingUnit a : DualNumber (Module.End k (Fin 2 → k))) *
+          firstOrderEndValue rho 0 g *
+            (↑((firstOrderConjugatingUnit a)⁻¹) :
+              DualNumber (Module.End k (Fin 2 → k))) := by
+  obtain ⟨a, rfl⟩ := hσ
+  let A := Representation.traceZeroAdjointTopRepToEnd rho (a.1 1)
+  refine ⟨A, fun g ↦ ?_⟩
+  rw [bockleFirstOrderEndMonoidHom_apply]
+  calc
+    firstOrderEndValue rho
+        (fun h ↦ Representation.traceZeroAdjointTopRepToEnd rho
+          ((ContinuousCohomology.bdryKer
+            (Representation.traceZeroAdjointTopRep rho) 1 a : BockleAdjointCocycles₁ rho) h)) g =
+        firstOrderEndValue rho (fun h ↦ rho h * A * rho h⁻¹ - A) g := by
+      apply TrivSqZeroExt.ext
+      · rfl
+      · simpa only [firstOrderEndValue_snd, A] using
+          congrArg (fun z : Module.End k (Fin 2 → k) ↦ z * rho g)
+          (bockleBoundary_toEnd rho a g)
+    _ = _ := firstOrderEndValue_eq_conj_of_inner rho A g
 
 /-- The trace-zero adjoint cocycle written in the standard rank-two basis. -/
 noncomputable def bockleAdjointMatrix
@@ -165,11 +273,77 @@ noncomputable def endDualNumberToMatrixMonoidHom :
       rw [DualNumber.snd_mul, map_add, map_mul, map_mul]
       simp only [Matrix.add_apply, Matrix.mul_apply, Finset.sum_add_distrib]
 
+omit [TopologicalSpace k] [DiscreteTopology k] in
+@[simp]
+lemma endDualNumberToMatrixMonoidHom_apply (z : DualNumber (Module.End k (Fin 2 → k))) :
+    endDualNumberToMatrixMonoidHom z =
+      Matrix.dualNumberOfParts (LinearMap.toMatrixAlgEquiv' z.fst)
+        (LinearMap.toMatrixAlgEquiv' z.snd) := by
+  apply Matrix.ext
+  intro i j
+  rfl
+
+/-- The matrix-valued strict change of basis induced by `1 - ε a`. -/
+noncomputable def firstOrderConjugatingMatrixUnit (a : Module.End k (Fin 2 → k)) :
+    Units (Matrix (Fin 2) (Fin 2) (DualNumber k)) :=
+  Units.map endDualNumberToMatrixMonoidHom (firstOrderConjugatingUnit a)
+
+omit [TopologicalSpace k] [DiscreteTopology k] in
+@[simp]
+lemma firstOrderConjugatingMatrixUnit_val (a : Module.End k (Fin 2 → k)) :
+    (firstOrderConjugatingMatrixUnit a : Matrix (Fin 2) (Fin 2) (DualNumber k)) =
+      Matrix.dualNumberOfParts 1 (-LinearMap.toMatrixAlgEquiv' a) := by
+  rw [firstOrderConjugatingMatrixUnit, Units.coe_map, firstOrderConjugatingUnit_val,
+    endDualNumberToMatrixMonoidHom_apply]
+  simp
+
+omit [TopologicalSpace k] [DiscreteTopology k] in
+@[simp]
+lemma firstOrderConjugatingMatrixUnit_inv_val (a : Module.End k (Fin 2 → k)) :
+    (↑((firstOrderConjugatingMatrixUnit a)⁻¹) :
+      Matrix (Fin 2) (Fin 2) (DualNumber k)) =
+      Matrix.dualNumberOfParts 1 (LinearMap.toMatrixAlgEquiv' a) := by
+  rw [firstOrderConjugatingMatrixUnit, Units.coe_map_inv,
+    firstOrderConjugatingUnit_inv_val, endDualNumberToMatrixMonoidHom_apply]
+  simp
+
+omit [TopologicalSpace k] [DiscreteTopology k] in
+/-- The first-order conjugating matrix reduces to the identity after killing the dual-number
+direction, so it is a strict change of basis. -/
+lemma firstOrderConjugatingMatrixUnit_map_fst (a : Module.End k (Fin 2 → k)) :
+    (firstOrderConjugatingMatrixUnit a : Matrix (Fin 2) (Fin 2) (DualNumber k)).map
+      (TrivSqZeroExt.fstHom k k k).toRingHom = 1 := by
+  rw [firstOrderConjugatingMatrixUnit_val]
+  apply Matrix.ext
+  intro i j
+  change (if i = j then 1 else 0) = if i = j then 1 else 0
+  rfl
+
 /-- Matrix realization of the first-order representation over `k[ε]`. -/
 noncomputable def bockleFirstOrderMatrixMonoidHom
     (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) :
     G →* Matrix (Fin 2) (Fin 2) (DualNumber k) :=
   endDualNumberToMatrixMonoidHom.comp (bockleFirstOrderEndMonoidHom rho σ)
+
+/-- A coboundary changes the constant matrix lift by a strict first-order conjugation. -/
+theorem bockleFirstOrderMatrixMonoidHom_eq_conj_of_isCoboundary
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hσ : ContinuousCohomology.IsCoboundary₁
+      (Representation.traceZeroAdjointTopRep rho) σ) :
+    ∃ P : Units (Matrix (Fin 2) (Fin 2) (DualNumber k)), ∀ g,
+      bockleFirstOrderMatrixMonoidHom rho σ g =
+        (P : Matrix (Fin 2) (Fin 2) (DualNumber k)) *
+          Matrix.dualNumberOfParts (LinearMap.toMatrixAlgEquiv' (rho g)) 0 *
+            (↑(P⁻¹) : Matrix (Fin 2) (Fin 2) (DualNumber k)) := by
+  obtain ⟨a, ha⟩ := bockleFirstOrderEndMonoidHom_eq_conj_of_isCoboundary rho σ hσ
+  refine ⟨firstOrderConjugatingMatrixUnit a, fun g ↦ ?_⟩
+  have hmap := congrArg endDualNumberToMatrixMonoidHom (ha g)
+  simpa only [bockleFirstOrderMatrixMonoidHom, MonoidHom.comp_apply, map_mul,
+    endDualNumberToMatrixMonoidHom_apply, firstOrderEndValue_fst,
+    firstOrderEndValue_snd, Pi.zero_apply, zero_mul, map_zero,
+    firstOrderConjugatingUnit_val, firstOrderConjugatingUnit_inv_val,
+    endDualNumber_fst, endDualNumber_snd, map_one, map_neg,
+    firstOrderConjugatingMatrixUnit_val, firstOrderConjugatingMatrixUnit_inv_val] using hmap
 
 @[simp]
 lemma bockleFirstOrderMatrixMonoidHom_dualNumberEquiv
