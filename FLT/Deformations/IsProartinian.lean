@@ -7,6 +7,7 @@ module
 
 public import FLT.Patching.Utils.AdicTopology
 public import FLT.Deformations.IsResidueAlgebra
+public import Mathlib.RingTheory.LocalRing.Quotient
 public import Mathlib.Topology.Algebra.TopologicallyNilpotent
 import FLT.Deformations.Lemmas
 import Mathlib.CategoryTheory.Category.Init
@@ -82,6 +83,35 @@ lemma exists_maximalIdeal_pow_le_of_isProartinian [IsProartinian R]
     ← Ideal.map_pow, Ideal.zero_eq_bot, ← le_bot_iff, Ideal.map_le_iff_le_comap,
     ← RingHom.ker, Ideal.mk_ker] at hn
   exact ⟨n, hn⟩
+
+/-- A Noetherian local pro-Artinian ring with finite residue field is compact.
+
+Indeed, every open ideal contains a power of the maximal ideal, so its quotient is finite.
+Choosing representatives for that quotient gives a finite cover by translates of any prescribed
+neighbourhood of zero.  Thus the additive group is totally bounded; completeness is part of the
+definition of `IsProartinian`. -/
+theorem compactSpace_of_isProartinian [IsProartinian R] [IsNoetherianRing R]
+    [Finite (ResidueField R)] : CompactSpace R := by
+  letI := IsTopologicalAddGroup.rightUniformSpace R
+  haveI := isUniformAddGroup_of_addCommGroup (G := R)
+  rw [← isCompact_univ_iff, isCompact_iff_totallyBounded_isComplete]
+  refine ⟨?_, complete_univ⟩
+  rw [totallyBounded_iff_subset_finite_iUnion_nhds_zero]
+  intro U hU
+  obtain ⟨I, hIopen, hIU⟩ := IsLinearTopology.hasBasis_open_ideal.mem_iff.mp hU
+  obtain ⟨m, hm⟩ := exists_maximalIdeal_pow_le_of_isProartinian I hIopen
+  letI : Finite (R ⧸ I) := (IsLocalRing.finite_quotient_iff (R := R)).mpr ⟨m, hm⟩
+  let lift : R ⧸ I → R := fun x => Classical.choose (Ideal.Quotient.mk_surjective x)
+  have hlift (x : R ⧸ I) : Ideal.Quotient.mk I (lift x) = x :=
+    Classical.choose_spec (Ideal.Quotient.mk_surjective x)
+  refine ⟨Set.range lift, Set.finite_range lift, ?_⟩
+  intro x _
+  have hxI : x - lift (Ideal.Quotient.mk I x) ∈ I := by
+    apply Ideal.Quotient.eq_zero_iff_mem.mp
+    simp [hlift]
+  apply Set.mem_iUnion₂_of_mem ⟨Ideal.Quotient.mk I x, rfl⟩
+  rw [Set.mem_vadd_set_iff_neg_vadd_mem, vadd_eq_add, neg_add_eq_sub]
+  exact hIU hxI
 
 /-- Every element of the maximal ideal of a local pro-Artinian ring is topologically
 nilpotent.  Indeed, every open ideal contains a power of the maximal ideal. -/

@@ -43,6 +43,12 @@ instance modScalarAlgebra (pi : R) :
     Algebra (ModScalarCoefficient (D := D) pi) (ModScalarRing (D := D) pi) :=
   Ideal.Quotient.algebraQuotientOfLEComap le_rfl
 
+/-- The action of `R` on its scalar reduction factors through the faithful coefficient
+quotient. -/
+instance modScalarIsScalarTower (pi : R) :
+    IsScalarTower R (ModScalarCoefficient (D := D) pi) (ModScalarRing (D := D) pi) :=
+  IsScalarTower.of_algebraMap_eq fun _ => rfl
+
 /-- The coefficient quotient acting on `D / pi D` is finite when `pi` is a uniformizer of a DVR
 with finite residue field. -/
 theorem finite_modScalarCoefficient
