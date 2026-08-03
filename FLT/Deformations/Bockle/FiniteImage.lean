@@ -8,6 +8,9 @@ module
 public import FLT.Deformations.Bockle
 public import FLT.Deformations.FiniteImage
 public import FLT.Deformations.IsProartinian
+public import Mathlib.RingTheory.HopkinsLevitzki
+public import Mathlib.RingTheory.KrullDimension.Zero
+public import Mathlib.RingTheory.MvPowerSeries.Inverse
 public import Mathlib.Topology.Algebra.Module.Compact
 
 /-!
@@ -140,6 +143,43 @@ noncomputable def BocklePresentation.modScalarRingEquiv
       (DoubleQuot.quotQuotEquivQuotSup I J).symm).trans
         (Ideal.quotientEquivAlg (J.map (Ideal.Quotient.mk I))
           (scalarIdeal (D := D) pi) e htarget).toRingEquiv
+
+/-- If reduction modulo a nonunit coefficient scalar is finite, the relations together with
+that scalar generate an ideal of definition in the power-series ring. -/
+theorem BocklePresentation.radical_relationScalarIdeal_eq_maximalIdeal
+    (P : BocklePresentation R D) (pi : R) (hpi : Irreducible pi)
+    [Finite (ModScalarRing (D := D) pi)] :
+    let A := MvPowerSeries (Fin P.numVariables) R
+    (Ideal.ofList (P.relations ++ [algebraMap R A pi])).radical =
+      IsLocalRing.maximalIdeal A := by
+  let A := MvPowerSeries (Fin P.numVariables) R
+  let J : Ideal A := Ideal.ofList (P.relations ++ [algebraMap R A pi])
+  let Q := A ⧸ J
+  have hproperD : scalarIdeal (D := D) pi ≠ ⊤ := by
+    rw [scalarIdeal]
+    apply Ideal.span_singleton_eq_top.not.mpr
+    rw [isUnit_map_iff (algebraMap R D)]
+    exact hpi.not_isUnit
+  letI : Nontrivial (ModScalarRing (D := D) pi) :=
+    Ideal.Quotient.nontrivial_iff.mpr hproperD
+  let e := P.modScalarRingEquiv pi
+  letI : Nontrivial Q := e.toEquiv.nontrivial_congr.mpr inferInstance
+  letI : Finite Q := Finite.of_equiv (ModScalarRing (D := D) pi) e.symm.toEquiv
+  letI : IsArtinianRing Q := isArtinian_of_finite
+  letI : Ring.KrullDimLE 0 Q := isArtinianRing_iff_krullDimLE_zero.mp inferInstance
+  have hJne : J ≠ ⊤ := Ideal.Quotient.nontrivial_iff.mp inferInstance
+  have hall : ∀ p ∈ J.minimalPrimes, p = IsLocalRing.maximalIdeal A := by
+    intro p hp
+    haveI := hp.isPrime
+    have hpmax : p.IsMaximal :=
+      (Ideal.krullDimLE_zero_quotient_iff_forall_minimalPrimes_isMaximal.mp
+        (show Ring.KrullDimLE 0 Q from inferInstance)) p hp
+    exact hpmax.eq_of_le (IsLocalRing.maximalIdeal.isMaximal A).ne_top
+      (IsLocalRing.le_maximalIdeal hpmax.ne_top)
+  obtain ⟨p, hp⟩ := Ideal.nonempty_minimalPrimes hJne
+  change J.radical = IsLocalRing.maximalIdeal A
+  rw [← Ideal.sInf_minimalPrimes,
+    Set.eq_singleton_iff_unique_mem.mpr ⟨hall p hp ▸ hp, hall⟩, sInf_singleton]
 
 /-- The decomposed arithmetic and commutative-algebra data needed in Böckle's argument.
 Unlike `BockleFinitenessData`, this structure does not assume module finiteness or regularity:
