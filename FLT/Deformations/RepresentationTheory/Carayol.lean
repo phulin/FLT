@@ -546,4 +546,45 @@ theorem exists_image_matrix_basis_of_isAbsolutelyIrreducible
   exact adjoin_matrixMonoidHom_range_eq_top_of_adjoinRange_eq_top rho
     (adjoinRange_eq_top_of_isAbsolutelyIrreducible rho)
 
+/-- Let a matrix representation over a ring reduce, through a local map to a field, to an
+absolutely irreducible representation.  If all traces lie in a local coefficient subalgebra,
+then the coefficients of every image matrix with respect to a suitable lifted image basis lie
+in that subalgebra.  This packages the Burnside, unit-determinant, and trace linear-system
+steps of Carayol descent. -/
+theorem exists_image_basis_recovering_coefficients
+    {q A G n : Type*} {k : Type u} [CommRing q] [CommRing A] [Algebra q A]
+    [Field k] [Group G] [Fintype n] [DecidableEq n]
+    (rho : G →* Matrix n n A) (rhobar : Representation k G (n → k))
+    [rhobar.IsAbsolutelyIrreducible.{u}]
+    (f : A →+* k) [IsLocalHom f]
+    (hreduce : ∀ g, matrixMonoidHom rhobar g = (rho g).map f)
+    (S : Subalgebra q A) [IsLocalRing S] [IsLocalHom S.val]
+    (htrace : ∀ g, Matrix.trace (rho g) ∈ S) :
+    ∃ (g : n × n → G) (b : Basis (n × n) A (Matrix n n A)),
+      (∀ ij, b ij = rho (g ij)) ∧
+      ∀ h ij, b.repr (rho h) ij ∈ S := by
+  classical
+  obtain ⟨g, bbar, hbbar⟩ :=
+    exists_image_matrix_basis_of_isAbsolutelyIrreducible rhobar
+  let bm : n × n → Matrix n n A := fun ij ↦ rho (g ij)
+  have hbbar_map : ∀ ij, bbar ij = (bm ij).map f := by
+    intro ij
+    exact (hbbar ij).trans (hreduce (g ij))
+  have hunit : IsUnit (Matrix.tracePairingMatrix bm).det :=
+    Matrix.isUnit_det_tracePairingMatrix_of_map_basis f bm bbar hbbar_map
+  obtain ⟨b, hb⟩ :=
+    Matrix.exists_basis_eq_of_isUnit_det_tracePairingMatrix bm hunit
+  have hunitb : IsUnit (Matrix.tracePairingMatrix b).det := by
+    rw [show (b : n × n → Matrix n n A) = bm from funext hb]
+    exact hunit
+  refine ⟨g, b, fun ij ↦ (hb ij).trans rfl, fun h ij ↦ ?_⟩
+  apply Matrix.repr_mem_localSubalgebra_of_trace_mem S b
+    hunitb
+  · intro r s
+    rw [hb, hb, ← map_mul]
+    exact htrace (g r * g s)
+  · intro s
+    rw [hb, ← map_mul]
+    exact htrace (h * g s)
+
 end Slop.OddRep
