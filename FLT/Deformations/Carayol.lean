@@ -414,6 +414,39 @@ theorem unrestrictedUniversalGaloisRep_exists_image_basis_recovering_coefficient
   · intro g
     exact tau.trace_mem_closedTraceAlgebra (q := 𝓞) g
 
+/-- The universal representation is strictly conjugate to a representation over its closed
+trace algebra.  All nonclassical content needed for the matrix-order splitting was isolated
+in `Matrix.exists_strict_conjugate_over_closed_local_subalgebra`; the basis and coordinates
+supplied above discharge its concrete hypotheses. -/
+theorem unrestrictedUniversalGaloisRep_exists_strict_conjugate_over_closedTraceAlgebra :
+    let D := unrestrictedUniversalRing 𝓞 K n rho
+    let tau := unrestrictedUniversalGaloisRep 𝓞 K n rho
+    let T := tau.closedTraceAlgebra (q := 𝓞)
+    ∃ (tauT : Γ K →ₜ* GL n T) (P : GL n D),
+      Matrix.GeneralLinearGroup.map
+        (ProartinianCat.toResidueField D).hom.toRingHom P = 1 ∧
+      ∀ h, tau.GL h = P *
+        Matrix.GeneralLinearGroup.map T.val.toRingHom (tauT h) * P⁻¹ := by
+  let D := unrestrictedUniversalRing 𝓞 K n rho
+  let tau := unrestrictedUniversalGaloisRep 𝓞 K n rho
+  let T := tau.closedTraceAlgebra (q := 𝓞)
+  letI : IsLocalRing T := tau.closedTraceAlgebra_isLocalRing (q := 𝓞)
+  letI : IsLocalHom T.val := tau.closedTraceAlgebra_isLocalHom_val (q := 𝓞)
+  obtain ⟨g, b, hb, hcoeff⟩ :=
+    unrestrictedUniversalGaloisRep_exists_image_basis_recovering_coefficients
+      𝓞 K n rho
+  have hsurj : Function.Surjective
+      ((ProartinianCat.toResidueField D).hom.toRingHom.comp T.val.toRingHom) := by
+    intro y
+    obtain ⟨a, rfl⟩ := IsLocalRing.residue_surjective (R := 𝓞) y
+    refine ⟨algebraMap 𝓞 T a, ?_⟩
+    change (ProartinianCat.toResidueField D).hom (algebraMap 𝓞 D a) =
+      algebraMap 𝓞 (ProartinianCat.residueField (𝓞 := 𝓞)) a
+    exact (ProartinianCat.toResidueField D).hom.commutes a
+  exact Matrix.exists_strict_conjugate_over_closed_local_subalgebra
+    (ProartinianCat.toResidueField D).hom.toRingHom T
+    (tau.isClosed_closedTraceAlgebra (q := 𝓞)) hsurj tau.GL g b hb hcoeff
+
 end UnrestrictedUniversal
 
 end Deformation
