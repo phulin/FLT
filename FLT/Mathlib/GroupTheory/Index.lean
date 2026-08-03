@@ -66,3 +66,15 @@ theorem MonoidHom.finite_range_of_finiteIndex_restrict
     Subgroup.finiteIndex_of_le (H := L) (K := ρ.ker) inf_le_left
   rw [← (QuotientGroup.quotientKerEquivRange ρ).finite_iff]
   infer_instance
+
+/-- Postcomposing a group homomorphism with finite range again has finite range. -/
+theorem MonoidHom.finite_range_comp_right
+    {G H L : Type*} [Group G] [Group H] [Group L]
+    (f : G →* H) (g : H →* L) [Finite f.range] : Finite (g.comp f).range := by
+  let F : f.range → (g.comp f).range := fun x =>
+    ⟨g x.1, ⟨Classical.choose x.2, by
+      simpa only [MonoidHom.coe_comp, Function.comp_apply] using
+        congrArg g (Classical.choose_spec x.2)⟩⟩
+  apply Finite.of_surjective F
+  rintro ⟨_, x, rfl⟩
+  exact ⟨⟨f x, ⟨x, rfl⟩⟩, rfl⟩
