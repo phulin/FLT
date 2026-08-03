@@ -6,6 +6,7 @@ Authors: Kevin Buzzard
 module
 
 public import FLT.Deformations.Representable
+public import FLT.Deformations.RepresentationTheory.Irreducible
 public import FLT.GaloisRepresentation.HardlyRamified.Defs
 
 /-!
@@ -131,6 +132,36 @@ theorem residualRepresentation_mem_hardlyRamifiedFunctor
     FramedGaloisRep.GL.symm_apply_apply] using
     GaloisRepresentation.IsHardlyRamified.framedBaseChange hpodd
       f continuous_of_discreteTopology htower hres ρ hρ
+
+/-- Irreducibility is preserved when a framed residual representation is transported from
+an explicitly chosen residue field `k` to the canonical residue-field object of `R`. -/
+theorem residualRepresentation_isIrreducible
+    {k : Type u} [Finite k] [Field k]
+    [TopologicalSpace k] [DiscreteTopology k]
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (e : ResidueField R ≃+* k)
+    (rho : FramedGaloisRep ℚ k (Fin 2)) (hrho : rho.IsIrreducible) :
+    (toRepresentation (residualRepresentation R e rho)).IsIrreducible := by
+  let kappaR : ProartinianCat R := .residueField
+  let rhoRes : FramedGaloisRep ℚ kappaR (Fin 2) :=
+    toFramedGaloisRep (residualRepresentation R e rho)
+  let ek : kappaR ≃+* k := ProartinianCat.residueFieldRingEquiv R e
+  letI : Algebra kappaR k := ek.toRingHom.toAlgebra
+  letI : ContinuousSMul kappaR k :=
+    continuousSMul_of_algebraMap kappaR k continuous_of_discreteTopology
+  have hback :
+      rhoRes.baseChange ek.toRingHom continuous_of_discreteTopology = rho :=
+    toFramedGaloisRep_residualRepresentation_baseChange R e rho
+  have hbackIrred :
+      (rhoRes.baseChange ek.toRingHom continuous_of_discreteTopology).IsIrreducible := by
+    rw [hback]
+    exact hrho
+  rw [FramedGaloisRep.baseChange_def] at hbackIrred
+  have hbaseChangeIrred :
+      (GaloisRep.baseChange k
+        (rhoRes : GaloisRep ℚ kappaR (Fin 2 → kappaR))).IsIrreducible :=
+    (GaloisRep.isIrreducible_conj_iff _ _).mpr hbackIrred
+  exact Slop.OddRep.isIrreducible_of_baseChange _ k hbaseChangeIrred
 
 /-- Schlessinger--Mazur corepresentability of the minimal hardly ramified deformation
 problem.  This is a pre-1990 input: Mazur's deformation theory and the classical
