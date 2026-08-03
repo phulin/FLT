@@ -220,6 +220,27 @@ theorem isUnit_det_tracePairingMatrix_of_residue_basis
   rw [hmatrix]
   exact det_tracePairing_toMatrix_ne_zero bbar
 
+/-- The residue-basis criterion may be tested through any local homomorphism to a field.
+This form is convenient for a pro-Artinian coefficient algebra, whose categorical residue
+map lands in the residue field of its scalar ring. -/
+theorem isUnit_det_tracePairingMatrix_of_map_basis
+    {A k : Type*} [CommRing A] [Field k] [Fintype n]
+    {i : Type*} [Fintype i] [DecidableEq i]
+    (f : A →+* k) [IsLocalHom f] (b : i → Matrix n n A)
+    (bbar : Basis i k (Matrix n n k))
+    (hbbar : ∀ r, bbar r = (b r).map f) :
+    IsUnit (tracePairingMatrix b).det := by
+  rw [← isUnit_map_iff f, RingHom.map_det]
+  change IsUnit ((tracePairingMatrix b).map f).det
+  rw [tracePairingMatrix_map]
+  have hmatrix :
+      tracePairingMatrix (fun r ↦ (b r).map f) =
+        LinearMap.BilinForm.toMatrix bbar (tracePairing k n) := by
+    ext r s
+    simp [tracePairingMatrix, hbbar]
+  rw [hmatrix]
+  exact isUnit_iff_ne_zero.mpr (det_tracePairing_toMatrix_ne_zero bbar)
+
 /-- A square family of matrices whose trace-pairing determinant is a unit is a basis of the
 full matrix algebra.  This is the determinant form of the Nakayama step in Carayol's
 argument. -/
