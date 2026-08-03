@@ -32,7 +32,8 @@ variable {R D : Type u} [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
   [TopologicalSpace R] [IsTopologicalRing R] [CompactSpace R]
   [IsLocalRing.IsAdicTopology R]
   [CommRing D] [TopologicalSpace D] [IsTopologicalRing D] [Algebra R D]
-  [IsLocalRing D] [IsLocalHom (algebraMap R D)] [IsProartinian D]
+  [IsLocalRing D] [IsLocalHom (algebraMap R D)] [IsResidueAlgebra R D]
+  [IsProartinian D]
 variable {n : Type un} [Fintype n] [DecidableEq n] [Nonempty n]
 
 /-- Topological Nakayama for a pro-Artinian algebra over a compact local coefficient ring.
@@ -116,8 +117,6 @@ the already-derived finiteness modulo a uniformizer. -/
 structure BockleArithmeticData (rho : FramedGaloisRep K D n) where
   /-- Böckle's balanced power-series presentation. -/
   presentation : BocklePresentation R D
-  /-- The universal deformation ring has the same finite residue field as its coefficient ring. -/
-  finiteResidueField : Finite (IsLocalRing.ResidueField D)
   /-- The coefficient-ring uniformizer. -/
   uniformizer : R
   /-- Potential modularity and Carayol trace generation data. -/
@@ -133,7 +132,9 @@ noncomputable def BockleArithmeticData.toBockleFinitenessData
     {rho : FramedGaloisRep K D n} (h : BockleArithmeticData (R := R) rho) :
     BockleFinitenessData R D := by
   letI : IsNoetherianRing D := h.presentation.isNoetherianRing
-  letI : Finite (IsLocalRing.ResidueField D) := h.finiteResidueField
+  letI : Finite (IsLocalRing.ResidueField D) :=
+    Finite.of_equiv (IsLocalRing.ResidueField R)
+      (IsResidueAlgebra.algEquiv R D).toEquiv
   have hmod : Finite (ModScalarRing (D := D) h.uniformizer) := h.finiteImage.finite
   exact
     { presentation := h.presentation
