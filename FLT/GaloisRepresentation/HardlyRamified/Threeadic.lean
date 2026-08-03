@@ -587,17 +587,118 @@ theorem schoof_three_adic_inertia_subgroup_trivial_of_pow_two
   change f = 1
   exact orderOf_eq_one_iff.mp horder
 
-/-- The arithmetic filtration input for a hardly ramified representation over a finite local
-`ℤ_[3]`-algebra.  Applied to its finite flat group scheme, Schoof's argument first shows that
-the only simple factors are `ℤ/3ℤ` and `μ₃`.  The vanishing
-`Ext¹(μ₃, ℤ/3ℤ) = 0` then reorders a composition series into a diagonalizable subobject and a
-constant quotient.  On geometric points, the quotient is fixed and the subobject has the
-cyclotomic character, which equals the determinant by hard ramification.  The filtration is
-stable under the coefficient algebra because its scalars act by commuting endomorphisms.
+/-- The old arithmetic classification of simple factors in Schoof's `(2,3)` category.  After
+global finite-flat gluing, the bounds of Fontaine (1985) and Abrashkin (1987), Odlyzko's
+discriminant bounds (1976), elementary class-field computations, and the Tate--Oort
+classification (1970) show that a simple factor is either `μ₃` or `ℤ/3ℤ`.  On geometric
+points these are respectively determinant-type and trivial intervals; the determinant is the
+cyclotomic character by `hτ.det`.
 
-The simple-object classification is the `(ℓ,p) = (2,3)` case in the proof of Schoof,
-*Abelian varieties over Q with bad reduction in one prime only*, Theorem 1.3; the reordering is
-Proposition 3.2 and the required extension vanishing is Corollary 4.2. -/
+This is the pre-1990 arithmetic input isolated in Proposition 5.2 and the `(l,p) = (2,3)`
+case of §6 of Schoof, *Abelian varieties over Q with bad reduction in one prime only*.
+The composition-series mechanics are proved below rather than included in this input. -/
+theorem schoof_three_adic_simple_interval_classification
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ)
+    (_hobj : GaloisRep.IsSchoofThreeObject τ) :
+    ∀ {U V : Subrepresentation (GaloisRep.toIntRepresentation τ)}, U ⋖ V →
+      GaloisRep.IsDeterminantInterval τ U V ∨
+        GaloisRep.IsTrivialInterval τ U V := by
+  knownin1980s
+
+/-- Homogeneous blocks in the `(2,3)` category remain homogeneous.  A tower of constant
+factors is constant because a finite `3`-group extension of `ℚ` unramified outside `2` has
+trivial abelianization and hence is trivial.  Cartier duality gives the corresponding statement
+for towers of multiplicative factors.  These are classical class-field theory and Cartier
+duality inputs, available before 1990. -/
+theorem schoof_three_adic_homogeneous_interval_trans
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ)
+    (_hobj : GaloisRep.IsSchoofThreeObject τ) :
+    (∀ {U V X : Subrepresentation (GaloisRep.toIntRepresentation τ)},
+      GaloisRep.IsDeterminantInterval τ U V →
+      GaloisRep.IsDeterminantInterval τ V X →
+      GaloisRep.IsDeterminantInterval τ U X) ∧
+    (∀ {U V X : Subrepresentation (GaloisRep.toIntRepresentation τ)},
+      GaloisRep.IsTrivialInterval τ U V →
+      GaloisRep.IsTrivialInterval τ V X →
+      GaloisRep.IsTrivialInterval τ U X) := by
+  knownin1980s
+
+/-- Move one multiplicative simple factor below a constant block.  This is the geometric
+form of `Ext¹(μ₃, ℤ/3ℤ) = 0` over `ℤ[1/2]`, extended along a constant filtration.
+The vanishing follows from the classical Kummer sequence, Herbrand's theorem, and the
+cyclotomic-unit calculation recorded in Washington (1982); for `(l,p) = (2,3)` the relevant
+congruence is nonzero.  Closure of finite-flat subgroup schemes and quotients is the classical
+SGA 3 input. -/
+theorem schoof_three_adic_swap_multiplicative_below_trivial
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ)
+    (_hobj : GaloisRep.IsSchoofThreeObject τ) :
+    ∀ {U V X : Subrepresentation (GaloisRep.toIntRepresentation τ)},
+      GaloisRep.IsTrivialInterval τ U V → V ⋖ X →
+      GaloisRep.IsDeterminantInterval τ V X →
+      ∃ V', GaloisRep.IsDeterminantInterval τ U V' ∧
+        GaloisRep.IsTrivialInterval τ V' X := by
+  knownin1980s
+
+/-- Sort an invariant composition series using the three isolated arithmetic inputs above.
+The resulting cut is only an invariant additive subgroup, exactly as supplied by the finite
+flat group-scheme filtration. -/
+theorem schoof_three_adic_exists_additive_interval_cut
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
+    ∃ N : Subrepresentation (GaloisRep.toIntRepresentation τ),
+      GaloisRep.IsDeterminantInterval τ ⊥ N ∧
+        GaloisRep.IsTrivialInterval τ N ⊤ := by
+  letI : Finite W := Module.finite_of_finite A
+  let hgeneric := schoof_three_adic_isSchoofThreeGenericFiber W hW hτ
+  let hobj : GaloisRep.IsSchoofThreeObject τ := hgeneric.toSchoofThreeObject
+  obtain ⟨s, hsbot, hstop⟩ :=
+    (GaloisRep.toIntRepresentation τ).exists_subrepresentation_compositionSeries
+  obtain ⟨hdet_trans, htriv_trans⟩ :=
+    schoof_three_adic_homogeneous_interval_trans W hW hτ hobj
+  obtain ⟨N, hdet, htriv⟩ := CompositionSeries.exists_cut_of_covBy_or
+    (GaloisRep.IsDeterminantInterval τ) (GaloisRep.IsTrivialInterval τ)
+    (fun _ ↦ Or.inl rfl) (fun _ ↦ Or.inl rfl)
+    hdet_trans htriv_trans
+    (schoof_three_adic_simple_interval_classification W hW hτ hobj)
+    (schoof_three_adic_swap_multiplicative_below_trivial W hW hτ hobj) s
+  rw [hsbot] at hdet
+  rw [hstop] at htriv
+  exact ⟨N, hdet, htriv⟩
+
+/-- Schoof's sorted additive filtration implies the canonical cross-annihilation identity.
+This identity no longer mentions the chosen filtration and is automatically compatible with
+the full coefficient algebra. -/
+theorem schoof_three_adic_finite_cross_relation
+    {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
+    (W : Type*) [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    (hW : Module.rank A W = 2) {τ : GaloisRep ℚ A W}
+    (hτ : IsHardlyRamified (show Odd 3 by decide) hW τ) :
+    ∀ g h : Γ ℚ,
+      (τ h - LinearMap.det (τ h) • (LinearMap.id : W →ₗ[A] W)).comp
+        (τ g - LinearMap.id) = 0 := by
+  obtain ⟨N, hdet, htriv⟩ := schoof_three_adic_exists_additive_interval_cut W hW hτ
+  exact GaloisRep.cross_relation_of_interval_cut τ N hdet htriv
+
+/-- The arithmetic filtration input for a hardly ramified representation over a finite local
+`ℤ_[3]`-algebra.  The chosen additive group-scheme filtration is replaced by the canonical
+`A`-submodule generated by all differences `τ(g)x-x`; the cross relation proves that Galois
+acts through the determinant on this submodule. -/
 theorem schoof_three_adic_finite_multiplicative_constant_filtration
     {A : Type*} [Finite A] [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [DiscreteTopology A] [IsLocalRing A] [Algebra ℤ_[3] A]
@@ -607,7 +708,9 @@ theorem schoof_three_adic_finite_multiplicative_constant_filtration
     ∃ N : Submodule A W,
       (∀ g : Γ ℚ, ∀ x : W, τ g x - x ∈ N) ∧
       (∀ g : Γ ℚ, ∀ x : W, x ∈ N → τ g x = LinearMap.det (τ g) • x) := by
-  sorry
+  exact LinearMap.exists_multiplicative_constant_filtration_of_cross_relation
+    τ (fun g ↦ LinearMap.det (τ g))
+      (schoof_three_adic_finite_cross_relation W hW hτ)
 
 /-- The character identity formally implied by Schoof's multiplicative/constant filtration.
 The linear-algebra step does not require either side of the filtration to be free. -/

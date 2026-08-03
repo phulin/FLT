@@ -857,14 +857,26 @@ def GaloisRep.IsSchoofThreeObject
   GaloisRep.IsSchoofThreeGenericFiber rho ∧
     GaloisRep.HasFiniteFlatModelAwayTwo rho
 
+/-- Universe-polymorphic form of classical global finite-flat gluing.  It has the same
+geometric content as `toIntegralHopfOrderAwayTwo`; it states the resulting model directly so
+that a finite Galois module living in an arbitrary universe need not first be replaced by a
+chosen small equivalent type. -/
+theorem GaloisRep.IsSchoofThreeGenericFiber.toFiniteFlatModelAwayTwo
+    {A W : Type*} [Finite W] [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [DiscreteTopology A]
+    [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
+    {rho : GaloisRep ℚ A W} (h : GaloisRep.IsSchoofThreeGenericFiber rho) :
+    GaloisRep.HasFiniteFlatModelAwayTwo rho := by
+  knownin1980s
+
 /-- The classical global gluing theorem upgrades the four generic-fiber conditions to an
 actual object of Schoof's finite-flat category. -/
 theorem GaloisRep.IsSchoofThreeGenericFiber.toSchoofThreeObject
-    {A W : Type} [Finite W] [CommRing A] [TopologicalSpace A]
+    {A W : Type*} [Finite W] [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] [DiscreteTopology A]
     [AddCommGroup W] [Module A W] [Module.Finite A W] [Module.Free A W]
     {rho : GaloisRep ℚ A W} (h : GaloisRep.IsSchoofThreeGenericFiber rho) :
     GaloisRep.IsSchoofThreeObject rho :=
-  ⟨h, h.toIntegralHopfOrderAwayTwo.toFiniteFlatModel⟩
+  ⟨h, h.toFiniteFlatModelAwayTwo⟩
 
 end GaloisRepresentation
