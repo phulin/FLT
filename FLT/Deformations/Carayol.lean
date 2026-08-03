@@ -239,6 +239,67 @@ theorem toRepnQuot_eq_of_strict_conjugate
       DFunLike.coe (F := G →ₜ* GL n R) tau g
     exact (hconj g).symm
 
+set_option backward.isDefEq.respectTransparency false in
+/-- Representatives of the same strict-equivalence class have identical trace sets. -/
+theorem traceSet_toFramedGaloisRep_eq_of_toRepnQuot_eq
+    {𝓞 : Type u} [CommRing 𝓞] [IsLocalRing 𝓞]
+    {K : Type*} [Field K] [NumberField K]
+    {n : Type} [Fintype n] [DecidableEq n]
+    (R : ProartinianCat 𝓞)
+    (tau tau' : (repnFunctor n (Field.absoluteGaloisGroup K) 𝓞).obj R)
+    (h : (toRepnQuot n (Field.absoluteGaloisGroup K) 𝓞).app R tau =
+      (toRepnQuot n (Field.absoluteGaloisGroup K) 𝓞).app R tau') :
+    (toFramedGaloisRep tau).traceSet = (toFramedGaloisRep tau').traceSet := by
+  obtain ⟨P, hP⟩ := Quotient.exact h
+  have htrace (g : Field.absoluteGaloisGroup K) :
+      Matrix.trace (DFunLike.coe
+        (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau g : Matrix n n R) =
+        Matrix.trace (DFunLike.coe
+          (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau' g : Matrix n n R) := by
+    have hg := DFunLike.congr_fun hP g
+    let P0 : GL n R := P.1.ofConjAct
+    have hgmat :
+        (P0 : Matrix n n R) *
+            (DFunLike.coe
+              (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau' g : Matrix n n R) *
+            (↑P0⁻¹ : Matrix n n R) =
+          (DFunLike.coe
+            (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau g : Matrix n n R) := by
+      exact congrArg Units.val hg
+    calc
+      Matrix.trace (DFunLike.coe
+          (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau g : Matrix n n R) =
+          Matrix.trace ((P0 : Matrix n n R) *
+            (DFunLike.coe
+              (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau' g : Matrix n n R) *
+            (↑P0⁻¹ : Matrix n n R)) := congrArg Matrix.trace hgmat.symm
+      _ = Matrix.trace (DFunLike.coe
+          (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau' g : Matrix n n R) :=
+        Matrix.trace_units_conj P0 (DFunLike.coe
+          (F := Field.absoluteGaloisGroup K →ₜ* GL n R) tau' g : Matrix n n R)
+  unfold FramedGaloisRep.traceSet
+  rw [show (toFramedGaloisRep tau).GL = tau by
+      exact FramedGaloisRep.GL.apply_symm_apply _,
+    show (toFramedGaloisRep tau').GL = tau' by
+      exact FramedGaloisRep.GL.apply_symm_apply _]
+  exact congrArg Set.range (funext htrace)
+
+/-- Topological trace generation depends only on the strict-equivalence class of a
+representation. -/
+theorem isTopologicallyTraceGenerated_toFramedGaloisRep_of_toRepnQuot_eq
+    {𝓞 : Type u} [CommRing 𝓞] [IsLocalRing 𝓞]
+    {K : Type*} [Field K] [NumberField K]
+    {n : Type} [Fintype n] [DecidableEq n]
+    (R : ProartinianCat 𝓞)
+    (tau tau' : (repnFunctor n (Field.absoluteGaloisGroup K) 𝓞).obj R)
+    (hgen : (toFramedGaloisRep tau).IsTopologicallyTraceGenerated (k := 𝓞))
+    (h : (toRepnQuot n (Field.absoluteGaloisGroup K) 𝓞).app R tau =
+      (toRepnQuot n (Field.absoluteGaloisGroup K) 𝓞).app R tau') :
+    (toFramedGaloisRep tau').IsTopologicallyTraceGenerated (k := 𝓞) := by
+  rw [FramedGaloisRep.IsTopologicallyTraceGenerated] at hgen ⊢
+  rw [← traceSet_toFramedGaloisRep_eq_of_toRepnQuot_eq R tau tau' h]
+  exact hgen
+
 /-- Writing a representation supplied by `repnFunctor` as endomorphisms and then converting
 back to matrices returns its original matrices. -/
 theorem matrixMonoidHom_toRepresentation_apply
