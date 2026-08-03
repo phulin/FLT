@@ -218,6 +218,70 @@ def hardlyRamifiedUniversalElement :
   (hardlyRamifiedUniversalRingCorepresentableBy 𝓞 p hpodd ρ hρ).homEquiv
     (𝟙 (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ))
 
+/-- The unique classifying morphism attached to a hardly ramified deformation class over a
+pro-Artinian coefficient algebra. -/
+def hardlyRamifiedClassifyingMap {A : ProartinianCat 𝓞}
+    (x : (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.obj A) :
+    hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ ⟶ A :=
+  (hardlyRamifiedUniversalRingCorepresentableBy 𝓞 p hpodd ρ hρ).homEquiv.symm x
+
+/-- Mapping the universal deformation class along its classifying morphism recovers the
+prescribed class. -/
+theorem hardlyRamifiedUniversalElement_map_classifyingMap {A : ProartinianCat 𝓞}
+    (x : (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.obj A) :
+    (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.map
+        (hardlyRamifiedClassifyingMap 𝓞 p hpodd ρ hρ x)
+        (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ) = x := by
+  unfold hardlyRamifiedClassifyingMap hardlyRamifiedUniversalElement
+  rw [← (hardlyRamifiedUniversalRingCorepresentableBy
+    𝓞 p hpodd ρ hρ).homEquiv_eq]
+  exact (hardlyRamifiedUniversalRingCorepresentableBy
+    𝓞 p hpodd ρ hρ).homEquiv.apply_symm_apply x
+
+/-- The classifying morphism is the only morphism carrying the universal deformation class to
+the prescribed class. -/
+theorem hardlyRamifiedClassifyingMap_unique {A : ProartinianCat 𝓞}
+    (x : (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.obj A)
+    (f : hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ ⟶ A)
+    (hf : (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.map f
+      (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ) = x) :
+    f = hardlyRamifiedClassifyingMap 𝓞 p hpodd ρ hρ x := by
+  apply (hardlyRamifiedUniversalRingCorepresentableBy
+    𝓞 p hpodd ρ hρ).homEquiv.injective
+  calc
+    (hardlyRamifiedUniversalRingCorepresentableBy
+        𝓞 p hpodd ρ hρ).homEquiv f =
+        (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.map f
+          (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ) := by
+            rw [(hardlyRamifiedUniversalRingCorepresentableBy
+              𝓞 p hpodd ρ hρ).homEquiv_eq]
+            rfl
+    _ = x := hf
+    _ = (hardlyRamifiedUniversalRingCorepresentableBy
+        𝓞 p hpodd ρ hρ).homEquiv
+          (hardlyRamifiedClassifyingMap 𝓞 p hpodd ρ hρ x) :=
+      ((hardlyRamifiedUniversalRingCorepresentableBy
+        𝓞 p hpodd ρ hρ).homEquiv.apply_symm_apply x).symm
+
+/-- Rigidity of the universal object: an endomorphism that fixes the universal deformation
+class is the identity.  This is the Yoneda step used after descending the universal
+representation to its closed trace algebra. -/
+theorem hardlyRamifiedUniversalEndomorphism_eq_id
+    (f : hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ ⟶
+      hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ)
+    (hf : (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.map f
+      (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ) =
+        hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ) :
+    f = 𝟙 (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ) := by
+  apply (hardlyRamifiedClassifyingMap_unique 𝓞 p hpodd ρ hρ
+    (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ) f hf).trans
+  symm
+  apply hardlyRamifiedClassifyingMap_unique
+  exact ConcreteCategory.congr_hom
+    ((hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.map_id
+      (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ))
+    (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ)
+
 /-- A matrix-valued representative of the universal unframed minimal deformation.  Membership
 in `hardlyRamifiedDeformationFunctor` supplies a representative which already satisfies both
 the residual and hardly ramified conditions. -/
