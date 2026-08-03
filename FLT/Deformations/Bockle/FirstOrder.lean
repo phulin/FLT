@@ -890,6 +890,63 @@ lemma firstOrderAdjointMatrixOfLift_trace
     have := congrArg LinearMap.det hinv
     simp [map_mul, hzero] at this
   exact (mul_eq_zero.mp hmul).resolve_right hdet_ne
+/-- Package the extracted trace-zero matrix as a vector in the residual adjoint
+representation. -/
+noncomputable def firstOrderAdjointTopRepOfLift
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g))) (g : G) :
+    Representation.traceZeroAdjointTopRep rho :=
+  (Representation.traceZeroAdjointTopRepLinearEquiv rho).symm
+    ⟨(firstOrderAdjointMatrixOfLift rho tau g).toLin', by
+      change LinearMap.trace k (Fin 2 → k)
+        (firstOrderAdjointMatrixOfLift rho tau g).toLin' = 0
+      rw [Matrix.trace_toLin'_eq]
+      exact firstOrderAdjointMatrixOfLift_trace rho tau hred hdet g⟩
+
+@[simp]
+lemma firstOrderAdjointTopRepOfLift_toEnd
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g))) (g : G) :
+    Representation.traceZeroAdjointTopRepToEnd rho
+        (firstOrderAdjointTopRepOfLift rho tau hred hdet g) =
+      (firstOrderAdjointMatrixOfLift rho tau g).toLin' := by
+  rw [Representation.traceZeroAdjointTopRepToEnd_apply]
+  unfold firstOrderAdjointTopRepOfLift
+  rw [LinearEquiv.apply_symm_apply]
+
+/-- The packaged extracted adjoint vectors satisfy the crossed-homomorphism identity. -/
+lemma firstOrderAdjointTopRepOfLift_map_mul
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g))) (g h : G) :
+    firstOrderAdjointTopRepOfLift rho tau hred hdet (g * h) =
+      (Representation.traceZeroAdjointTopRep rho).ρ g
+          (firstOrderAdjointTopRepOfLift rho tau hred hdet h) +
+        firstOrderAdjointTopRepOfLift rho tau hred hdet g := by
+  apply Representation.traceZeroAdjointTopRepToEnd_injective rho
+  rw [map_add, Representation.traceZeroAdjointTopRepToEnd_action,
+    firstOrderAdjointTopRepOfLift_toEnd, firstOrderAdjointTopRepOfLift_toEnd,
+    firstOrderAdjointTopRepOfLift_toEnd]
+  have hmatrix := firstOrderAdjointMatrixOfLift_map_mul rho tau hred g h
+  have hlin := congrArg
+    (fun A : Matrix (Fin 2) (Fin 2) k ↦ A.toLin') hmatrix
+  have hR (x : G) :
+      Matrix.toLin' (LinearMap.toMatrixAlgEquiv' (rho x)) = rho x :=
+    Matrix.toLinAlgEquiv'_toMatrixAlgEquiv' (rho x)
+  simpa only [map_add, Matrix.toLin'_mul, Module.End.mul_eq_comp,
+    hR] using hlin
+
 end RankTwo
 
 section RepresentationFunctor
