@@ -172,6 +172,10 @@ variable {k G : Type u} [Field k] [Group G]
   [TopologicalSpace k] [DiscreteTopology k]
   [TopologicalSpace G] [IsTopologicalGroup G]
 
+/-- The coefficientwise product topology on the dual numbers. -/
+local instance dualNumberTopology : TopologicalSpace (DualNumber k) :=
+  inferInstanceAs (TopologicalSpace (k × k))
+
 /-- The endomorphism-valued first-order representation attached to a trace-zero adjoint
 cocycle. -/
 noncomputable def bockleFirstOrderEndMonoidHom
@@ -412,6 +416,21 @@ noncomputable def bockleFirstOrderMatrixMonoidHom
     G →* Matrix (Fin 2) (Fin 2) (DualNumber k) :=
   endDualNumberToMatrixMonoidHom.comp (bockleFirstOrderEndMonoidHom rho σ)
 
+/-- The matrix-valued first-order representation lands in `GL₂(k[ε])`.  No determinant
+calculation is needed for invertibility here: a monoid homomorphism out of a group carries every
+element to a unit. -/
+noncomputable def bockleFirstOrderGLMonoidHom
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) :
+    G →* GL (Fin 2) (DualNumber k) :=
+  (bockleFirstOrderMatrixMonoidHom rho σ).toHomUnits
+
+@[simp]
+lemma bockleFirstOrderGLMonoidHom_val
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    (bockleFirstOrderGLMonoidHom rho σ g : Matrix (Fin 2) (Fin 2) (DualNumber k)) =
+      bockleFirstOrderMatrixMonoidHom rho σ g :=
+  rfl
+
 /-- A coboundary changes the constant matrix lift by a strict first-order conjugation. -/
 theorem bockleFirstOrderMatrixMonoidHom_eq_conj_of_isCoboundary
     (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
@@ -475,6 +494,82 @@ lemma bockleFirstOrderMatrixMonoidHom_eq_dualNumberOfParts
   · rfl
   · simp [bockleAdjointMatrix]
 
+/-- Killing the dual-number direction recovers the original representation. -/
+lemma bockleFirstOrderMatrixMonoidHom_map_fst
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    (bockleFirstOrderMatrixMonoidHom rho σ g).map
+        (TrivSqZeroExt.fstHom k k k).toRingHom =
+      LinearMap.toMatrixAlgEquiv' (rho g) := by
+  rw [bockleFirstOrderMatrixMonoidHom_eq_dualNumberOfParts]
+  ext i j
+  rfl
+
+/-- The matrix coefficients of the trace-zero adjoint cocycle vary continuously. -/
+lemma continuous_bockleAdjointMatrix
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) :
+    Continuous (fun g ↦ bockleAdjointMatrix rho σ g) := by
+  letI : DiscreteTopology (Representation.traceZeroAdjointTopRep rho) := ⟨rfl⟩
+  have hσ : Continuous (fun g ↦ σ g) :=
+    (ContinuousCohomology.Cocycles₁.toInhomogeneous
+      (Representation.traceZeroAdjointTopRep rho) σ).continuous
+  have htoMatrix : Continuous (fun x : Representation.traceZeroAdjointTopRep rho ↦
+      LinearMap.toMatrixAlgEquiv'
+        (Representation.traceZeroAdjointTopRepToEnd rho x)) :=
+    continuous_of_discreteTopology
+  exact htoMatrix.comp hσ
+
+/-- Continuity of the residual matrix representation promotes the first-order formula to a
+continuous matrix-valued representation. -/
+lemma continuous_bockleFirstOrderMatrixMonoidHom
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) :
+    Continuous (bockleFirstOrderMatrixMonoidHom rho σ) := by
+  apply continuous_matrix
+  intro i j
+  have hinf : Continuous (fun g ↦
+      (bockleAdjointMatrix rho σ g * LinearMap.toMatrixAlgEquiv' (rho g)) i j) :=
+    ((continuous_bockleAdjointMatrix rho σ).matrix_mul hrho).matrix_elem i j
+  have hconst : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g) i j) :=
+    hrho.matrix_elem i j
+  simp only [bockleFirstOrderMatrixMonoidHom_eq_dualNumberOfParts,
+    Matrix.dualNumberOfParts_apply]
+  change Continuous (fun g ↦
+    ((LinearMap.toMatrixAlgEquiv' (rho g) i j,
+      (bockleAdjointMatrix rho σ g * LinearMap.toMatrixAlgEquiv' (rho g)) i j) : k × k))
+  exact hconst.prodMk hinf
+
+/-- The continuous matrix-valued first-order representation. -/
+noncomputable def bockleFirstOrderMatrixContinuousMonoidHom
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) :
+    G →ₜ* Matrix (Fin 2) (Fin 2) (DualNumber k) :=
+  ⟨bockleFirstOrderMatrixMonoidHom rho σ,
+    continuous_bockleFirstOrderMatrixMonoidHom rho σ hrho⟩
+
+@[simp]
+lemma bockleFirstOrderMatrixContinuousMonoidHom_apply
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) (g : G) :
+    bockleFirstOrderMatrixContinuousMonoidHom rho σ hrho g =
+      bockleFirstOrderMatrixMonoidHom rho σ g :=
+  rfl
+
+/-- A continuous `GL₂(k[ε])` representation attached to an adjoint cocycle. -/
+noncomputable def bockleFirstOrderGLContinuousMonoidHom
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) :
+    G →ₜ* GL (Fin 2) (DualNumber k) :=
+  (bockleFirstOrderMatrixContinuousMonoidHom rho σ hrho).toHomUnits
+
+@[simp]
+lemma bockleFirstOrderGLContinuousMonoidHom_val
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) (g : G) :
+    (bockleFirstOrderGLContinuousMonoidHom rho σ hrho g :
+        Matrix (Fin 2) (Fin 2) (DualNumber k)) =
+      bockleFirstOrderMatrixMonoidHom rho σ g :=
+  rfl
+
 /-- The first-order representation factors as `(1 + ε c(g)) · rho(g)`. -/
 lemma bockleFirstOrderMatrixMonoidHom_factor
     (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
@@ -495,6 +590,38 @@ theorem bockleFirstOrderMatrixMonoidHom_det
     Matrix.det_dualNumberOfParts_zero, one_mul]
   congr 1
   simp [LinearMap.toMatrixAlgEquiv', LinearMap.det_toMatrix']
+
+/-- The continuous `GL₂` lift has the prescribed (constant) determinant. -/
+lemma bockleFirstOrderGLContinuousMonoidHom_det
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho)
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) (g : G) :
+    (bockleFirstOrderGLContinuousMonoidHom rho σ hrho g :
+        Matrix (Fin 2) (Fin 2) (DualNumber k)).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g)) := by
+  rw [bockleFirstOrderGLContinuousMonoidHom_val]
+  exact bockleFirstOrderMatrixMonoidHom_det rho σ g
+
+/-- The continuous first-order deformation corresponding to a chosen tangent-basis vector. -/
+noncomputable def bockleTangentBasisFirstOrderGL
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleTangentSpace rho)]
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g)))
+    (i : Fin (BockleTangentParameterCount rho)) :
+    G →ₜ* GL (Fin 2) (DualNumber k) :=
+  bockleFirstOrderGLContinuousMonoidHom rho
+    (bockleTangentCocycleRepresentative rho i) hrho
+
+@[simp]
+lemma bockleTangentBasisFirstOrderGL_val
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleTangentSpace rho)]
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g)))
+    (i : Fin (BockleTangentParameterCount rho)) (g : G) :
+    (bockleTangentBasisFirstOrderGL rho hrho i g :
+        Matrix (Fin 2) (Fin 2) (DualNumber k)) =
+      bockleFirstOrderMatrixMonoidHom rho
+        (bockleTangentCocycleRepresentative rho i) g :=
+  rfl
 
 end RankTwo
 
