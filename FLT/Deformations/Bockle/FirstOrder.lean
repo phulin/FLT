@@ -6,6 +6,7 @@ Authors: The FLT Project
 module
 
 public import FLT.Deformations.Bockle.Cohomology
+public import FLT.Deformations.DualNumber
 public import FLT.Mathlib.LinearAlgebra.Matrix.DualNumber
 
 /-!
@@ -171,10 +172,6 @@ section RankTwo
 variable {k G : Type u} [Field k] [Group G]
   [TopologicalSpace k] [DiscreteTopology k]
   [TopologicalSpace G] [IsTopologicalGroup G]
-
-/-- The coefficientwise product topology on the dual numbers. -/
-local instance dualNumberTopology : TopologicalSpace (DualNumber k) :=
-  inferInstanceAs (TopologicalSpace (k × k))
 
 /-- The endomorphism-valued first-order representation attached to a trace-zero adjoint
 cocycle. -/
