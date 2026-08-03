@@ -9,6 +9,7 @@ public import FLT.GaloisRepresentation.HardlyRamified.ModThree
 public import FLT.Deformations.CoefficientRing
 public import FLT.Deformations.HardlyRamified
 public import FLT.Deformations.RepresentationTheory.Irreducible
+public import FLT.Deformations.Bockle
 public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
 import Mathlib.RingTheory.RootsOfUnity.Complex
@@ -16,7 +17,6 @@ import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 import Mathlib.NumberTheory.Padics.ProperSpace
 import Mathlib.Topology.MetricSpace.Ultra.TotallySeparated
 import FLT.Deformations.CharacteristicZeroPoint
-import FLT.Mathlib.RingTheory.Flat.TorsionFree
 import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 
 /-!
@@ -136,15 +136,6 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
   exact Representation.IsAbsolutelyIrreducible.of_finrank_eigenspace_eq_one
     ρ.toRepresentation hρirred hc_fixed
 
-/-- The output of the finiteness and Böckle-presentation argument needed before the final
-DVR commutative-algebra step.  Finiteness is the conclusion of Khare--Wintenberger,
-Proposition 3.8, obtained by potential modularity and the totally-real `R = T` theorems.
-The regular action of a uniformizer is the consequence of their balanced presentation
-(Proposition 3.4) used in the proof of Theorem 3.7. -/
-def HasBockleFinitenessData
-    (R D : Type u) [CommRing R] [CommRing D] [Algebra R D] : Prop :=
-  ∃ π : R, Irreducible π ∧ Module.Finite R D ∧ IsSMulRegular D π
-
 /-- The remaining modern arithmetic input for hardly ramified lifts, stated at the exact point
 where the potential-modularity finiteness argument and Böckle's balanced-presentation argument
 meet the formal DVR algebra.  Flatness and the topology are derived below rather than included
@@ -163,7 +154,7 @@ theorem exists_hardlyRamifiedBockleFinitenessData (hp : 3 < p)
     (hrhoRes : rhoRes ∈
       (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
     let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
-    HasBockleFinitenessData R D := by
+    Nonempty (Deformation.BockleFinitenessData R D) := by
   sorry
 
 /-- Finiteness plus the regular action of a uniformizer imply flatness over the coefficient DVR.
@@ -185,10 +176,9 @@ theorem hardlyRamifiedUniversalRing_finiteFlat_arithmetic (hp : 3 < p)
     let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
     Module.Finite R D ∧ Module.Flat R D := by
   let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
-  obtain ⟨π, hπ, hfinite, hregular⟩ :=
-    exists_hardlyRamifiedBockleFinitenessData hpodd hp R rhoRes hrhoRes
+  obtain ⟨h⟩ := exists_hardlyRamifiedBockleFinitenessData hpodd hp R rhoRes hrhoRes
   change Module.Finite R D ∧ Module.Flat R D
-  exact ⟨hfinite, Module.Flat.of_isSMulRegular_irreducible hπ hregular⟩
+  exact ⟨h.finite, h.flat⟩
 
 /-- Finite-flatness supplies all the data formerly bundled into the modern input.  In
 particular, the topology of the universal pro-Artinian ring is forced to be its finite-module
