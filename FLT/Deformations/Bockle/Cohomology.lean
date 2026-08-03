@@ -5,6 +5,7 @@ Authors: The FLT Project
 -/
 module
 
+public import FLT.Deformations.Bockle
 public import FLT.Deformations.RepresentationTheory.Adjoint
 public import FLT.Deformations.RepresentationTheory.Carayol
 public import Mathlib.RepresentationTheory.Invariants
@@ -140,5 +141,76 @@ noncomputable abbrev BockleTangentSpace
 noncomputable abbrev BockleObstructionSpace
     (rho : Representation k G (Fin 2 → k)) : TopModuleCat k :=
   BockleAdjointCohomology 2 rho
+
+end Deformation
+
+namespace Deformation
+
+variable {R D k G : Type u} [CommRing R] [IsLocalRing R] [IsNoetherianRing R]
+  [CommRing D] [Algebra R D]
+  [Field k] [TopologicalSpace k] [DiscreteTopology k]
+  [Group G] [TopologicalSpace G] [IsTopologicalGroup G]
+
+/-- The precise tangent--obstruction data needed to turn cohomological deformation theory
+into a balanced power-series presentation.  Keeping the power-series map, obstruction map,
+the two dimension identifications, and the Euler-characteristic inequality as separate fields
+makes each arithmetic ingredient independently replaceable by a theorem. -/
+structure BockleCohomologicalPresentationInput
+    (rho : Representation k G (Fin 2 → k)) where
+  /-- The number of parameters chosen from the tangent space. -/
+  numVariables : ℕ
+  /-- The map from the resulting power-series ring to the universal deformation ring. -/
+  powerSeriesMap : MvPowerSeries (Fin numVariables) R →ₐ[R] D
+  /-- Tangent parameters topologically generate the universal ring. -/
+  powerSeriesMap_surjective : Function.Surjective powerSeriesMap
+  /-- A scalar-compatible realization of the obstruction group. -/
+  obstructionSpace : Type u
+  [obstructionAddCommGroup : AddCommGroup obstructionSpace]
+  [obstructionModule :
+    Module (BocklePowerSeriesResidueField R numVariables) obstructionSpace]
+  [obstructionFinite :
+    Module.Finite (BocklePowerSeriesResidueField R numVariables) obstructionSpace]
+  /-- Böckle's map from minimal relations to deformation obstructions. -/
+  obstructionMap :
+    Ideal.RelationSpace (RingHom.ker powerSeriesMap.toRingHom) →ₗ[
+      BocklePowerSeriesResidueField R numVariables] obstructionSpace
+  /-- A relation with zero obstruction was not minimal. -/
+  obstructionMap_injective : Function.Injective obstructionMap
+  /-- The chosen variables form a basis of the tangent space. -/
+  tangent_finrank_eq : Module.finrank k (BockleTangentSpace rho) = numVariables
+  /-- The scalar-compatible obstruction model has the dimension of `H²(G, ad⁰(ρ))`. -/
+  obstruction_finrank_eq :
+    Module.finrank (BocklePowerSeriesResidueField R numVariables) obstructionSpace =
+      Module.finrank k (BockleObstructionSpace rho)
+  /-- The global/local Euler-characteristic calculation gives the balanced inequality. -/
+  obstruction_finrank_le_tangent_finrank :
+    Module.finrank k (BockleObstructionSpace rho) ≤
+      Module.finrank k (BockleTangentSpace rho)
+
+attribute [instance]
+  BockleCohomologicalPresentationInput.obstructionAddCommGroup
+  BockleCohomologicalPresentationInput.obstructionModule
+  BockleCohomologicalPresentationInput.obstructionFinite
+
+/-- The cohomological dimension identities reduce Böckle's numerical condition to the
+Euler-characteristic inequality. -/
+theorem BockleCohomologicalPresentationInput.obstruction_finrank_le_numVariables
+    {rho : Representation k G (Fin 2 → k)}
+    (P : BockleCohomologicalPresentationInput (R := R) (D := D) rho) :
+    Module.finrank (BocklePowerSeriesResidueField R P.numVariables) P.obstructionSpace ≤
+      P.numVariables := by
+  rw [P.obstruction_finrank_eq, ← P.tangent_finrank_eq]
+  exact P.obstruction_finrank_le_tangent_finrank
+
+/-- Böckle's commutative-algebra theorem consumes the decomposed cohomological data and
+produces the balanced presentation. -/
+theorem BockleCohomologicalPresentationInput.exists_bocklePresentation
+    {rho : Representation k G (Fin 2 → k)}
+    (P : BockleCohomologicalPresentationInput (R := R) (D := D) rho) :
+    Nonempty (BocklePresentation R D) := by
+  exact exists_bocklePresentation_of_surjective_of_obstructionMap
+    P.numVariables P.powerSeriesMap P.powerSeriesMap_surjective
+      P.obstructionMap P.obstructionMap_injective
+      P.obstruction_finrank_le_numVariables
 
 end Deformation
