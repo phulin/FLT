@@ -7,8 +7,11 @@ module
 
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import Mathlib.LinearAlgebra.Matrix.BilinearForm
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.LinearAlgebra.Matrix.StdBasis
 public import Mathlib.RepresentationTheory.AlgebraRepresentation.Basic
 public import Mathlib.RingTheory.LocalRing.ResidueField.Basic
+public import Mathlib.RingTheory.LocalRing.RingHom.Basic
 
 /-!
 # The linear-algebra core of Carayol descent
@@ -115,6 +118,105 @@ theorem isUnit_det_tracePairingMatrix_of_residue_basis
     simp [tracePairingMatrix, hbbar]
   rw [hmatrix]
   exact det_tracePairing_toMatrix_ne_zero bbar
+
+/-- A square family of matrices whose trace-pairing determinant is a unit is a basis of the
+full matrix algebra.  This is the determinant form of the Nakayama step in Carayol's
+argument. -/
+theorem exists_basis_eq_of_isUnit_det_tracePairingMatrix
+    {A : Type*} [CommRing A] [Fintype n] [DecidableEq n]
+    (b : n × n → Matrix n n A) (hunit : IsUnit (tracePairingMatrix b).det) :
+    ∃ bA : Basis (n × n) A (Matrix n n A), ∀ ij, bA ij = b ij := by
+  classical
+  let e : Basis (n × n) A (Matrix n n A) := Matrix.stdBasis A n n
+  let C : Matrix (n × n) (n × n) A := e.toMatrix b
+  let K : Matrix (n × n) (n × n) A :=
+    LinearMap.BilinForm.toMatrix e (tracePairing A n)
+  let F : Matrix n n A →ₗ[A] Matrix n n A := e.constr ℕ b
+  have hFmatrix : LinearMap.toMatrix e e F = C := by
+    exact (e.toMatrix_eq_toMatrix_constr b).symm
+  have hgram : Cᵀ * K * C = tracePairingMatrix b := by
+    calc
+      Cᵀ * K * C =
+          LinearMap.BilinForm.toMatrix e ((tracePairing A n).comp F F) := by
+        rw [← hFmatrix]
+        exact (LinearMap.BilinForm.toMatrix_comp (b := e) (c := e)
+          (tracePairing A n) F F).symm
+      _ = tracePairingMatrix b := by
+        ext i j
+        simp [F, LinearMap.BilinForm.toMatrix_apply, tracePairingMatrix,
+          LinearMap.BilinForm.comp_apply]
+  have hdet : IsUnit (Cᵀ * K * C).det := hgram.symm ▸ hunit
+  rw [Matrix.det_mul, Matrix.det_mul, Matrix.det_transpose] at hdet
+  have hCunit : IsUnit C.det := isUnit_of_mul_isUnit_right hdet
+  have hb := (Basis.is_basis_iff_det e).mpr hCunit
+  let bA : Basis (n × n) A (Matrix n n A) := Basis.mk hb.1 hb.2.ge
+  exact ⟨bA, fun ij ↦ by simp [bA]⟩
+
+/-- The trace pairings of a matrix with the members of a matrix basis are obtained by
+multiplying its coordinate row by the trace-pairing matrix. -/
+theorem repr_vecMul_tracePairingMatrix
+    {A : Type*} [CommRing A] [Fintype n]
+    {i : Type*} [Fintype i] (b : Basis i A (Matrix n n A))
+    (x : Matrix n n A) :
+    (fun r ↦ b.repr x r) ᵥ* tracePairingMatrix b =
+      fun s ↦ Matrix.trace (x * b s) := by
+  funext s
+  change (∑ r, b.repr x r * Matrix.trace (b r * b s)) = Matrix.trace (x * b s)
+  calc
+    _ = ∑ r, Matrix.trace ((b.repr x r • b r) * b s) := by
+      apply Finset.sum_congr rfl
+      intro r _
+      simp
+    _ = Matrix.trace ((∑ r, b.repr x r • b r) * b s) := by
+      rw [Finset.sum_mul, Matrix.trace_sum]
+    _ = Matrix.trace (x * b s) := by rw [b.sum_repr]
+
+/-- Coefficients with respect to a trace-nondegenerate matrix basis descend to a local
+subalgebra as soon as the relevant pairwise traces do.  This is the linear-system step in
+Carayol descent. -/
+theorem repr_mem_localSubalgebra_of_trace_mem
+    {k A : Type*} [CommRing k] [CommRing A] [Algebra k A]
+    [Fintype n] {i : Type*} [Fintype i] [DecidableEq i]
+    (S : Subalgebra k A) [IsLocalRing S] [IsLocalHom S.val]
+    (b : Basis i A (Matrix n n A))
+    (hunit : IsUnit (tracePairingMatrix b).det)
+    (hpair : ∀ r s, Matrix.trace (b r * b s) ∈ S)
+    (x : Matrix n n A) (htrace : ∀ s, Matrix.trace (x * b s) ∈ S) :
+    ∀ r, b.repr x r ∈ S := by
+  let G : Matrix i i S := fun r s ↦ ⟨Matrix.trace (b r * b s), hpair r s⟩
+  let t : i → S := fun s ↦ ⟨Matrix.trace (x * b s), htrace s⟩
+  let f : S →+* A := S.val
+  have hGmap : G.map f = tracePairingMatrix b := by
+    ext r s
+    rfl
+  have hdet_map : f G.det = (tracePairingMatrix b).det := by
+    rw [RingHom.map_det]
+    exact congrArg Matrix.det hGmap
+  have hGdet : IsUnit G.det := by
+    apply isUnit_of_map_unit f
+    rwa [hdet_map]
+  let c : i → S := t ᵥ* G⁻¹
+  have hc : c ᵥ* G = t := by
+    simp [c, Matrix.vecMul_vecMul, Matrix.nonsing_inv_mul G hGdet]
+  have hcmap :
+      (fun r ↦ f (c r)) ᵥ* tracePairingMatrix b =
+        fun s ↦ Matrix.trace (x * b s) := by
+    rw [← hGmap]
+    funext s
+    calc
+      ((fun r ↦ f (c r)) ᵥ* G.map f) s = f ((c ᵥ* G) s) :=
+        (RingHom.map_vecMul f G c s).symm
+      _ = f (t s) := by rw [hc]
+      _ = Matrix.trace (x * b s) := rfl
+  have hcoeff : (fun r ↦ f (c r)) = fun r ↦ b.repr x r := by
+    have hinj : Function.Injective (tracePairingMatrix b).vecMul :=
+      Matrix.vecMul_injective_of_isUnit
+        ((Matrix.isUnit_iff_isUnit_det (tracePairingMatrix b)).mpr hunit)
+    apply hinj
+    exact hcmap.trans (repr_vecMul_tracePairingMatrix b x).symm
+  intro r
+  rw [← congrFun hcoeff r]
+  exact (c r).2
 
 /-! ## Extracting a matrix basis from the image of a representation -/
 
