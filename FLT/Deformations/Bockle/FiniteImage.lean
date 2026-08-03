@@ -8,6 +8,7 @@ module
 public import FLT.Deformations.Bockle
 public import FLT.Deformations.FiniteImage
 public import FLT.Deformations.IsProartinian
+public import FLT.KnownIn1980s.CommutativeAlgebra.PowerSeries
 public import FLT.Mathlib.RingTheory.MvPowerSeries.KrullDimension
 public import Mathlib.RingTheory.DiscreteValuationRing.TFAE
 public import Mathlib.RingTheory.HopkinsLevitzki
@@ -223,10 +224,25 @@ theorem BocklePresentation.relations_length_eq_numVariables_of_finite_modScalar
   apply Nat.le_antisymm P.relations_le_variables
   omega
 
+/-- Finite reduction modulo a uniformizer turns the relations together with the uniformizer
+into a system of parameters.  The classical Cohen--Macaulay theorem for power-series rings over
+a DVR therefore makes this list weakly regular. -/
+theorem BocklePresentation.isRegularAt_of_finite_modScalar
+    (P : BocklePresentation R D) (pi : R) (hpi : Irreducible pi)
+    [Finite (ModScalarRing (D := D) pi)] :
+    P.IsRegularAt pi := by
+  let A := MvPowerSeries (Fin P.numVariables) R
+  let rs : List A := P.relations ++ [algebraMap R A pi]
+  apply MvPowerSeries.isWeaklyRegular_of_length_eq_dimension_of_radical_eq_maximalIdeal
+    R P.numVariables rs
+  · simp only [rs, List.length_append, List.length_singleton]
+    rw [P.relations_length_eq_numVariables_of_finite_modScalar pi hpi]
+  · exact P.radical_relationScalarIdeal_eq_maximalIdeal pi hpi
+
 /-- The decomposed arithmetic and commutative-algebra data needed in Böckle's argument.
 Unlike `BockleFinitenessData`, this structure does not assume module finiteness or regularity:
-module finiteness is derived topologically, and regularity is required only as a consequence of
-the already-derived finiteness modulo a uniformizer. -/
+module finiteness is derived topologically, and regularity follows from the finite scalar
+reduction by the classical system-of-parameters theorem. -/
 structure BockleArithmeticData (rho : FramedGaloisRep K D n) where
   /-- Böckle's balanced power-series presentation. -/
   presentation : BocklePresentation R D
@@ -234,10 +250,6 @@ structure BockleArithmeticData (rho : FramedGaloisRep K D n) where
   uniformizer : R
   /-- Potential modularity and Carayol trace generation data. -/
   finiteImage : ModScalarFiniteImageData rho uniformizer
-  /-- The Cohen--Macaulay/system-of-parameters step in the balanced presentation. -/
-  regularAt_of_modScalarFinite :
-    Finite (ModScalarRing (D := D) uniformizer) →
-      presentation.IsRegularAt uniformizer
 
 /-- Assemble the usual Böckle finiteness data after deriving finiteness modulo the uniformizer
 from the finite-image criterion. -/
@@ -255,6 +267,7 @@ noncomputable def BockleArithmeticData.toBockleFinitenessData
       uniformizer_irreducible := h.finiteImage.uniformizer_irreducible
       finite := moduleFinite_of_finite_modScalar h.uniformizer
         h.finiteImage.uniformizer_irreducible
-      regularAt := h.regularAt_of_modScalarFinite hmod }
+      regularAt := h.presentation.isRegularAt_of_finite_modScalar h.uniformizer
+        h.finiteImage.uniformizer_irreducible }
 
 end Deformation
