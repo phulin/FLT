@@ -6,6 +6,7 @@ Authors: The FLT Project
 module
 
 public import Mathlib.RingTheory.MvPowerSeries.Equiv
+public import Mathlib.Algebra.Module.SpanRankOperations
 public import Mathlib.RingTheory.Ideal.Quotient.Noetherian
 public import Mathlib.RingTheory.Regular.RegularSequence
 public import FLT.Mathlib.RingTheory.Flat.TorsionFree
@@ -34,6 +35,20 @@ universe u
 actual relations needed by a power-series presentation, including their cardinality bound. -/
 def Ideal.IsGeneratedByAtMost {A : Type*} [CommRing A] (I : Ideal A) (n : ℕ) : Prop :=
   ∃ relations : List A, relations.length ≤ n ∧ Ideal.ofList relations = I
+
+/-- A bound on the minimum number of module generators of a finitely generated ideal produces
+an actual list of ideal generators satisfying the same bound.  This is the commutative-algebra
+bridge from an obstruction-space dimension estimate to the relation list in a Böckle
+presentation. -/
+theorem Ideal.IsGeneratedByAtMost.of_spanFinrank_le
+    {A : Type*} [CommRing A] (I : Ideal A) (hI : Submodule.FG I) {n : ℕ}
+    (h : I.spanFinrank ≤ n) : Ideal.IsGeneratedByAtMost I n := by
+  classical
+  obtain ⟨relations, hcard, hspan⟩ :=
+    Submodule.FG.exists_span_finset_card_eq_spanFinrank hI
+  refine ⟨relations.toList, ?_, ?_⟩
+  · simpa [hcard] using h
+  · simpa [Ideal.ofList, Ideal.submodule_span_eq] using hspan
 
 /-- A balanced power-series presentation of an `R`-algebra.  The inequality between the
 number of relations and variables is the output of Böckle's obstruction-theory argument. -/
@@ -111,6 +126,21 @@ theorem exists_bocklePresentation_of_surjective_of_kernel_generatedByAtMost
   obtain ⟨P⟩ := exists_bocklePresentationInput_of_surjective_of_kernel_generatedByAtMost
     numVariables f hf hker
   exact ⟨P.toBocklePresentation⟩
+
+/-- Böckle's presentation follows directly from a surjective power-series map once obstruction
+theory bounds the minimum number of generators of its kernel by the number of tangent
+parameters.  No choice of relations is needed in the statement: Noetherianity extracts a
+minimal finite generating list. -/
+theorem exists_bocklePresentation_of_surjective_of_kernel_spanFinrank_le
+    {R D : Type u} [CommRing R] [IsNoetherianRing R] [CommRing D] [Algebra R D]
+    (numVariables : ℕ)
+    (f : MvPowerSeries (Fin numVariables) R →ₐ[R] D)
+    (hf : Function.Surjective f)
+    (hker : (RingHom.ker f.toRingHom).spanFinrank ≤ numVariables) :
+    Nonempty (BocklePresentation R D) :=
+  exists_bocklePresentation_of_surjective_of_kernel_generatedByAtMost numVariables f hf <|
+    Ideal.IsGeneratedByAtMost.of_spanFinrank_le _
+      (IsNoetherian.noetherian (RingHom.ker f.toRingHom)) hker
 
 /-- A finite-variable Böckle presentation over a Noetherian coefficient ring makes the
 presented deformation ring Noetherian. -/
