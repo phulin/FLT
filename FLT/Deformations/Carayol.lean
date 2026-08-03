@@ -21,7 +21,7 @@ forces it to be the whole deformation ring.
 
 @[expose] public section
 
-open IsLocalRing
+open CategoryTheory IsLocalRing
 
 namespace Subalgebra
 
@@ -468,6 +468,101 @@ theorem unrestrictedUniversalGaloisRep_exists_strict_conjugate_over_closedTraceA
   exact Matrix.exists_strict_conjugate_over_closed_local_subalgebra
     (ProartinianCat.toResidueField D).hom.toRingHom T
     (tau.isClosed_closedTraceAlgebra (q := 𝓞)) hsurj tau.GL g b hb hcoeff
+
+/-- The closed trace algebra of the unrestricted universal deformation is the entire
+universal ring.  The descended representation gives a deformation over the closed algebra;
+Yoneda rigidity then makes its inclusion split-surjective. -/
+theorem unrestrictedUniversalGaloisRep_closedTraceAlgebra_eq_top :
+    (unrestrictedUniversalGaloisRep 𝓞 K n rho).closedTraceAlgebra (q := 𝓞) = ⊤ := by
+  let D := unrestrictedUniversalRing 𝓞 K n rho
+  let tau := unrestrictedUniversalGaloisRep 𝓞 K n rho
+  let T := tau.closedTraceAlgebra (q := 𝓞)
+  letI : IsLocalProartinianAlgebra 𝓞 T :=
+    tau.closedTraceAlgebra_isLocalProartinianAlgebra (q := 𝓞)
+  let DT : ProartinianCat 𝓞 := ProartinianCat.of 𝓞 T
+  let i : DT ⟶ D :=
+    ⟨⟨T.val, continuous_subtype_val⟩⟩
+  obtain ⟨tauT, P, hP, hconj⟩ :=
+    unrestrictedUniversalGaloisRep_exists_strict_conjugate_over_closedTraceAlgebra
+      𝓞 K n rho
+  let tauTi : (repnFunctor n (Γ K) 𝓞).obj D :=
+    (repnFunctor n (Γ K) 𝓞).map i tauT
+  have hconj' : ∀ g, DFunLike.coe (F := Γ K →ₜ* GL n D) tau.GL g = P *
+      DFunLike.coe (F := Γ K →ₜ* GL n D) tauTi g * P⁻¹ := by
+    intro g
+    simpa only [tauTi, repnFunctor_map, i] using hconj g
+  have hstrict :
+      (toRepnQuot n (Γ K) 𝓞).app D tau.GL =
+        (toRepnQuot n (Γ K) 𝓞).app D tauTi :=
+    toRepnQuot_eq_of_strict_conjugate D tau.GL tauTi P hP hconj'
+  let xq : (repnQuotFunctor n (Γ K) 𝓞).obj DT :=
+    (toRepnQuot n (Γ K) 𝓞).app DT tauT
+  have hmapq : (repnQuotFunctor n (Γ K) 𝓞).map i xq =
+      (unrestrictedUniversalElement 𝓞 K n rho).1 := by
+    calc
+      (repnQuotFunctor n (Γ K) 𝓞).map i xq =
+          (toRepnQuot n (Γ K) 𝓞).app D tauTi := by
+        exact ((toRepnQuot n (Γ K) 𝓞).naturality_apply i tauT).symm
+      _ = (toRepnQuot n (Γ K) 𝓞).app D tau.GL := hstrict.symm
+      _ = (unrestrictedUniversalElement 𝓞 K n rho).1 := by
+        rw [show tau.GL = unrestrictedUniversalRepresentation 𝓞 K n rho by
+          exact FramedGaloisRep.GL.apply_symm_apply _]
+        exact unrestrictedUniversalRepresentation_toRepnQuot 𝓞 K n rho
+  have hmemD := (unrestrictedUniversalElement 𝓞 K n rho).2
+  change (repnQuotFunctor n (Γ K) 𝓞).map
+      (ProartinianCat.isTerminalResidueField.from D)
+      (unrestrictedUniversalElement 𝓞 K n rho).1 =
+    (toRepnQuot n (Γ K) 𝓞).app .residueField rho at hmemD
+  have hterminal :
+      (ProartinianCat.isTerminalResidueField.from DT : DT ⟶
+        ProartinianCat.residueField) =
+      CategoryTheory.CategoryStruct.comp i
+        (ProartinianCat.isTerminalResidueField.from D : D ⟶
+          ProartinianCat.residueField) :=
+    Subsingleton.elim _ _
+  have hmemT : xq ∈ (deformationFunctor n (Γ K) 𝓞 rho).obj DT := by
+    change (repnQuotFunctor n (Γ K) 𝓞).map
+        (ProartinianCat.isTerminalResidueField.from DT) xq =
+      (toRepnQuot n (Γ K) 𝓞).app .residueField rho
+    rw [hterminal]
+    calc
+      (repnQuotFunctor n (Γ K) 𝓞).map
+          (i ≫ ProartinianCat.isTerminalResidueField.from D) xq =
+          (repnQuotFunctor n (Γ K) 𝓞).map
+            (ProartinianCat.isTerminalResidueField.from D)
+            ((repnQuotFunctor n (Γ K) 𝓞).map i xq) := by
+        exact CategoryTheory.ConcreteCategory.congr_hom
+          ((repnQuotFunctor n (Γ K) 𝓞).map_comp i
+            (ProartinianCat.isTerminalResidueField.from D)) xq
+      _ = _ := by rw [hmapq, hmemD]
+  let x : (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.obj DT := ⟨xq, hmemT⟩
+  let c : D ⟶ DT := unrestrictedClassifyingMap 𝓞 K n rho x
+  have hclass := unrestrictedUniversalElement_map_classifyingMap 𝓞 K n rho x
+  have hfix : (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map (c ≫ i)
+      (unrestrictedUniversalElement 𝓞 K n rho) =
+        unrestrictedUniversalElement 𝓞 K n rho := by
+    calc
+      (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map (c ≫ i)
+          (unrestrictedUniversalElement 𝓞 K n rho) =
+          (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map i
+            ((deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map c
+              (unrestrictedUniversalElement 𝓞 K n rho)) := by
+        exact CategoryTheory.ConcreteCategory.congr_hom
+          ((deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map_comp c i)
+          (unrestrictedUniversalElement 𝓞 K n rho)
+      _ = (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map i x := by rw [hclass]
+      _ = unrestrictedUniversalElement 𝓞 K n rho := by
+        apply Subtype.ext
+        exact hmapq
+  have hci : c ≫ i = CategoryTheory.CategoryStruct.id D :=
+    unrestrictedUniversalEndomorphism_eq_id 𝓞 K n rho (c ≫ i) hfix
+  apply top_unique
+  intro d _hd
+  have happ := congrArg (fun f : D ⟶ D ↦ f.hom d) hci
+  change i.hom (c.hom d) = d at happ
+  change d ∈ T
+  rw [← happ]
+  exact (c.hom d).2
 
 end UnrestrictedUniversal
 
