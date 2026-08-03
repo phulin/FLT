@@ -7,6 +7,7 @@ module
 
 public import FLT.GaloisRepresentation.HardlyRamified.ModThree
 public import FLT.Deformations.CoefficientRing
+public import FLT.Deformations.HardlyRamified
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
@@ -134,12 +135,32 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
   exact Representation.IsAbsolutelyIrreducible.of_finrank_eigenspace_eq_one
     ρ.toRepresentation hρirred hc_fixed
 
+/-- The modern arithmetic input: the universal hardly ramified deformation ring is finite
+flat over its coefficient DVR, and its pro-Artinian topology is the finite-module topology.
+This is the weight-two, level-two specialization of the Taylor--Wiles theorem used in
+Khare--Wintenberger, Theorem 3.7 (where the ring is in fact a complete intersection). -/
+theorem hardlyRamifiedUniversalRing_finiteFlat (hp : 3 < p)
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
+    [TopologicalSpace R] [IsTopologicalRing R]
+    [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
+    [Module.Finite ℤ_[p] R] [Module.Free ℤ_[p] R]
+    [IsModuleTopology ℤ_[p] R]
+    [IsNoetherianRing R] [Finite (IsLocalRing.ResidueField R)]
+    [IsAdicComplete (IsLocalRing.maximalIdeal R) R]
+    (rhoRes : (Deformation.repnFunctor (Fin 2) (Γ ℚ) R).obj .residueField)
+    [Representation.IsAbsolutelyIrreducible.{u}
+      (Deformation.toRepresentation rhoRes)]
+    (hrhoRes : rhoRes ∈
+      (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
+    let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
+    Module.Finite R D ∧ Module.Flat R D ∧ IsModuleTopology R D := by
+  sorry
+
 /--
-The finite-flat deformation-ring input to the minimal lifting argument.  It packages the
-weight-two, level-two minimal deformation problem as a finite flat local `R`-algebra carrying
-its universal framed representation.  Khare--Wintenberger, Theorem 3.7, proves the required
-finite flatness (in fact, the ring is a complete intersection); the reductions from the
-hardly-ramified hypotheses to their deformation problem are included here.
+The formal passage from the universal hardly ramified deformation ring to the finite-flat
+deformation data used by the characteristic-zero extraction.  All arithmetic content is
+isolated in `hardlyRamifiedUniversalRing_finiteFlat`; this theorem constructs the universal
+representation, its residue map, and the required basis change.
 
 The passage from this finite flat ring to a characteristic-zero domain and an actual lift is
 commutative algebra and is proved in `exists_minimalLift_over_coefficientRing` below.
@@ -169,7 +190,117 @@ theorem exists_finiteFlat_minimalDeformation [CharP k p] (hp : 3 < p)
       (τ : FramedGaloisRep ℚ D (Fin 2))
       (r : k ⊗[D] (Fin 2 → D) ≃ₗ[k] (Fin 2 → k)),
       IsHardlyRamified hpodd (by simp) τ ∧
-        (GaloisRep.baseChange k (τ : GaloisRep ℚ D (Fin 2 → D))).conj r = ρ := sorry
+        (GaloisRep.baseChange k (τ : GaloisRep ℚ D (Fin 2 → D))).conj r = ρ := by
+  letI : IsNoetherianRing R := IsNoetherianRing.of_finite ℤ_[p] R
+  letI : Finite (IsLocalRing.ResidueField R) :=
+    Finite.of_equiv k residueEquiv.symm.toEquiv
+  letI : IsAdicComplete (IsLocalRing.maximalIdeal R) R :=
+    Deformation.isAdicComplete_of_finiteFree_moduleTopology ℤ_[p] R
+  let kappaR : Deformation.ProartinianCat R := .residueField
+  let residueRingEquiv : (kappaR : Type u) ≃+* k :=
+    Deformation.ProartinianCat.residueFieldRingEquiv R residueEquiv
+  letI : Finite kappaR :=
+    Finite.of_equiv k residueRingEquiv.symm.toEquiv
+  letI : Algebra ℤ_[p] kappaR := Algebra.compHom kappaR (algebraMap ℤ_[p] R)
+  letI : IsLocalHom (algebraMap ℤ_[p] kappaR) := by
+    change IsLocalHom ((algebraMap R kappaR).comp (algebraMap ℤ_[p] R))
+    infer_instance
+  letI : CharP kappaR p := PadicInt.charP_of_algebra_isLocalHom kappaR
+  let rhoRes := Deformation.residualRepresentation R residueEquiv ρ
+  have hrhoResIrred : (Deformation.toRepresentation rhoRes).IsIrreducible :=
+    Deformation.residualRepresentation_isIrreducible R residueEquiv ρ hρirred
+  have hrhoResMem : rhoRes ∈
+      (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField :=
+    Deformation.residualRepresentation_mem_hardlyRamifiedFunctor
+      hpodd R residueEquiv hresidueEquiv ρ hρ
+  have hrhoResHard : IsHardlyRamified hpodd (by simp)
+      (Deformation.toFramedGaloisRep rhoRes) := by
+    exact hrhoResMem
+  letI : Representation.IsAbsolutelyIrreducible.{u}
+      (Deformation.toRepresentation rhoRes) :=
+    isAbsolutelyIrreducible_of_isIrreducible hpodd hp
+      (Deformation.toFramedGaloisRep rhoRes) hrhoResIrred hrhoResHard
+  let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoResMem
+  have hDfiniteFlat :=
+    hardlyRamifiedUniversalRing_finiteFlat hpodd hp R rhoRes hrhoResMem
+  change Module.Finite R D ∧ Module.Flat R D ∧ IsModuleTopology R D at hDfiniteFlat
+  letI : Module.Finite R D := hDfiniteFlat.1
+  letI : Module.Flat R D := hDfiniteFlat.2.1
+  letI : IsModuleTopology R D := hDfiniteFlat.2.2
+  letI : Algebra ℤ_[p] D := Algebra.compHom D (algebraMap ℤ_[p] R)
+  letI : IsScalarTower ℤ_[p] R D :=
+    IsScalarTower.of_algebraMap_eq fun _ ↦ rfl
+  let fDk : D →+* k := residueRingEquiv.toRingHom.comp
+    (Deformation.ProartinianCat.toResidueField D).hom.toRingHom
+  have hfDkSurjective : Function.Surjective fDk :=
+    residueRingEquiv.surjective.comp
+      (Deformation.ProartinianCat.toResidueField_surjective D)
+  letI : Algebra D k := fDk.toAlgebra
+  letI : IsLocalHom (algebraMap D k) :=
+    IsLocalHom.of_surjective fDk hfDkSurjective
+  letI : IsScalarTower R D k := IsScalarTower.of_algebraMap_eq fun x ↦ by
+    calc
+      algebraMap R k x = residueRingEquiv (IsLocalRing.residue R x) :=
+        (hresidueEquiv x).symm
+      _ = residueRingEquiv
+          ((Deformation.ProartinianCat.toResidueField D).hom (algebraMap R D x)) := by
+        congr 1
+        exact ((Deformation.ProartinianCat.toResidueField D).hom.commutes x).symm
+  letI : IsScalarTower ℤ_[p] D k := IsScalarTower.of_algebraMap_eq fun x ↦ by
+    calc
+      algebraMap ℤ_[p] k x = algebraMap R k (algebraMap ℤ_[p] R x) :=
+        IsScalarTower.algebraMap_apply ℤ_[p] R k x
+      _ = algebraMap D k (algebraMap R D (algebraMap ℤ_[p] R x)) :=
+        IsScalarTower.algebraMap_apply R D k _
+      _ = algebraMap D k (algebraMap ℤ_[p] D x) := rfl
+  have hresidueRingEquivContinuous : Continuous residueRingEquiv :=
+    continuous_of_discreteTopology
+  have hfDk : Continuous fDk :=
+    hresidueRingEquivContinuous.comp
+      (Deformation.ProartinianCat.toResidueField D).hom.cont
+  letI : ContinuousSMul D k :=
+    continuousSMul_of_algebraMap D k hfDk
+  let tau : FramedGaloisRep ℚ D (Fin 2) :=
+    Deformation.hardlyRamifiedUniversalGaloisRep R p hpodd rhoRes hrhoResMem
+  have htau : IsHardlyRamified hpodd (by simp) tau := by
+    exact (Deformation.hardlyRamifiedUniversalRepresentation_conditions
+      R p hpodd rhoRes hrhoResMem).2
+  have hreduce := Deformation.hardlyRamifiedUniversalRepresentation_reduces
+    R p hpodd rhoRes hrhoResMem
+  have hreduceFramed :
+      tau.baseChange
+          (Deformation.ProartinianCat.toResidueField D).hom.toRingHom
+          (Deformation.ProartinianCat.toResidueField D).hom.cont =
+        Deformation.toFramedGaloisRep rhoRes := by
+    have h := congrArg (fun x ↦ Deformation.toFramedGaloisRep x) hreduce
+    rw [Deformation.toFramedGaloisRep_map] at h
+    exact h
+  have hback :=
+    Deformation.toFramedGaloisRep_residualRepresentation_baseChange
+      R residueEquiv ρ
+  have htauReduceFramed : tau.baseChange fDk hfDk = ρ := by
+    calc
+      tau.baseChange fDk hfDk =
+          (tau.baseChange
+              (Deformation.ProartinianCat.toResidueField D).hom.toRingHom
+              (Deformation.ProartinianCat.toResidueField D).hom.cont).baseChange
+            residueRingEquiv.toRingHom continuous_of_discreteTopology := by
+              rw [FramedGaloisRep.baseChange_baseChange]
+      _ = (Deformation.toFramedGaloisRep rhoRes).baseChange
+            residueRingEquiv.toRingHom continuous_of_discreteTopology := by
+              rw [hreduceFramed]
+      _ = ρ := hback
+  let r : k ⊗[D] (Fin 2 → D) ≃ₗ[k] (Fin 2 → k) :=
+    ((Pi.basisFun D (Fin 2)).baseChange k).repr ≪≫ₗ
+      Finsupp.linearEquivFunOnFinite k k (Fin 2)
+  have htauReduce :
+      (GaloisRep.baseChange k (tau : GaloisRep ℚ D (Fin 2 → D))).conj r = ρ := by
+    simpa only [FramedGaloisRep.baseChange_def, GaloisRep.frame, r] using
+      htauReduceFramed
+  exact ⟨D, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, inferInstance, inferInstance, inferInstance, inferInstance, hfDkSurjective,
+    tau, r, htau, htauReduce⟩
 
 /--
 The arithmetic input to the hardly-ramified lifting theorem, after fixing an unramified
