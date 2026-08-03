@@ -214,4 +214,42 @@ theorem IsHardlyRamified.baseChange {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd 
       rw [← map_mul]
       exact hker hgker
 
+/-- Entrywise scalar extension of a framed hardly ramified representation is hardly
+ramified.  The unframed scalar extension lives on `S ⊗[R] (Fin 2 → R)`; the proof transports
+the local conditions across the basis obtained by extending the standard basis of
+`Fin 2 → R`.
+
+The hypotheses are phrased for an arbitrary local ring map `f`.  This form is what is needed
+for morphisms in the category of pro-Artinian coefficient algebras, whose induced algebra
+structure is `f.toAlgebra`. -/
+theorem IsHardlyRamified.framedBaseChange
+    {ℓ : ℕ} [Fact ℓ.Prime] (hℓOdd : Odd ℓ)
+    {R S : Type u} [CommRing R] [CommRing S]
+    [TopologicalSpace R] [IsTopologicalRing R] [IsLocalRing R]
+    [TopologicalSpace S] [IsTopologicalRing S] [IsLocalRing S]
+    [Algebra ℤ_[ℓ] R] [Algebra ℤ_[ℓ] S]
+    [IsProartinian R] [IsProartinian S]
+    (f : R →+* S) (hf : Continuous f) [IsLocalHom f]
+    (htower : let _ : Algebra R S := f.toAlgebra; IsScalarTower ℤ_[ℓ] R S)
+    (hres : let _ : Algebra R S := f.toAlgebra; IsResidueAlgebra R S)
+    (ρ : FramedGaloisRep ℚ R (Fin 2))
+    (hρ : IsHardlyRamified hℓOdd (by simp) ρ) :
+    IsHardlyRamified hℓOdd (by simp) (ρ.baseChange f hf) := by
+  letI : Algebra R S := f.toAlgebra
+  letI : IsScalarTower ℤ_[ℓ] R S := htower
+  letI : ContinuousSMul R S := continuousSMul_of_algebraMap R S hf
+  letI : IsResidueAlgebra R S := hres
+  have hbase : IsHardlyRamified hℓOdd
+      (rank_two_baseChange (by simp : Module.rank R (Fin 2 → R) = 2))
+      (GaloisRep.baseChange S (ρ : GaloisRep ℚ R (Fin 2 → R))) :=
+    IsHardlyRamified.baseChange hℓOdd (by simp)
+      (rank_two_baseChange (by simp : Module.rank R (Fin 2 → R) = 2)) ρ hρ
+  rw [FramedGaloisRep.baseChange_def]
+  simpa only [GaloisRep.frame] using
+    IsHardlyRamified.conj hℓOdd
+      (rank_two_baseChange (by simp : Module.rank R (Fin 2 → R) = 2)) (by simp)
+      (GaloisRep.baseChange S (ρ : GaloisRep ℚ R (Fin 2 → R))) hbase
+      (((Pi.basisFun R (Fin 2)).baseChange S).repr ≪≫ₗ
+        Finsupp.linearEquivFunOnFinite S S (Fin 2))
+
 end GaloisRepresentation
