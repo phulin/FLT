@@ -24,6 +24,27 @@ open IsLocalRing
 
 namespace Subalgebra
 
+/-- A closed local coefficient subalgebra of a pro-Artinian residue algebra is
+pro-Artinian when the common residue field is finite.
+
+This is the standard closed-subalgebra theorem for pseudocompact rings.  Completeness is
+inherited from closedness, while linearity of the topology is inherited from the ambient
+ring.  For an open ideal `J` of the subalgebra, choose an ambient open ideal whose
+intersection is contained in `J`.  The resulting intermediate quotient embeds in an
+Artinian local ambient quotient; that quotient is finite because its residue field is
+finite.  Hence the quotient by `J` is finite, and in particular Artinian.
+
+The theorem belongs to the classical theory of pseudocompact rings (Gabriel, 1962, and
+SGA 3, Exp. VII_B), so we place only this general topological-algebra fact behind the
+project's pre-1990 boundary. -/
+theorem isProartinian_of_isClosed_of_finite_residueField
+    {q A : Type*} [CommRing q] [IsLocalRing q] [Finite (IsLocalRing.ResidueField q)]
+    [CommRing A] [TopologicalSpace A] [IsTopologicalRing A] [IsLocalRing A]
+    [Algebra q A] [IsResidueAlgebra q A] [IsProartinian A]
+    (S : Subalgebra q A) (hS : IsClosed (S : Set A))
+    [IsTopologicalRing S] [IsLocalRing S] [IsResidueAlgebra q S] : IsProartinian S := by
+  knownin1980s
+
 /-- A local coefficient subalgebra of a residue algebra has the same residue field as the
 coefficient ring, provided its inclusion in the ambient residue algebra is local. -/
 theorem isResidueAlgebra_of_isLocalHom_val
@@ -50,6 +71,7 @@ namespace FramedGaloisRep
 universe u
 
 variable {q A K n : Type u} [CommRing q] [IsLocalRing q]
+  [Finite (IsLocalRing.ResidueField q)]
   [CommRing A] [TopologicalSpace A] [IsTopologicalRing A] [IsLocalRing A]
   [Algebra q A] [IsLocalHom (algebraMap q A)] [IsResidueAlgebra q A]
   [IsProartinian A] [Field K] [NumberField K] [Fintype n] [DecidableEq n]
@@ -90,5 +112,47 @@ theorem closedTraceAlgebra_isResidueAlgebra (rho : FramedGaloisRep K A n)
     [IsLocalHom (rho.closedTraceAlgebra (q := q)).val] :
     IsResidueAlgebra q (rho.closedTraceAlgebra (q := q)) :=
   Subalgebra.isResidueAlgebra_of_isLocalHom_val _
+
+/-- The closed trace algebra is pro-Artinian. -/
+theorem closedTraceAlgebra_isProartinian (rho : FramedGaloisRep K A n)
+    [IsTopologicalRing (rho.closedTraceAlgebra (q := q))]
+    [IsLocalRing (rho.closedTraceAlgebra (q := q))]
+    [IsLocalHom (rho.closedTraceAlgebra (q := q)).val]
+    [IsResidueAlgebra q (rho.closedTraceAlgebra (q := q))] :
+    IsProartinian (rho.closedTraceAlgebra (q := q)) :=
+  Subalgebra.isProartinian_of_isClosed_of_finite_residueField _
+    (rho.isClosed_closedTraceAlgebra (q := q))
+
+/-- The scalar map into the closed trace algebra is local. -/
+theorem closedTraceAlgebra_isLocalHom_algebraMap (rho : FramedGaloisRep K A n)
+    [IsLocalRing (rho.closedTraceAlgebra (q := q))]
+    [IsLocalHom (rho.closedTraceAlgebra (q := q)).val] :
+    IsLocalHom (algebraMap q (rho.closedTraceAlgebra (q := q))) := by
+  letI : IsLocalHom (rho.closedTraceAlgebra (q := q)).val.toRingHom :=
+    isLocalHom_toRingHom (rho.closedTraceAlgebra (q := q)).val
+  let f := algebraMap q (rho.closedTraceAlgebra (q := q))
+  let g := (rho.closedTraceAlgebra (q := q)).val.toRingHom
+  haveI : IsLocalHom (g.comp f) := by
+    rw [show g.comp f = algebraMap q A by ext; rfl]
+    infer_instance
+  exact isLocalHom_of_comp f g
+
+/-- The closed trace algebra, with its induced topology, is an object of the deformation
+category over the scalar ring. -/
+theorem closedTraceAlgebra_isLocalProartinianAlgebra (rho : FramedGaloisRep K A n) :
+    Deformation.IsLocalProartinianAlgebra q (rho.closedTraceAlgebra (q := q)) := by
+  letI : IsTopologicalRing (rho.closedTraceAlgebra (q := q)) :=
+    Subring.instIsTopologicalRing (rho.closedTraceAlgebra (q := q)).toSubring
+  letI : IsLocalRing (rho.closedTraceAlgebra (q := q)) :=
+    rho.closedTraceAlgebra_isLocalRing (q := q)
+  letI : IsLocalHom (rho.closedTraceAlgebra (q := q)).val :=
+    rho.closedTraceAlgebra_isLocalHom_val (q := q)
+  letI : IsResidueAlgebra q (rho.closedTraceAlgebra (q := q)) :=
+    rho.closedTraceAlgebra_isResidueAlgebra (q := q)
+  letI : IsProartinian (rho.closedTraceAlgebra (q := q)) :=
+    rho.closedTraceAlgebra_isProartinian (q := q)
+  letI : IsLocalHom (algebraMap q (rho.closedTraceAlgebra (q := q))) :=
+    rho.closedTraceAlgebra_isLocalHom_algebraMap (q := q)
+  exact ⟨⟩
 
 end FramedGaloisRep
