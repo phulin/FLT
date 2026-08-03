@@ -6,6 +6,7 @@ Authors: The FLT Project
 module
 
 public import Mathlib.RingTheory.MvPowerSeries.Equiv
+public import Mathlib.RingTheory.Ideal.Quotient.Noetherian
 public import Mathlib.RingTheory.Regular.RegularSequence
 public import FLT.Mathlib.RingTheory.Flat.TorsionFree
 
@@ -42,6 +43,17 @@ structure BocklePresentation
   /-- The presented quotient is the deformation ring. -/
   quotientEquiv : Nonempty
     ((MvPowerSeries (Fin numVariables) R ⧸ Ideal.ofList relations) ≃ₐ[R] D)
+
+/-- A finite-variable Böckle presentation over a Noetherian coefficient ring makes the
+presented deformation ring Noetherian. -/
+noncomputable def BocklePresentation.isNoetherianRing
+    {R D : Type u} [CommRing R] [IsNoetherianRing R] [CommRing D] [Algebra R D]
+    (P : BocklePresentation R D) : IsNoetherianRing D := by
+  let A := MvPowerSeries (Fin P.numVariables) R
+  let e := Classical.choice P.quotientEquiv
+  haveI : IsNoetherianRing A := inferInstance
+  haveI : IsNoetherianRing (A ⧸ Ideal.ofList P.relations) := inferInstance
+  exact isNoetherianRing_of_ringEquiv (A ⧸ Ideal.ofList P.relations) e.toRingEquiv
 
 /-- The regular-sequence conclusion used at the end of Böckle's argument: the defining
 relations followed by `π` form a weakly regular sequence in the power-series ring. -/

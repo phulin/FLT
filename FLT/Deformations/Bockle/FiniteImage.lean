@@ -36,8 +36,6 @@ both are required only as consequences of the already-derived finiteness modulo 
 structure BockleArithmeticData (rho : FramedGaloisRep K D n) where
   /-- Böckle's balanced power-series presentation. -/
   presentation : BocklePresentation R D
-  /-- The finite-variable presentation makes the deformation ring Noetherian. -/
-  noetherian : IsNoetherianRing D
   /-- The universal deformation ring has the same finite residue field as its coefficient ring. -/
   finiteResidueField : Finite (IsLocalRing.ResidueField D)
   /-- The coefficient-ring uniformizer. -/
@@ -57,7 +55,7 @@ from the finite-image criterion. -/
 noncomputable def BockleArithmeticData.toBockleFinitenessData
     {rho : FramedGaloisRep K D n} (h : BockleArithmeticData (R := R) rho) :
     BockleFinitenessData R D := by
-  letI : IsNoetherianRing D := h.noetherian
+  letI : IsNoetherianRing D := h.presentation.isNoetherianRing
   letI : Finite (IsLocalRing.ResidueField D) := h.finiteResidueField
   have hmod : Finite (ModScalarRing (D := D) h.uniformizer) := h.finiteImage.finite
   exact
