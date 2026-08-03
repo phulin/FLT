@@ -773,6 +773,123 @@ lemma bockleTangentBasisFirstOrderGL_val
         (bockleTangentCocycleRepresentative rho i) g :=
   rfl
 
+omit [TopologicalSpace k] [DiscreteTopology k]
+  [TopologicalSpace G] [IsTopologicalGroup G] in
+/-- Extract the adjoint matrix from a dual-number matrix lift by removing the residual
+factor on the right. -/
+noncomputable def firstOrderAdjointMatrixOfLift
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k)) (g : G) :
+    Matrix (Fin 2) (Fin 2) k :=
+  (Matrix.dualNumberEquiv' (tau g)).snd *
+    LinearMap.toMatrixAlgEquiv' (rho g⁻¹)
+
+omit [TopologicalSpace k] [DiscreteTopology k]
+  [TopologicalSpace G] [IsTopologicalGroup G] in
+/-- A lift with residual part `rho` is reconstructed from its extracted adjoint matrix. -/
+lemma matrixLift_eq_dualNumberOfParts
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g)) (g : G) :
+    tau g = Matrix.dualNumberOfParts (LinearMap.toMatrixAlgEquiv' (rho g))
+      (firstOrderAdjointMatrixOfLift rho tau g *
+        LinearMap.toMatrixAlgEquiv' (rho g)) := by
+  apply (Matrix.dualNumberEquiv' (R := k) (n := Fin 2)).injective
+  rw [Matrix.dualNumberEquiv'_dualNumberOfParts]
+  apply TrivSqZeroExt.ext
+  · exact hred g
+  · simp [firstOrderAdjointMatrixOfLift, mul_assoc, ← map_mul]
+
+omit [TopologicalSpace k] [DiscreteTopology k]
+  [TopologicalSpace G] [IsTopologicalGroup G] in
+/-- Multiplicativity of a dual-number lift is exactly the crossed-homomorphism identity
+for its extracted adjoint matrices. -/
+lemma firstOrderAdjointMatrixOfLift_map_mul
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g)) (g h : G) :
+    firstOrderAdjointMatrixOfLift rho tau (g * h) =
+      LinearMap.toMatrixAlgEquiv' (rho g) *
+          firstOrderAdjointMatrixOfLift rho tau h *
+            LinearMap.toMatrixAlgEquiv' (rho g⁻¹) +
+        firstOrderAdjointMatrixOfLift rho tau g := by
+  have htau :
+      Matrix.dualNumberEquiv' (tau (g * h)) =
+        Matrix.dualNumberEquiv' (tau g) * Matrix.dualNumberEquiv' (tau h) := by
+    rw [tau.map_mul, map_mul]
+  have hsnd := congrArg TrivSqZeroExt.snd htau
+  rw [DualNumber.snd_mul, hred g, hred h] at hsnd
+  have hhinv :
+      LinearMap.toMatrixAlgEquiv' (rho h) *
+          LinearMap.toMatrixAlgEquiv' (rho h⁻¹) = 1 := by
+    rw [← map_mul, ← map_mul]
+    simp
+  simp only [firstOrderAdjointMatrixOfLift]
+  rw [hsnd]
+  simp [map_mul, add_mul, mul_assoc]
+  rw [← mul_assoc (LinearMap.toMatrixAlgEquiv' (rho h)), hhinv, one_mul]
+
+omit [TopologicalSpace k] [DiscreteTopology k]
+  [TopologicalSpace G] [IsTopologicalGroup G] in
+/-- The reconstructed lift factors as `(1 + ε C(g)) rho(g)`. -/
+lemma matrixLift_firstOrder_factor
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g)) (g : G) :
+    tau g =
+      Matrix.dualNumberOfParts 1 (firstOrderAdjointMatrixOfLift rho tau g) *
+        Matrix.dualNumberOfParts (LinearMap.toMatrixAlgEquiv' (rho g)) 0 := by
+  rw [Matrix.dualNumberOfParts_mul]
+  simpa using matrixLift_eq_dualNumberOfParts rho tau hred g
+
+omit [TopologicalSpace k] [DiscreteTopology k]
+  [TopologicalSpace G] [IsTopologicalGroup G] in
+/-- A fixed-determinant dual-number lift has trace-zero extracted adjoint matrices. -/
+lemma firstOrderAdjointMatrixOfLift_trace
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g))) (g : G) :
+    (firstOrderAdjointMatrixOfLift rho tau g).trace = 0 := by
+  have hfactor := matrixLift_firstOrder_factor rho tau hred g
+  have hdetMatrix :
+      (LinearMap.toMatrixAlgEquiv' (rho g)).det = LinearMap.det (rho g) := by
+    simp [LinearMap.toMatrixAlgEquiv', LinearMap.det_toMatrix']
+  have hdet' :
+      (Matrix.dualNumberOfParts 1
+          (firstOrderAdjointMatrixOfLift rho tau g)).det *
+          algebraMap k (DualNumber k) (LinearMap.det (rho g)) =
+        algebraMap k (DualNumber k) (LinearMap.det (rho g)) := by
+    calc
+      _ = (Matrix.dualNumberOfParts 1
+              (firstOrderAdjointMatrixOfLift rho tau g)).det *
+            (Matrix.dualNumberOfParts
+              (LinearMap.toMatrixAlgEquiv' (rho g)) 0).det := by
+          rw [Matrix.det_dualNumberOfParts_zero, hdetMatrix]
+      _ = (tau g).det := by rw [← Matrix.det_mul, ← hfactor]
+      _ = _ := hdet g
+  have hsnd := congrArg TrivSqZeroExt.snd hdet'
+  have hmul :
+      (firstOrderAdjointMatrixOfLift rho tau g).trace *
+          LinearMap.det (rho g) = 0 := by
+    rw [TrivSqZeroExt.snd_mul, Matrix.fst_det_dualNumberOfParts_one,
+      Matrix.snd_det_dualNumberOfParts_one] at hsnd
+    change 1 * 0 + (firstOrderAdjointMatrixOfLift rho tau g).trace *
+      LinearMap.det (rho g) = 0 at hsnd
+    simpa only [one_mul, zero_add] using hsnd
+  have hdet_ne : LinearMap.det (rho g) ≠ 0 := by
+    intro hzero
+    have hinv : rho g * rho g⁻¹ = 1 := by
+      rw [← map_mul]
+      simp
+    have := congrArg LinearMap.det hinv
+    simp [map_mul, hzero] at this
+  exact (mul_eq_zero.mp hmul).resolve_right hdet_ne
 end RankTwo
 
 section RepresentationFunctor

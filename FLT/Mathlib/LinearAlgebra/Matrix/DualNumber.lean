@@ -98,6 +98,18 @@ lemma det_dualNumberOfParts_one_eq {S : Type u} [CommRing S]
     change (1 * C 1 1 + C 0 0 * 1) - (0 * C 1 0 + C 0 1 * 0) = C.trace
     simp [Matrix.trace_fin_two, add_comm]
 
+@[simp]
+lemma fst_det_dualNumberOfParts_one {S : Type u} [CommRing S]
+    (C : Matrix (Fin 2) (Fin 2) S) :
+    TrivSqZeroExt.fst ((dualNumberOfParts 1 C).det) = 1 := by
+  simpa using congrArg TrivSqZeroExt.fst (det_dualNumberOfParts_one_eq C)
+
+@[simp]
+lemma snd_det_dualNumberOfParts_one {S : Type u} [CommRing S]
+    (C : Matrix (Fin 2) (Fin 2) S) :
+    TrivSqZeroExt.snd ((dualNumberOfParts 1 C).det) = C.trace := by
+  simpa using congrArg TrivSqZeroExt.snd (det_dualNumberOfParts_one_eq C)
+
 /-- The first-order factor `1 + ε C` has determinant one exactly when `C` has trace
 zero. -/
 lemma det_dualNumberOfParts_one_eq_one_iff {S : Type u} [CommRing S]
