@@ -82,4 +82,53 @@ noncomputable def traceZeroAdjointTopRep
   letI : ContinuousSMul k A := ⟨continuous_of_discreteTopology⟩
   exact TopRep.of (Representation.toContRepresentationOfDiscrete (traceZeroAdjoint ρ))
 
+/-- The carrier chosen by `traceZeroAdjointTopRep` is the trace-zero submodule.  This named
+equality prevents downstream proofs from depending on reducibility of the `TopRep` constructor. -/
+abbrev traceZeroAdjointTopRep_V
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V) :
+    (traceZeroAdjointTopRep ρ).V = (traceZeroAdjointSubrepresentation ρ).toSubmodule := by
+  unfold traceZeroAdjointTopRep
+  rfl
+
+/-- Forget the topological packaging of the trace-zero adjoint carrier. -/
+noncomputable def traceZeroAdjointTopRepLinearEquiv
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V) :
+    traceZeroAdjointTopRep ρ ≃ₗ[k] (traceZeroAdjointSubrepresentation ρ).toSubmodule :=
+  match traceZeroAdjointTopRep_V ρ with
+  | rfl => LinearEquiv.refl k _
+
+/-- A topologically packaged trace-zero adjoint vector, viewed as an endomorphism. -/
+noncomputable def traceZeroAdjointTopRepToEnd
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V) :
+    traceZeroAdjointTopRep ρ →ₗ[k] Module.End k V :=
+  (traceZeroAdjointSubrepresentation ρ).toSubmodule.subtype.comp
+    (traceZeroAdjointTopRepLinearEquiv ρ).toLinearMap
+
+@[simp]
+lemma traceZeroAdjointTopRepToEnd_apply
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V)
+    (x : traceZeroAdjointTopRep ρ) :
+    traceZeroAdjointTopRepToEnd ρ x = (traceZeroAdjointTopRepLinearEquiv ρ x : Module.End k V) :=
+  rfl
+
+/-- The carrier equivalence intertwines the packaged and algebraic adjoint actions. -/
+lemma traceZeroAdjointTopRepLinearEquiv_action
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V)
+    (g : G) (x : traceZeroAdjointTopRep ρ) :
+    traceZeroAdjointTopRepLinearEquiv ρ ((traceZeroAdjointTopRep ρ).ρ g x) =
+      traceZeroAdjoint ρ g (traceZeroAdjointTopRepLinearEquiv ρ x) := by
+  unfold traceZeroAdjointTopRepLinearEquiv traceZeroAdjointTopRep_V
+  unfold traceZeroAdjointTopRep
+  rfl
+
+/-- In endomorphism coordinates, the packaged adjoint action is conjugation. -/
+lemma traceZeroAdjointTopRepToEnd_action
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V)
+    (g : G) (x : traceZeroAdjointTopRep ρ) :
+    traceZeroAdjointTopRepToEnd ρ ((traceZeroAdjointTopRep ρ).ρ g x) =
+      ρ g * traceZeroAdjointTopRepToEnd ρ x * ρ g⁻¹ := by
+  rw [traceZeroAdjointTopRepToEnd_apply, traceZeroAdjointTopRepLinearEquiv_action,
+    traceZeroAdjoint_apply_val]
+  rfl
+
 end Representation

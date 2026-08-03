@@ -159,7 +159,7 @@ lemma bockleTangentπ_surjective (rho : Representation k G (Fin 2 → k)) :
 class. -/
 lemma BockleAdjointCocycles₁.map_mul (rho : Representation k G (Fin 2 → k))
     (σ : BockleAdjointCocycles₁ rho) (g h : G) :
-    σ (g * h) = Representation.traceZeroAdjoint rho g (σ h) + σ g :=
+    σ (g * h) = (Representation.traceZeroAdjointTopRep rho).ρ g (σ h) + σ g :=
   ContinuousCohomology.Cocycles₁.map_mul
     (Representation.traceZeroAdjointTopRep rho) σ g h
 
