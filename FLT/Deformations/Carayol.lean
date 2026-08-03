@@ -69,9 +69,10 @@ end Subalgebra
 
 namespace FramedGaloisRep
 
-universe u
+universe u un
 
-variable {q A K n : Type u} [CommRing q] [IsLocalRing q]
+variable {q A K : Type u} {n : Type un}
+  [CommRing q] [IsLocalRing q]
   [Finite (IsLocalRing.ResidueField q)]
   [CommRing A] [TopologicalSpace A] [IsTopologicalRing A] [IsLocalRing A]
   [Algebra q A] [IsLocalHom (algebraMap q A)] [IsResidueAlgebra q A]
@@ -226,7 +227,7 @@ variable (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞] [IsNoetherianRing �
 variable (K : Type u) [Field K] [NumberField K]
 variable (n : Type) [Fintype n] [DecidableEq n]
 variable (rho : (repnFunctor n (Γ K) 𝓞).obj .residueField)
-variable [(toRepresentation rho).IsAbsolutelyIrreducible]
+variable [Representation.IsAbsolutelyIrreducible.{u} (toRepresentation rho)]
 
 /-- The universal ring for unrestricted deformations of an absolutely irreducible residual
 representation. -/
@@ -384,6 +385,34 @@ theorem unrestrictedUniversalGaloisRep_matrix_reduces (g : Γ K) :
       rw [show (unrestrictedUniversalGaloisRep 𝓞 K n rho).GL =
           unrestrictedUniversalRepresentation 𝓞 K n rho by
         exact FramedGaloisRep.GL.apply_symm_apply _]
+
+/-- Burnside's theorem and the trace pairing produce an image basis over the universal ring
+whose coordinates for every image matrix lie in the closed trace algebra. -/
+theorem unrestrictedUniversalGaloisRep_exists_image_basis_recovering_coefficients :
+    let D := unrestrictedUniversalRing 𝓞 K n rho
+    let tau := unrestrictedUniversalGaloisRep 𝓞 K n rho
+    let T := tau.closedTraceAlgebra (q := 𝓞)
+    ∃ (g : n × n → Γ K) (b : Module.Basis (n × n) D (Matrix n n D)),
+      (∀ ij, b ij = (tau.GL (g ij) : Matrix n n D)) ∧
+      ∀ h ij, b.repr (tau.GL h : Matrix n n D) ij ∈ T := by
+  let D := unrestrictedUniversalRing 𝓞 K n rho
+  let tau := unrestrictedUniversalGaloisRep 𝓞 K n rho
+  let T := tau.closedTraceAlgebra (q := 𝓞)
+  letI : IsLocalRing T := tau.closedTraceAlgebra_isLocalRing (q := 𝓞)
+  letI : IsLocalHom T.val := tau.closedTraceAlgebra_isLocalHom_val (q := 𝓞)
+  let rhoM : Γ K →* Matrix n n D :=
+    (Units.coeHom (Matrix n n D)).comp tau.GL.toMonoidHom
+  apply Slop.OddRep.exists_image_basis_recovering_coefficients rhoM
+    (toRepresentation rho)
+    (f := (ProartinianCat.toResidueField D).hom.toRingHom) (S := T)
+  · intro g
+    rw [show rhoM g = (tau.GL g : Matrix n n D) by
+      ext i j
+      rfl]
+    simpa only [D, tau] using
+      unrestrictedUniversalGaloisRep_matrix_reduces 𝓞 K n rho g
+  · intro g
+    exact tau.trace_mem_closedTraceAlgebra (q := 𝓞) g
 
 end UnrestrictedUniversal
 
