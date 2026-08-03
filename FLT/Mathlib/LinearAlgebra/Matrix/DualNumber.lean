@@ -6,6 +6,8 @@ Authors: The FLT Project
 module
 
 public import Mathlib.LinearAlgebra.Matrix.DualNumber
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
 
 /-!
 # Universe-polymorphic matrices over dual numbers
@@ -43,3 +45,57 @@ def Matrix.dualNumberEquiv' : Matrix n n (DualNumber R) ≃ₐ[R] DualNumber (Ma
       Algebra.algebraMap_self_apply, algebraMap_eq_inl, ← diagonal_map (inl_zero R), map_apply,
       fst_inl, snd_inl]
     rfl
+
+namespace Matrix
+
+/-- Assemble a matrix over dual numbers from its constant and infinitesimal coefficient
+matrices. -/
+def dualNumberOfParts (A B : Matrix n n R) : Matrix n n (DualNumber R) :=
+  fun i j ↦ (A i j, B i j)
+
+omit [CommSemiring R] [Fintype n] [DecidableEq n] in
+@[simp]
+lemma dualNumberOfParts_apply (A B : Matrix n n R) (i j : n) :
+    dualNumberOfParts A B i j = (A i j, B i j) :=
+  rfl
+
+@[simp]
+lemma dualNumberEquiv'_dualNumberOfParts (A B : Matrix n n R) :
+    dualNumberEquiv' (dualNumberOfParts A B) = (A, B) := by
+  apply TrivSqZeroExt.ext <;> rfl
+
+omit [DecidableEq n] in
+lemma dualNumberOfParts_mul (A B C D : Matrix n n R) :
+    dualNumberOfParts A B * dualNumberOfParts C D =
+      dualNumberOfParts (A * C) (A * D + B * C) := by
+  classical
+  apply (dualNumberEquiv' (R := R) (n := n)).injective
+  rw [map_mul, dualNumberEquiv'_dualNumberOfParts, dualNumberEquiv'_dualNumberOfParts,
+    dualNumberEquiv'_dualNumberOfParts]
+  rfl
+
+omit [Fintype n] [DecidableEq n] in
+lemma dualNumberOfParts_zero_eq_map (A : Matrix n n R) :
+    dualNumberOfParts A 0 = A.map (algebraMap R (DualNumber R)) := by
+  apply Matrix.ext
+  intro i j
+  apply TrivSqZeroExt.ext <;> rfl
+
+lemma det_dualNumberOfParts_zero {S : Type u} [CommRing S] (A : Matrix n n S) :
+    (dualNumberOfParts A 0).det = algebraMap S (DualNumber S) A.det := by
+  rw [dualNumberOfParts_zero_eq_map]
+  exact ((algebraMap S (DualNumber S)).map_det A).symm
+
+/-- The first-order factor `1 + ε C` has determinant one when `C` has trace zero. -/
+lemma det_dualNumberOfParts_one {S : Type u} [CommRing S]
+    (C : Matrix (Fin 2) (Fin 2) S) (hC : C.trace = 0) :
+    (dualNumberOfParts 1 C).det = 1 := by
+  rw [Matrix.det_fin_two]
+  apply TrivSqZeroExt.ext
+  · rw [TrivSqZeroExt.fst_sub, TrivSqZeroExt.fst_mul, TrivSqZeroExt.fst_mul]
+    norm_num [dualNumberOfParts, Matrix.one_apply]
+  · rw [TrivSqZeroExt.snd_sub, DualNumber.snd_mul, DualNumber.snd_mul]
+    change (1 * C 1 1 + C 0 0 * 1) - (0 * C 1 0 + C 0 1 * 0) = 0
+    simpa [Matrix.trace_fin_two, add_comm] using hC
+
+end Matrix

@@ -111,6 +111,15 @@ lemma traceZeroAdjointTopRepToEnd_apply
     traceZeroAdjointTopRepToEnd ρ x = (traceZeroAdjointTopRepLinearEquiv ρ x : Module.End k V) :=
   rfl
 
+/-- A vector in the packaged trace-zero adjoint representation is still trace zero after
+forgetting its topological packaging. -/
+lemma trace_traceZeroAdjointTopRepToEnd
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V)
+    (x : traceZeroAdjointTopRep ρ) :
+    LinearMap.trace k V (traceZeroAdjointTopRepToEnd ρ x) = 0 := by
+  rw [traceZeroAdjointTopRepToEnd_apply]
+  exact (traceZeroAdjointTopRepLinearEquiv ρ x).property
+
 /-- The carrier equivalence intertwines the packaged and algebraic adjoint actions. -/
 lemma traceZeroAdjointTopRepLinearEquiv_action
     [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V)

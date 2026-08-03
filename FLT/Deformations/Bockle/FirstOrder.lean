@@ -120,6 +120,20 @@ lemma bockleFirstOrderEndMonoidHom_snd
     (bockleFirstOrderEndMonoidHom rho σ g).snd =
       Representation.traceZeroAdjointTopRepToEnd rho (σ g) * rho g := rfl
 
+/-- The trace-zero adjoint cocycle written in the standard rank-two basis. -/
+noncomputable def bockleAdjointMatrix
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    Matrix (Fin 2) (Fin 2) k :=
+  LinearMap.toMatrixAlgEquiv'
+    (Representation.traceZeroAdjointTopRepToEnd rho (σ g))
+
+lemma bockleAdjointMatrix_trace
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    (bockleAdjointMatrix rho σ g).trace = 0 := by
+  have htrace := Representation.trace_traceZeroAdjointTopRepToEnd rho (σ g)
+  rw [LinearMap.trace_eq_matrix_trace k (Pi.basisFun k (Fin 2))] at htrace
+  exact htrace
+
 /-- Apply the standard endomorphism-to-matrix equivalence coefficientwise to a dual number. -/
 noncomputable def endDualNumberToMatrixMonoidHom :
     DualNumber (Module.End k (Fin 2 → k)) →*
@@ -167,6 +181,40 @@ lemma bockleFirstOrderMatrixMonoidHom_dualNumberEquiv
           (Representation.traceZeroAdjointTopRepToEnd rho (σ g) * rho g)) :
         DualNumber (Matrix (Fin 2) (Fin 2) k)) := by
   apply TrivSqZeroExt.ext <;> rfl
+
+/-- Constant and infinitesimal matrix coefficients of the first-order representation. -/
+lemma bockleFirstOrderMatrixMonoidHom_eq_dualNumberOfParts
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    bockleFirstOrderMatrixMonoidHom rho σ g =
+      Matrix.dualNumberOfParts (LinearMap.toMatrixAlgEquiv' (rho g))
+        (bockleAdjointMatrix rho σ g * LinearMap.toMatrixAlgEquiv' (rho g)) := by
+  apply (Matrix.dualNumberEquiv' (R := k) (n := Fin 2)).injective
+  rw [bockleFirstOrderMatrixMonoidHom_dualNumberEquiv,
+    Matrix.dualNumberEquiv'_dualNumberOfParts]
+  apply TrivSqZeroExt.ext
+  · rfl
+  · simp [bockleAdjointMatrix]
+
+/-- The first-order representation factors as `(1 + ε c(g)) · rho(g)`. -/
+lemma bockleFirstOrderMatrixMonoidHom_factor
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    bockleFirstOrderMatrixMonoidHom rho σ g =
+      Matrix.dualNumberOfParts 1 (bockleAdjointMatrix rho σ g) *
+        Matrix.dualNumberOfParts (LinearMap.toMatrixAlgEquiv' (rho g)) 0 := by
+  rw [bockleFirstOrderMatrixMonoidHom_eq_dualNumberOfParts,
+    Matrix.dualNumberOfParts_mul]
+  simp
+
+/-- A trace-zero adjoint cocycle preserves the determinant to first order. -/
+theorem bockleFirstOrderMatrixMonoidHom_det
+    (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :
+    (bockleFirstOrderMatrixMonoidHom rho σ g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g)) := by
+  rw [bockleFirstOrderMatrixMonoidHom_factor, Matrix.det_mul,
+    Matrix.det_dualNumberOfParts_one _ (bockleAdjointMatrix_trace rho σ g),
+    Matrix.det_dualNumberOfParts_zero, one_mul]
+  congr 1
+  simp [LinearMap.toMatrixAlgEquiv', LinearMap.det_toMatrix']
 
 end RankTwo
 
