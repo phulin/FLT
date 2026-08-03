@@ -7,6 +7,7 @@ module
 
 public import FLT.Patching.Utils.AdicTopology
 public import FLT.Deformations.IsResidueAlgebra
+public import Mathlib.Topology.Algebra.TopologicallyNilpotent
 import FLT.Deformations.Lemmas
 import Mathlib.CategoryTheory.Category.Init
 import Mathlib.RingTheory.Artinian.Ring
@@ -58,7 +59,7 @@ instance [IsLocalRing R] [IsLocalRing.IsAdicTopology R] [IsNoetherianRing R] [Co
 
 section IsLocalRing
 
-open IsLocalRing
+open Filter IsLocalRing
 
 variable [IsLocalRing R] [IsLocalRing S]
 
@@ -81,6 +82,16 @@ lemma exists_maximalIdeal_pow_le_of_isProartinian [IsProartinian R]
     ← Ideal.map_pow, Ideal.zero_eq_bot, ← le_bot_iff, Ideal.map_le_iff_le_comap,
     ← RingHom.ker, Ideal.mk_ker] at hn
   exact ⟨n, hn⟩
+
+/-- Every element of the maximal ideal of a local pro-Artinian ring is topologically
+nilpotent.  Indeed, every open ideal contains a power of the maximal ideal. -/
+theorem isTopologicallyNilpotent_of_mem_maximalIdeal [IsProartinian R]
+    {x : R} (hx : x ∈ maximalIdeal R) : IsTopologicallyNilpotent x := by
+  simp only [IsTopologicallyNilpotent,
+    atTop_basis.tendsto_iff IsLinearTopology.hasBasis_open_ideal, true_and]
+  intro I hI
+  obtain ⟨m, hm⟩ := exists_maximalIdeal_pow_le_of_isProartinian I hI
+  exact ⟨m, fun n hn ↦ hm (Ideal.pow_le_pow_right hn (Ideal.pow_mem_pow hx n))⟩
 
 lemma isContinuous_of_isProartinian_of_isLocalHom
     [IsLocalRing.IsAdicTopology R]
