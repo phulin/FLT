@@ -206,6 +206,27 @@ def IsTraceGenerated
     {k : Type uk} [CommRing k] [Algebra k A] (rho : FramedGaloisRep K A n) : Prop :=
   Algebra.adjoin k rho.traceSet = ⊤
 
+/-- If the traces generate a coefficient algebra over a smaller scalar ring, they also
+generate it after extending the scalar ring. -/
+theorem IsTraceGenerated.extendScalars
+    {k k' : Type*} [CommRing k] [CommRing k'] [Algebra k k']
+    [Algebra k A] [Algebra k' A] [IsScalarTower k k' A]
+    (rho : FramedGaloisRep K A n) (h : rho.IsTraceGenerated (k := k)) :
+    rho.IsTraceGenerated (k := k') := by
+  rw [IsTraceGenerated] at h ⊢
+  apply top_unique
+  intro x _
+  have hx : x ∈ Algebra.adjoin k rho.traceSet := by
+    rw [h]
+    exact Set.mem_univ x
+  refine Algebra.adjoin_induction
+    (p := fun x _ ↦ x ∈ Algebra.adjoin k' rho.traceSet)
+    (fun x hx ↦ Algebra.subset_adjoin hx) (fun r ↦ ?_)
+    (fun _ _ _ _ hx hy ↦ add_mem hx hy)
+    (fun _ _ _ _ hx hy ↦ mul_mem hx hy) hx
+  · rw [IsScalarTower.algebraMap_apply k k' A]
+    exact (Algebra.adjoin k' rho.traceSet).algebraMap_mem (algebraMap k k' r)
+
 /-- Trace generation descends along a surjective continuous change of coefficients. -/
 theorem IsTraceGenerated.baseChange
     {k : Type uk} [CommRing k] [Algebra k A]
