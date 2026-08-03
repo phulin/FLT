@@ -155,6 +155,20 @@ lemma bockleTangentπ_surjective (rho : Representation k G (Fin 2 → k)) :
     Function.Surjective (bockleTangentπ rho) :=
   ContinuousCohomology.H1π_surjective (Representation.traceZeroAdjointTopRep rho)
 
+
+/-- Choose a crossed-homomorphism representative of an arbitrary adjoint tangent class. -/
+noncomputable def bockleTangentClassCocycleRepresentative
+    (rho : Representation k G (Fin 2 → k)) (x : BockleTangentSpace rho) :
+    BockleAdjointCocycles₁ rho :=
+  Classical.choose (bockleTangentπ_surjective rho x)
+
+/-- The chosen cocycle maps back to the tangent class it represents. -/
+@[simp]
+lemma bockleTangentπ_classCocycleRepresentative
+    (rho : Representation k G (Fin 2 → k)) (x : BockleTangentSpace rho) :
+    bockleTangentπ rho (bockleTangentClassCocycleRepresentative rho x) = x :=
+  Classical.choose_spec (bockleTangentπ_surjective rho x)
+
 /-- The canonical number of first-order parameters: the dimension of the adjoint `H¹`. -/
 noncomputable abbrev BockleTangentParameterCount
     (rho : Representation k G (Fin 2 → k)) : ℕ :=

@@ -43,6 +43,15 @@ noncomputable def bockleFirstOrderClassifyingMap
   unrestrictedClassifyingMap R K (Fin 2) rhoRes
     (bockleFirstOrderDeformationClass rhoRes σ)
 
+
+/-- The universal dual-number classifying morphism attached to an arbitrary adjoint tangent
+class, using a chosen cocycle representative. -/
+noncomputable def bockleTangentClassifyingMap
+    (x : BockleTangentSpace (toRepresentation rhoRes)) :
+    unrestrictedUniversalRing R K (Fin 2) rhoRes ⟶ ProartinianCat.dualNumber R :=
+  bockleFirstOrderClassifyingMap R K rhoRes
+    (bockleTangentClassCocycleRepresentative (toRepresentation rhoRes) x)
+
 /-- Specializing the universal deformation class along its first-order classifying map
 recovers the deformation class defined by the cocycle. -/
 theorem unrestrictedUniversalElement_map_bockleFirstOrderClassifyingMap
@@ -53,6 +62,36 @@ theorem unrestrictedUniversalElement_map_bockleFirstOrderClassifyingMap
       bockleFirstOrderDeformationClass rhoRes σ :=
   unrestrictedUniversalElement_map_classifyingMap R K (Fin 2) rhoRes
     (bockleFirstOrderDeformationClass rhoRes σ)
+
+/-- Distinct adjoint tangent classes give distinct universal dual-number classifying maps. -/
+theorem bockleTangentClassifyingMap_injective
+    [NeZero (2 : ProartinianCat.residueFieldType R)] :
+    Function.Injective (bockleTangentClassifyingMap R K rhoRes) := by
+  intro x y hxy
+  let σ := bockleTangentClassCocycleRepresentative (toRepresentation rhoRes) x
+  let τ := bockleTangentClassCocycleRepresentative (toRepresentation rhoRes) y
+  have hmaps :
+      bockleFirstOrderClassifyingMap R K rhoRes σ =
+        bockleFirstOrderClassifyingMap R K rhoRes τ := by
+    simpa only [bockleTangentClassifyingMap, σ, τ] using hxy
+  have hclass :
+      bockleFirstOrderDeformationClass rhoRes σ =
+        bockleFirstOrderDeformationClass rhoRes τ := by
+    rw [← unrestrictedUniversalElement_map_bockleFirstOrderClassifyingMap R K rhoRes σ,
+      ← unrestrictedUniversalElement_map_bockleFirstOrderClassifyingMap R K rhoRes τ,
+      hmaps]
+  have htangent :=
+    bockleTangentπ_eq_of_firstOrderDeformationClass_eq rhoRes σ τ hclass
+  dsimp only [σ, τ] at htangent
+  calc
+    x = bockleTangentπ (toRepresentation rhoRes)
+        (bockleTangentClassCocycleRepresentative (toRepresentation rhoRes) x) :=
+      (bockleTangentπ_classCocycleRepresentative (toRepresentation rhoRes) x).symm
+    _ = bockleTangentπ (toRepresentation rhoRes)
+        (bockleTangentClassCocycleRepresentative (toRepresentation rhoRes) y) := htangent
+    _ = y :=
+      bockleTangentπ_classCocycleRepresentative (toRepresentation rhoRes) y
+
 
 /-- On chosen representatives, specialization of the universal representation agrees with
 the cocycle deformation up to strict equivalence. -/
@@ -139,6 +178,51 @@ theorem bockleFirstOrderClassifyingMap_augmentation
         ProartinianCat.residueField =>
       f.hom.toAlgHom) hterminal
   exact hhom
+
+
+/-- Bundle the classifying map of an arbitrary tangent class as a dual-number point over the
+universal augmentation. -/
+noncomputable def bockleTangentClassBasedPoint
+    (x : BockleTangentSpace (toRepresentation rhoRes)) :
+    {f : unrestrictedUniversalRing R K (Fin 2) rhoRes →ₐ[R]
+        DualNumber (ProartinianCat.residueFieldType R) //
+      dualNumberAugmentation f =
+        unrestrictedUniversalAugmentation R K rhoRes} :=
+  ⟨(bockleTangentClassifyingMap R K rhoRes x).hom.toAlgHom,
+    bockleFirstOrderClassifyingMap_augmentation R K rhoRes _⟩
+
+/-- The universal based dual-number point faithfully records the adjoint tangent class. -/
+theorem bockleTangentClassBasedPoint_injective
+    [NeZero (2 : ProartinianCat.residueFieldType R)] :
+    Function.Injective (bockleTangentClassBasedPoint R K rhoRes) := by
+  intro x y hxy
+  apply bockleTangentClassifyingMap_injective R K rhoRes
+  have hAlg := congrArg Subtype.val hxy
+  change (bockleTangentClassifyingMap R K rhoRes x).hom.toAlgHom =
+    (bockleTangentClassifyingMap R K rhoRes y).hom.toAlgHom at hAlg
+  ext z
+  exact DFunLike.congr_fun hAlg z
+
+/-- The cotangent functional determined by an arbitrary adjoint tangent class. -/
+noncomputable def bockleTangentClassCotangentFunctional
+    (x : BockleTangentSpace (toRepresentation rhoRes)) :
+    RelativeCotangentSpace (unrestrictedUniversalAugmentation R K rhoRes) →ₗ[
+      ProartinianCat.residueFieldType R] ProartinianCat.residueFieldType R :=
+  dualNumberCotangentFunctionalAt
+    (unrestrictedUniversalAugmentation R K rhoRes)
+    (bockleTangentClassBasedPoint R K rhoRes x).1
+    (bockleTangentClassBasedPoint R K rhoRes x).2
+
+/-- Cotangent functionals obtained from the universal deformation separate all adjoint tangent
+classes. -/
+theorem bockleTangentClassCotangentFunctional_injective
+    [NeZero (2 : ProartinianCat.residueFieldType R)] :
+    Function.Injective (bockleTangentClassCotangentFunctional R K rhoRes) := by
+  intro x y hxy
+  apply bockleTangentClassBasedPoint_injective R K rhoRes
+  apply dualNumberCotangentFunctionalAt_injective
+    (unrestrictedUniversalAugmentation R K rhoRes)
+  exact hxy
 
 /-- A tangent-basis classifying map, bundled together with the fact that it lies over the
 canonical augmentation. -/
