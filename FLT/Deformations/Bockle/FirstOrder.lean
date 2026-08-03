@@ -1133,6 +1133,44 @@ lemma repnFunctorMatrixContinuousMonoidHom_apply
           (DualNumber (ProartinianCat.residueFieldType R))) :=
   rfl
 
+/-- Matrix determinant of the continuous coercion agrees with the determinant of the
+associated linear representation. -/
+lemma repnFunctorMatrixContinuousMonoidHom_det
+    (tau : (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R)) (g : G) :
+    (repnFunctorMatrixContinuousMonoidHom tau g).det =
+      LinearMap.det ((toRepresentation tau) g) := by
+  change (DFunLike.coe
+      (F := ContinuousMonoidHom G (GL (Fin 2)
+        (DualNumber (ProartinianCat.residueFieldType R)))) tau g :
+      Matrix (Fin 2) (Fin 2)
+        (DualNumber (ProartinianCat.residueFieldType R))).det =
+    LinearMap.det ((Matrix.GeneralLinearGroup.toLin
+      (DFunLike.coe
+        (F := ContinuousMonoidHom G (GL (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R)))) tau g)).1)
+  let f : Module.End (DualNumber (ProartinianCat.residueFieldType R))
+      (Fin 2 -> DualNumber (ProartinianCat.residueFieldType R)) :=
+    (Matrix.GeneralLinearGroup.toLin
+      (DFunLike.coe
+        (F := ContinuousMonoidHom G (GL (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R)))) tau g)).1
+  change (DFunLike.coe
+      (F := ContinuousMonoidHom G (GL (Fin 2)
+        (DualNumber (ProartinianCat.residueFieldType R)))) tau g :
+      Matrix (Fin 2) (Fin 2)
+        (DualNumber (ProartinianCat.residueFieldType R))).det = LinearMap.det f
+  have hmatrix : LinearMap.toMatrixAlgEquiv' f =
+      (DFunLike.coe
+        (F := ContinuousMonoidHom G (GL (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R)))) tau g :
+        Matrix (Fin 2) (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R))) := by
+    dsimp only [f]
+    exact LinearMap.toMatrixAlgEquiv'_toLinAlgEquiv' _
+  calc
+    _ = (LinearMap.toMatrixAlgEquiv' f).det := congrArg Matrix.det hmatrix.symm
+    _ = _ := LinearMap.det_toMatrix' f
+
 /-- Exact reduction of a dual-number repnFunctor point is the residual equation used by
 the adjoint-cocycle extractor. -/
 lemma repnFunctorMatrixContinuousMonoidHom_fst_of_reduces
