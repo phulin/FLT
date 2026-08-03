@@ -83,6 +83,25 @@ representation. -/
 def closedTraceAlgebra (rho : FramedGaloisRep K A n) : Subalgebra q A :=
   (Algebra.adjoin q rho.traceSet).topologicalClosure
 
+/-- Saying that the closed trace algebra is the whole coefficient ring is exactly
+topological trace generation. -/
+theorem closedTraceAlgebra_eq_top_iff_isTopologicallyTraceGenerated
+    (rho : FramedGaloisRep K A n) :
+    rho.closedTraceAlgebra (q := q) = ⊤ ↔
+      rho.IsTopologicallyTraceGenerated (k := q) := by
+  constructor
+  · intro h
+    rw [IsTopologicallyTraceGenerated, dense_iff_closure_eq]
+    have hcoe := congrArg
+      (fun S : Subalgebra q A => (S : Set A)) h
+    simpa only [closedTraceAlgebra, Subalgebra.topologicalClosure_coe,
+      Algebra.coe_top] using hcoe
+  · intro h
+    rw [IsTopologicallyTraceGenerated] at h
+    apply SetLike.coe_injective
+    rw [closedTraceAlgebra, Subalgebra.topologicalClosure_coe]
+    exact dense_iff_closure_eq.mp h
+
 /-- The closed trace algebra is closed in the ambient coefficient ring. -/
 theorem isClosed_closedTraceAlgebra (rho : FramedGaloisRep K A n) :
     IsClosed (rho.closedTraceAlgebra (q := q) : Set A) :=
@@ -563,6 +582,15 @@ theorem unrestrictedUniversalGaloisRep_closedTraceAlgebra_eq_top :
   change d ∈ T
   rw [← happ]
   exact (c.hom d).2
+
+/-- The unrestricted universal deformation ring is topologically generated over its
+coefficient ring by the traces of its chosen universal representation. -/
+theorem unrestrictedUniversalGaloisRep_isTopologicallyTraceGenerated :
+    (unrestrictedUniversalGaloisRep 𝓞 K n rho).IsTopologicallyTraceGenerated
+      (k := 𝓞) :=
+  (FramedGaloisRep.closedTraceAlgebra_eq_top_iff_isTopologicallyTraceGenerated
+    (unrestrictedUniversalGaloisRep 𝓞 K n rho)).mp
+      (unrestrictedUniversalGaloisRep_closedTraceAlgebra_eq_top 𝓞 K n rho)
 
 end UnrestrictedUniversal
 
