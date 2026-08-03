@@ -9,6 +9,7 @@ public import FLT.Mathlib.RepresentationTheory.Continuous.TopRep
 public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
 public import Mathlib.LinearAlgebra.FreeModule.Finite.Matrix
 public import Mathlib.LinearAlgebra.Trace
+public import Mathlib.Topology.Instances.Matrix
 public import Mathlib.RepresentationTheory.Subrepresentation
 
 /-!
@@ -139,5 +140,59 @@ lemma traceZeroAdjointTopRepToEnd_action
   rw [traceZeroAdjointTopRepToEnd_apply, traceZeroAdjointTopRepLinearEquiv_action,
     traceZeroAdjoint_apply_val]
   rfl
+
+/-- Forgetting the trace-zero topological packaging is injective. -/
+theorem traceZeroAdjointTopRepToEnd_injective
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V) :
+    Function.Injective (traceZeroAdjointTopRepToEnd ρ) := by
+  intro x y hxy
+  apply (traceZeroAdjointTopRepLinearEquiv ρ).injective
+  apply Subtype.ext
+  exact hxy
+
+/-- For a rank-two residual representation with continuous matrix coefficients, the packaged
+trace-zero adjoint action is jointly continuous. -/
+lemma continuous_traceZeroAdjointTopRep_action_fin_two
+    {k G : Type u} [Field k] [TopologicalSpace k] [DiscreteTopology k]
+    [Group G] [TopologicalSpace G] [IsTopologicalGroup G]
+    (ρ : Representation k G (Fin 2 → k))
+    (hρ : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (ρ g))) :
+    Continuous (fun z : G × traceZeroAdjointTopRep ρ ↦
+      (traceZeroAdjointTopRep ρ).ρ z.1 z.2) := by
+  let X := traceZeroAdjointTopRep ρ
+  letI : DiscreteTopology X := ⟨rfl⟩
+  rw [continuous_prod_of_discrete_right]
+  intro x
+  rw [continuous_discrete_rng]
+  intro y
+  let S : Set (Matrix (Fin 2) (Fin 2) k) :=
+    {A | ∃ h : G, LinearMap.toMatrixAlgEquiv' (ρ h) = A ∧ X.ρ h x = y}
+  have hpre :
+      (fun g ↦ X.ρ g x) ⁻¹' {y} =
+        (fun g ↦ LinearMap.toMatrixAlgEquiv' (ρ g)) ⁻¹' S := by
+    ext g
+    simp only [Set.mem_preimage, Set.mem_singleton_iff]
+    constructor
+    · intro hg
+      exact ⟨g, rfl, hg⟩
+    · rintro ⟨h, hmat, hhy⟩
+      have hrho : ρ h = ρ g :=
+        (LinearMap.toMatrixAlgEquiv' (R := k) (n := Fin 2)).injective hmat
+      have hrhoinv : ρ (h⁻¹) = ρ (g⁻¹) := by
+        calc
+          ρ (h⁻¹) = ρ (h⁻¹) * (ρ g * ρ (g⁻¹)) := by
+            rw [← map_mul]
+            simp
+          _ = (ρ (h⁻¹) * ρ h) * ρ (g⁻¹) := by rw [hrho, mul_assoc]
+          _ = ρ (g⁻¹) := by
+            rw [← map_mul]
+            simp
+      have haction : X.ρ h x = X.ρ g x := by
+        apply traceZeroAdjointTopRepToEnd_injective ρ
+        rw [traceZeroAdjointTopRepToEnd_action,
+          traceZeroAdjointTopRepToEnd_action, hrho, hrhoinv]
+      exact haction.symm.trans hhy
+  rw [hpre]
+  exact (isOpen_discrete S).preimage hρ
 
 end Representation
