@@ -162,6 +162,41 @@ namespace Deformation
 
 universe u
 
+set_option backward.isDefEq.respectTransparency false in
+/-- Strict equivalence is literal equality over an object whose residue morphism is
+injective: the permitted conjugating subgroup is then trivial. -/
+theorem toRepnQuot_app_injective_of_toResidueField_injective
+    {𝓞 : Type u} [CommRing 𝓞] [IsLocalRing 𝓞]
+    {G : Type*} [Group G] [TopologicalSpace G]
+    {n : Type} [Fintype n] [DecidableEq n]
+    (R : ProartinianCat 𝓞)
+    (hres : Function.Injective (ProartinianCat.toResidueField R).hom.toRingHom) :
+    Function.Injective ((toRepnQuot n G 𝓞).app R) := by
+  intro tau tau' h
+  obtain ⟨g, hg⟩ := Quotient.exact h
+  have hGLinj : Function.Injective
+      (Matrix.GeneralLinearGroup.map (n := n)
+        (ProartinianCat.toResidueField R).hom.toRingHom) := by
+    apply Units.map_injective
+    exact Matrix.map_injective hres
+  have hgmap : Matrix.GeneralLinearGroup.map (n := n)
+      (ProartinianCat.toResidueField R).hom.toRingHom g.1.ofConjAct = 1 := by
+    have hgker : g.1.ofConjAct ∈
+        (Matrix.GeneralLinearGroup.map (n := n)
+          (ProartinianCat.toResidueField R).hom.toRingHom).ker := g.2
+    exact MonoidHom.mem_ker.mp hgker
+  have hgGL : g.1.ofConjAct = 1 := by
+    apply hGLinj
+    simpa only [map_one] using hgmap
+  apply ContinuousMonoidHom.ext
+  intro x
+  have hx := DFunLike.congr_fun hg x
+  change g.1.ofConjAct *
+      DFunLike.coe (F := G →ₜ* GL n R) tau' x * g.1.ofConjAct⁻¹ =
+    DFunLike.coe (F := G →ₜ* GL n R) tau x at hx
+  rw [hgGL] at hx
+  simpa only [one_mul, inv_one, mul_one] using hx.symm
+
 noncomputable section UnrestrictedUniversal
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
@@ -256,6 +291,43 @@ theorem unrestrictedUniversalRepresentation_toRepnQuot :
       (unrestrictedUniversalRepresentation 𝓞 K n rho) =
         (unrestrictedUniversalElement 𝓞 K n rho).1 :=
   Quotient.out_eq' _
+
+/-- Reduction of the chosen representative is strictly equivalent to the fixed residual
+representation.  This is the residual condition carried by the universal quotient class. -/
+theorem unrestrictedUniversalRepresentation_reduces_up_to_strictEquivalence :
+    (toRepnQuot n (Γ K) 𝓞).app .residueField
+      ((repnFunctor n (Γ K) 𝓞).map
+        (ProartinianCat.toResidueField (unrestrictedUniversalRing 𝓞 K n rho))
+        (unrestrictedUniversalRepresentation 𝓞 K n rho)) =
+    (toRepnQuot n (Γ K) 𝓞).app .residueField rho := by
+  have hmem := (unrestrictedUniversalElement 𝓞 K n rho).2
+  change (repnQuotFunctor n (Γ K) 𝓞).map
+      (ProartinianCat.isTerminalResidueField.from
+        (unrestrictedUniversalRing 𝓞 K n rho))
+      (unrestrictedUniversalElement 𝓞 K n rho).1 =
+    (toRepnQuot n (Γ K) 𝓞).app .residueField rho at hmem
+  rw [← unrestrictedUniversalRepresentation_toRepnQuot 𝓞 K n rho] at hmem
+  calc
+    _ = (repnQuotFunctor n (Γ K) 𝓞).map
+        (ProartinianCat.toResidueField (unrestrictedUniversalRing 𝓞 K n rho))
+        ((toRepnQuot n (Γ K) 𝓞).app (unrestrictedUniversalRing 𝓞 K n rho)
+          (unrestrictedUniversalRepresentation 𝓞 K n rho)) :=
+      (toRepnQuot n (Γ K) 𝓞).naturality_apply _ _
+    _ = _ := by
+      simpa only [Subsingleton.elim
+        (ProartinianCat.isTerminalResidueField.from
+          (unrestrictedUniversalRing 𝓞 K n rho))
+        (ProartinianCat.toResidueField (unrestrictedUniversalRing 𝓞 K n rho))] using hmem
+
+/-- Reduction of the chosen universal representative is exactly the fixed residual
+representation. -/
+theorem unrestrictedUniversalRepresentation_reduces :
+    (repnFunctor n (Γ K) 𝓞).map
+      (ProartinianCat.toResidueField (unrestrictedUniversalRing 𝓞 K n rho))
+      (unrestrictedUniversalRepresentation 𝓞 K n rho) = rho := by
+  apply toRepnQuot_app_injective_of_toResidueField_injective
+  · exact RingHom.injective _
+  · exact unrestrictedUniversalRepresentation_reduces_up_to_strictEquivalence 𝓞 K n rho
 
 end UnrestrictedUniversal
 
