@@ -1,0 +1,65 @@
+/-
+Copyright (c) 2026 The FLT Project. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: The FLT Project
+-/
+module
+
+public import FLT.Mathlib.RepresentationTheory.Continuous.TopRep
+public import Mathlib.LinearAlgebra.Trace
+public import Mathlib.RepresentationTheory.Subrepresentation
+
+/-!
+# Adjoint representations
+
+This file defines the adjoint action on endomorphisms and its trace-zero subrepresentation.
+For a fixed-determinant deformation problem, this is the coefficient representation customarily
+denoted `ad⁰(ρ̄)` in the tangent and obstruction groups.
+-/
+
+@[expose] public section
+
+universe u v w
+
+namespace Representation
+
+variable {k : Type u} {G : Type v} {V : Type w}
+  [CommRing k] [Group G] [AddCommGroup V] [Module k V]
+
+/-- The adjoint representation of `ρ`, acting on endomorphisms by conjugation. -/
+abbrev adjoint (ρ : Representation k G V) : Representation k G (Module.End k V) :=
+  ρ.linHom ρ
+
+/-- The trace-zero endomorphisms form a subrepresentation of the adjoint representation. -/
+noncomputable def traceZeroAdjointSubrepresentation (ρ : Representation k G V) :
+    Subrepresentation ρ.adjoint where
+  toSubmodule := LinearMap.ker (LinearMap.trace k V)
+  apply_mem_toSubmodule g f hf := by
+    rw [LinearMap.mem_ker] at hf ⊢
+    change LinearMap.trace k V (ρ g * f * ρ g⁻¹) = 0
+    rw [LinearMap.trace_mul_cycle]
+    simpa [← map_mul, hf]
+
+/-- The trace-zero adjoint representation `ad⁰(ρ)`. -/
+noncomputable def traceZeroAdjoint (ρ : Representation k G V) :
+    Representation k G (traceZeroAdjointSubrepresentation ρ).toSubmodule :=
+  (traceZeroAdjointSubrepresentation ρ).toRepresentation
+
+@[simp]
+lemma traceZeroAdjoint_apply_val (ρ : Representation k G V) (g : G)
+    (f : (traceZeroAdjointSubrepresentation ρ).toSubmodule) :
+    (traceZeroAdjoint ρ g f : Module.End k V) = ρ g ∘ₗ (f : Module.End k V) ∘ₗ ρ g⁻¹ :=
+  rfl
+
+/-- Over a discrete coefficient ring, `ad⁰(ρ)` is naturally a topological representation
+with the discrete topology.  This is the object used by continuous group cohomology for residual
+representations. -/
+noncomputable def traceZeroAdjointTopRep
+    [TopologicalSpace k] [DiscreteTopology k] (ρ : Representation k G V) : TopRep k G := by
+  let A := (traceZeroAdjointSubrepresentation ρ).toSubmodule
+  letI : TopologicalSpace A := ⊥
+  letI : DiscreteTopology A := ⟨rfl⟩
+  letI : ContinuousSMul k A := ⟨continuous_of_discreteTopology⟩
+  exact TopRep.of (Representation.toContRepresentationOfDiscrete (traceZeroAdjoint ρ))
+
+end Representation

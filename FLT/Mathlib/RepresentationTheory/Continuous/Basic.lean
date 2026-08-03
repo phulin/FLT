@@ -29,6 +29,24 @@ namespace ContRepresentation
 
 variable {k : Type u} {G : Type v} [CommRing k] [TopologicalSpace k] [Group G]
 
+/-- An algebraic representation on a discrete module is automatically a continuous
+representation in the sense that every group element acts by a continuous linear map. -/
+def _root_.Representation.toContRepresentationOfDiscrete
+    {M : Type w} [AddCommGroup M] [Module k M] [TopologicalSpace M]
+    [DiscreteTopology M] (ρ : Representation k G M) : ContRepresentation k G M :=
+  .ofMonoidHom {
+    toFun g := {
+      __ := ρ g
+      cont := continuous_of_discreteTopology }
+    map_one' := by ext; simp
+    map_mul' := fun g h => by ext; simp [Module.End.mul_eq_comp] }
+
+@[simp]
+lemma _root_.Representation.toContRepresentationOfDiscrete_apply
+    {M : Type w} [AddCommGroup M] [Module k M] [TopologicalSpace M]
+    [DiscreteTopology M] (ρ : Representation k G M) (g : G) (x : M) :
+    Representation.toContRepresentationOfDiscrete ρ g x = ρ g x := rfl
+
 section LinHom
 
 variable {M2 M3 : Type w}
