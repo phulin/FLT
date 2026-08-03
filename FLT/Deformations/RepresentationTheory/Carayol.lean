@@ -515,6 +515,18 @@ theorem exists_smul_eq_of_isIrreducible_baseChange_of_isAlgClosed
   have hw := Module.Flat.tensorProduct_mk_injective k V l happ'
   simpa only [LinearMap.smul_apply, Module.End.one_apply] using hw
 
+/-- Schur's lemma over the original field for the project's notion of absolute
+irreducibility: every endomorphism commuting with the representation is scalar. -/
+theorem exists_smul_eq_of_isAbsolutelyIrreducible
+    [FiniteDimensional k V]
+    (rho : Representation k G V) [rho.IsAbsolutelyIrreducible.{u}]
+    (T : Module.End k V) (hT : ∀ g : G, Commute (rho g) T) :
+    ∃ μ : k, T = μ • (1 : Module.End k V) :=
+  exists_smul_eq_of_isIrreducible_baseChange_of_isAlgClosed
+    (AlgebraicClosure k) rho
+      (Representation.IsAbsolutelyIrreducible.absolutelyIrreducible
+        (ρ := rho) (AlgebraicClosure k) inferInstance inferInstance) T hT
+
 /-- Burnside's theorem over the original field, deduced from irreducibility after extension
 to an algebraically closed field. -/
 theorem adjoinRange_eq_top_of_isIrreducible_baseChange_of_isAlgClosed
