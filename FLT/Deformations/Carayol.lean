@@ -197,6 +197,25 @@ theorem toRepnQuot_app_injective_of_toResidueField_injective
   rw [hgGL] at hx
   simpa only [one_mul, inv_one, mul_one] using hx.symm
 
+/-- Writing a representation supplied by `repnFunctor` as endomorphisms and then converting
+back to matrices returns its original matrices. -/
+theorem matrixMonoidHom_toRepresentation_apply
+    {𝓞 : Type u} [CommRing 𝓞] [IsLocalRing 𝓞]
+    {G : Type*} [Group G] [TopologicalSpace G]
+    {n : Type} [Fintype n] [DecidableEq n]
+    (tau : (repnFunctor n G 𝓞).obj .residueField) (g : G) :
+    Slop.OddRep.matrixMonoidHom (toRepresentation tau) g =
+      (DFunLike.coe (F := G →ₜ* GL n (ProartinianCat.residueField (𝓞 := 𝓞))) tau g :
+        Matrix n n (ProartinianCat.residueField (𝓞 := 𝓞))) := by
+  change LinearMap.toMatrixAlgEquiv'
+      (Matrix.GeneralLinearGroup.toLin
+        (DFunLike.coe
+          (F := G →ₜ* GL n (ProartinianCat.residueField (𝓞 := 𝓞))) tau g) :
+          (n → ProartinianCat.residueField (𝓞 := 𝓞)) →ₗ[
+            ProartinianCat.residueField (𝓞 := 𝓞)]
+          (n → ProartinianCat.residueField (𝓞 := 𝓞))) = _
+  exact LinearMap.toMatrixAlgEquiv'_toLinAlgEquiv' _
+
 noncomputable section UnrestrictedUniversal
 
 local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
@@ -285,6 +304,11 @@ def unrestrictedUniversalRepresentation :
     (repnFunctor n (Γ K) 𝓞).obj (unrestrictedUniversalRing 𝓞 K n rho) :=
   Quotient.out (unrestrictedUniversalElement 𝓞 K n rho).1
 
+/-- The chosen universal unrestricted representative as a framed Galois representation. -/
+def unrestrictedUniversalGaloisRep :
+    FramedGaloisRep K (unrestrictedUniversalRing 𝓞 K n rho) n :=
+  toFramedGaloisRep (unrestrictedUniversalRepresentation 𝓞 K n rho)
+
 /-- The chosen representative maps to the universal strict-equivalence class. -/
 theorem unrestrictedUniversalRepresentation_toRepnQuot :
     (toRepnQuot n (Γ K) 𝓞).app (unrestrictedUniversalRing 𝓞 K n rho)
@@ -328,6 +352,38 @@ theorem unrestrictedUniversalRepresentation_reduces :
   apply toRepnQuot_app_injective_of_toResidueField_injective
   · exact RingHom.injective _
   · exact unrestrictedUniversalRepresentation_reduces_up_to_strictEquivalence 𝓞 K n rho
+
+/-- Matrix form of exact residual compatibility, in the orientation used by the Carayol
+trace-pairing argument. -/
+theorem unrestrictedUniversalGaloisRep_matrix_reduces (g : Γ K) :
+    Slop.OddRep.matrixMonoidHom (toRepresentation rho) g =
+      ((unrestrictedUniversalGaloisRep 𝓞 K n rho).GL g :
+        Matrix n n (unrestrictedUniversalRing 𝓞 K n rho)).map
+        (ProartinianCat.toResidueField
+          (unrestrictedUniversalRing 𝓞 K n rho)).hom.toRingHom := by
+  have hred := congrArg (fun tau :
+      (repnFunctor n (Γ K) 𝓞).obj .residueField ↦
+        DFunLike.coe
+          (F := Γ K →ₜ* GL n (ProartinianCat.residueField (𝓞 := 𝓞))) tau g)
+    (unrestrictedUniversalRepresentation_reduces 𝓞 K n rho)
+  calc
+    Slop.OddRep.matrixMonoidHom (toRepresentation rho) g =
+        (DFunLike.coe
+          (F := Γ K →ₜ* GL n (ProartinianCat.residueField (𝓞 := 𝓞))) rho g :
+            Matrix n n (ProartinianCat.residueField (𝓞 := 𝓞))) :=
+      matrixMonoidHom_toRepresentation_apply rho g
+    _ = ((DFunLike.coe
+          (F := Γ K →ₜ* GL n (unrestrictedUniversalRing 𝓞 K n rho))
+          (unrestrictedUniversalRepresentation 𝓞 K n rho) g :
+            GL n (unrestrictedUniversalRing 𝓞 K n rho)) :
+            Matrix n n (unrestrictedUniversalRing 𝓞 K n rho)).map
+          (ProartinianCat.toResidueField
+            (unrestrictedUniversalRing 𝓞 K n rho)).hom.toRingHom := by
+      exact congrArg Units.val hred.symm
+    _ = _ := by
+      rw [show (unrestrictedUniversalGaloisRep 𝓞 K n rho).GL =
+          unrestrictedUniversalRepresentation 𝓞 K n rho by
+        exact FramedGaloisRep.GL.apply_symm_apply _]
 
 end UnrestrictedUniversal
 
