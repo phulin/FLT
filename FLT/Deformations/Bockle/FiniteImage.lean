@@ -110,6 +110,37 @@ theorem moduleFinite_of_finite_modScalar
     rwa [hNclosed.closure_eq] at hx
   exact Module.Finite.of_fg_top (hNtop ▸ hNfg)
 
+/-- Reduction modulo a coefficient scalar can be computed before passing through a Böckle
+presentation: it is the quotient of the power-series ring by the relations together with the
+image of that scalar. -/
+noncomputable def BocklePresentation.modScalarRingEquiv
+    (P : BocklePresentation R D) (pi : R) :
+    let A := MvPowerSeries (Fin P.numVariables) R
+    (A ⧸ Ideal.ofList (P.relations ++ [algebraMap R A pi])) ≃+*
+      ModScalarRing (D := D) pi := by
+  let A := MvPowerSeries (Fin P.numVariables) R
+  let I : Ideal A := Ideal.ofList P.relations
+  let J : Ideal A := Ideal.span {algebraMap R A pi}
+  let e := Classical.choice P.quotientEquiv
+  have hsource : Ideal.ofList (P.relations ++ [algebraMap R A pi]) = I ⊔ J := by
+    rw [Ideal.ofList_append, Ideal.ofList_singleton]
+  have htarget : scalarIdeal (D := D) pi =
+      (J.map (Ideal.Quotient.mk I)).map e.toRingEquiv := by
+    have hJmap : J.map (Ideal.Quotient.mk I) =
+        Ideal.span {algebraMap R (A ⧸ I) pi} := by
+      change (Ideal.span {algebraMap R A pi}).map (Ideal.Quotient.mk I) = _
+      rw [Ideal.map_span]
+      simp
+    rw [hJmap, Ideal.map_span]
+    simp only [scalarIdeal, Set.image_singleton]
+    congr 1
+    simpa using e.commutes pi
+  exact
+    ((Ideal.quotEquivOfEq hsource).trans
+      (DoubleQuot.quotQuotEquivQuotSup I J).symm).trans
+        (Ideal.quotientEquivAlg (J.map (Ideal.Quotient.mk I))
+          (scalarIdeal (D := D) pi) e htarget).toRingEquiv
+
 /-- The decomposed arithmetic and commutative-algebra data needed in Böckle's argument.
 Unlike `BockleFinitenessData`, this structure does not assume module finiteness or regularity:
 module finiteness is derived topologically, and regularity is required only as a consequence of
