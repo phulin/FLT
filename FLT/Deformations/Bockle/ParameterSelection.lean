@@ -6,8 +6,10 @@ Authors: The FLT Project
 module
 
 public import FLT.Deformations.Bockle.UniversalParameters
+public import Mathlib.FieldTheory.Finiteness
 public import Mathlib.LinearAlgebra.StdBasis
 public import Mathlib.LinearAlgebra.Dual.Lemmas
+public import Mathlib.RingTheory.Finiteness.Cardinality
 
 /-!
 # Selecting deformation parameters from cotangent functionals
@@ -27,6 +29,31 @@ namespace Deformation
 section LinearAlgebra
 
 variable {k V : Type u} [Field k] [AddCommGroup V] [Module k V]
+/-- Over a finite field, a set-theoretic injection from a finite-dimensional vector space into
+an arbitrary vector space forces the target to contain an independent family of the source
+dimension.  The target need not itself be finite-dimensional. -/
+theorem exists_linearIndependent_finrank_of_injective_over_finite_field
+    [Finite k] {W : Type u} [AddCommGroup W] [Module k W] [Module.Finite k V]
+    (f : V → W) (hf : Function.Injective f) :
+    ∃ v : Fin (Module.finrank k V) → W, LinearIndependent k v := by
+  classical
+  by_cases hW : Module.Finite k W
+  · letI : Module.Finite k W := hW
+    letI : Finite W := Module.finite_of_finite k
+    have hcard : Nat.card V ≤ Nat.card W :=
+      Nat.card_le_card_of_injective f hf
+    rw [Module.natCard_eq_pow_finrank (K := k) (V := V),
+      Module.natCard_eq_pow_finrank (K := k) (V := W)] at hcard
+    have hk : 1 < Nat.card k :=
+      Finite.one_lt_card_iff_nontrivial.mpr inferInstance
+    exact exists_linearIndependent_of_le_finrank
+      ((Nat.pow_le_pow_iff_right hk).mp hcard)
+  · have hrank : Cardinal.aleph0 ≤ Module.rank k W := by
+      apply not_lt.mp
+      intro hlt
+      exact hW ((Module.rank_lt_aleph0_iff).mp hlt)
+    exact Module.le_rank_iff.mp (Cardinal.natCast_le_aleph0.trans hrank)
+
 
 /-- Simultaneous evaluation against a finite family of linear functionals. -/
 noncomputable def cotangentEvaluationMap {n : ℕ} (f : Fin n → V →ₗ[k] k) :
@@ -199,5 +226,92 @@ theorem normalizedRelativeCotangentParameter_mem_maximalIdeal
 end Local
 
 end RelativeCotangent
+
+
+section UniversalParameters
+
+local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
+
+variable (R : Type u) [CommRing R] [IsLocalRing R] [IsNoetherianRing R]
+  [Finite (IsLocalRing.ResidueField R)]
+  [IsAdicComplete (IsLocalRing.maximalIdeal R) R]
+variable (K : Type u) [Field K] [NumberField K]
+variable (rhoRes : (repnFunctor (Fin 2) (Γ K) R).obj .residueField)
+variable [Representation.IsAbsolutelyIrreducible.{u} (toRepresentation rhoRes)]
+variable [Module.Finite (ProartinianCat.residueFieldType R)
+  (BockleTangentSpace (toRepresentation rhoRes))]
+variable [NeZero (2 : ProartinianCat.residueFieldType R)]
+
+local instance : Finite (ProartinianCat.residueFieldType R) :=
+  inferInstanceAs (Finite (IsLocalRing.ResidueField R))
+
+/-- Choose as many independent universal cotangent functionals as the dimension of the adjoint
+tangent space.  No finite-dimensionality assumption on the cotangent space is needed. -/
+noncomputable def bockleIndependentCotangentFunctional :
+    Fin (BockleTangentParameterCount (toRepresentation rhoRes)) →
+      RelativeCotangentSpace (unrestrictedUniversalAugmentation R K rhoRes) →ₗ[
+        ProartinianCat.residueFieldType R] ProartinianCat.residueFieldType R :=
+  Classical.choose
+    (exists_linearIndependent_finrank_of_injective_over_finite_field
+      (bockleTangentClassCotangentFunctional R K rhoRes)
+      (bockleTangentClassCotangentFunctional_injective R K rhoRes))
+
+/-- The selected universal cotangent functionals are linearly independent. -/
+theorem bockleIndependentCotangentFunctional_linearIndependent :
+    LinearIndependent (ProartinianCat.residueFieldType R)
+      (bockleIndependentCotangentFunctional R K rhoRes) :=
+  Classical.choose_spec
+    (exists_linearIndependent_finrank_of_injective_over_finite_field
+      (bockleTangentClassCotangentFunctional R K rhoRes)
+      (bockleTangentClassCotangentFunctional_injective R K rhoRes))
+
+/-- The canonical augmentation of the unrestricted universal ring is surjective. -/
+theorem unrestrictedUniversalAugmentation_surjective :
+    Function.Surjective (unrestrictedUniversalAugmentation R K rhoRes) :=
+  ProartinianCat.toResidueField_surjective
+    (unrestrictedUniversalRing R K (Fin 2) rhoRes)
+
+/-- Universal-ring parameters dual to an independent family of adjoint tangent directions. -/
+noncomputable def bockleUniversalParameter
+    (j : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    unrestrictedUniversalRing R K (Fin 2) rhoRes :=
+  normalizedRelativeCotangentParameter
+    (unrestrictedUniversalAugmentation R K rhoRes)
+    (IsLocalRing.residue_surjective (R := R))
+    (bockleIndependentCotangentFunctional R K rhoRes)
+    (bockleIndependentCotangentFunctional_linearIndependent R K rhoRes) j
+
+/-- The selected universal parameters lie in the maximal ideal. -/
+theorem bockleUniversalParameter_mem_maximalIdeal
+    (j : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    bockleUniversalParameter R K rhoRes j ∈
+      IsLocalRing.maximalIdeal (unrestrictedUniversalRing R K (Fin 2) rhoRes) := by
+  let aug := unrestrictedUniversalAugmentation R K rhoRes
+  have haug : Function.Surjective aug :=
+    unrestrictedUniversalAugmentation_surjective R K rhoRes
+  have hlocal : IsLocalHom aug.toRingHom :=
+    IsLocalHom.of_surjective aug.toRingHom haug
+  letI : IsLocalHom aug := ⟨hlocal.map_nonunit⟩
+  exact normalizedRelativeCotangentParameter_mem_maximalIdeal
+    aug haug (IsLocalRing.residue_surjective (R := R))
+    (bockleIndependentCotangentFunctional R K rhoRes)
+    (bockleIndependentCotangentFunctional_linearIndependent R K rhoRes) j
+
+/-- Evaluation of the selected tangent functionals on the selected parameters is the
+Kronecker delta. -/
+theorem bockleUniversalParameter_evaluation
+    (i j : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    bockleIndependentCotangentFunctional R K rhoRes i
+        (relativeCotangentDerivation
+          (unrestrictedUniversalAugmentation R K rhoRes)
+          (bockleUniversalParameter R K rhoRes j)) =
+      if i = j then 1 else 0 :=
+  normalizedRelativeCotangentParameter_evaluation
+    (unrestrictedUniversalAugmentation R K rhoRes)
+    (IsLocalRing.residue_surjective (R := R))
+    (bockleIndependentCotangentFunctional R K rhoRes)
+    (bockleIndependentCotangentFunctional_linearIndependent R K rhoRes) i j
+
+end UniversalParameters
 
 end Deformation
