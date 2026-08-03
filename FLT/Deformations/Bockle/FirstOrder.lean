@@ -720,6 +720,26 @@ theorem bockleFirstOrderRepnFunctor_mem_liftFunctor
     (ProartinianCat.dualNumberToResidueField R)]
   exact bockleFirstOrderRepnFunctor_reduces rhoRes σ
 
+/-- The strict-equivalence class of the first-order representation, regarded as an
+unrestricted deformation over the dual numbers. -/
+noncomputable def bockleFirstOrderDeformationClass
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ : BockleAdjointCocycles₁ (toRepresentation rhoRes)) :
+    (deformationFunctor (Fin 2) G R rhoRes).toFunctor.obj
+      (ProartinianCat.dualNumber R) :=
+  deformationClassOfLift (n := Fin 2) (G := G) (𝓞 := R) rhoRes
+    (bockleFirstOrderRepnFunctor rhoRes σ)
+    (bockleFirstOrderRepnFunctor_mem_liftFunctor rhoRes σ)
+
+@[simp]
+lemma bockleFirstOrderDeformationClass_val
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ : BockleAdjointCocycles₁ (toRepresentation rhoRes)) :
+    (bockleFirstOrderDeformationClass rhoRes σ).1 =
+      (toRepnQuot (Fin 2) G R).app (ProartinianCat.dualNumber R)
+        (bockleFirstOrderRepnFunctor rhoRes σ) :=
+  rfl
+
 /-- The chosen tangent basis gives a family of points of the residual lifting functor over
 the dual numbers. -/
 noncomputable def bockleTangentBasisRepnFunctor
@@ -729,6 +749,18 @@ noncomputable def bockleTangentBasisRepnFunctor
     (i : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
     (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R) :=
   bockleFirstOrderRepnFunctor rhoRes
+    (bockleTangentCocycleRepresentative (toRepresentation rhoRes) i)
+
+/-- The selected tangent basis, realized as strict-equivalence classes of deformations
+over the dual numbers. -/
+noncomputable def bockleTangentBasisDeformationClass
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    [Module.Finite (ProartinianCat.residueFieldType R)
+      (BockleTangentSpace (toRepresentation rhoRes))]
+    (i : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    (deformationFunctor (Fin 2) G R rhoRes).toFunctor.obj
+      (ProartinianCat.dualNumber R) :=
+  bockleFirstOrderDeformationClass rhoRes
     (bockleTangentCocycleRepresentative (toRepresentation rhoRes) i)
 
 lemma bockleTangentBasisRepnFunctor_mem_liftFunctor
