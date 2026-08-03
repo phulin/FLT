@@ -6,6 +6,7 @@ Authors: The FLT Project
 module
 
 public import FLT.Deformations.Bockle.FirstOrder
+public import FLT.Deformations.Bockle.RelativeCotangent
 public import FLT.Deformations.Carayol
 
 /-!
@@ -112,4 +113,55 @@ theorem unrestrictedUniversalElement_map_bockleTangentBasisClassifyingMap
       bockleTangentBasisDeformationClass rhoRes i :=
   unrestrictedUniversalElement_map_bockleFirstOrderClassifyingMap R K rhoRes _
 
+/-- The canonical augmentation of the unrestricted universal deformation ring to the
+coefficient residue field. -/
+noncomputable def unrestrictedUniversalAugmentation :
+    unrestrictedUniversalRing R K (Fin 2) rhoRes →ₐ[R]
+      ProartinianCat.residueFieldType R :=
+  (ProartinianCat.toResidueField
+    (unrestrictedUniversalRing R K (Fin 2) rhoRes)).hom.toAlgHom
+
+/-- Every first-order classifying map has the canonical residue component.  Categorically,
+this is just uniqueness of the map to the terminal residue-field object. -/
+theorem bockleFirstOrderClassifyingMap_augmentation
+    (σ : BockleAdjointCocycles₁ (toRepresentation rhoRes)) :
+    dualNumberAugmentation
+        (bockleFirstOrderClassifyingMap R K rhoRes σ).hom.toAlgHom =
+      unrestrictedUniversalAugmentation R K rhoRes := by
+  have hterminal :
+      bockleFirstOrderClassifyingMap R K rhoRes σ ≫
+          ProartinianCat.dualNumberToResidueField R =
+        ProartinianCat.toResidueField
+          (unrestrictedUniversalRing R K (Fin 2) rhoRes) :=
+    Subsingleton.elim _ _
+  have hhom := congrArg
+    (fun f : unrestrictedUniversalRing R K (Fin 2) rhoRes ⟶
+        ProartinianCat.residueField =>
+      f.hom.toAlgHom) hterminal
+  exact hhom
+
+/-- A tangent-basis classifying map, bundled together with the fact that it lies over the
+canonical augmentation. -/
+noncomputable def bockleTangentBasisBasedPoint
+    [Module.Finite (ProartinianCat.residueFieldType R)
+      (BockleTangentSpace (toRepresentation rhoRes))]
+    (i : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    {f : unrestrictedUniversalRing R K (Fin 2) rhoRes →ₐ[R]
+        DualNumber (ProartinianCat.residueFieldType R) //
+      dualNumberAugmentation f =
+        unrestrictedUniversalAugmentation R K rhoRes} :=
+  ⟨(bockleTangentBasisClassifyingMap R K rhoRes i).hom.toAlgHom,
+    bockleFirstOrderClassifyingMap_augmentation R K rhoRes _⟩
+
+/-- The cotangent functional associated to the chosen `i`-th tangent-basis deformation. -/
+noncomputable def bockleTangentBasisCotangentFunctional
+    [Module.Finite (ProartinianCat.residueFieldType R)
+      (BockleTangentSpace (toRepresentation rhoRes))]
+    (i : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    RelativeCotangentSpace (unrestrictedUniversalAugmentation R K rhoRes) →ₗ[
+      ProartinianCat.residueFieldType R] ProartinianCat.residueFieldType R :=
+  dualNumberCotangentFunctionalAt
+    (unrestrictedUniversalAugmentation R K rhoRes)
+    (bockleTangentBasisBasedPoint R K rhoRes i).1
+    (bockleTangentBasisBasedPoint R K rhoRes i).2
 end Deformation

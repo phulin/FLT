@@ -10,6 +10,7 @@ public import FLT.Deformations.CoefficientRing
 public import FLT.Deformations.HardlyRamified
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import FLT.Deformations.Bockle.FiniteImage
+public import FLT.Deformations.Bockle.ParameterSelection
 public import FLT.Mathlib.NumberTheory.Padics.PadicIntegers
 
 import Mathlib.RingTheory.RootsOfUnity.Complex
@@ -148,6 +149,65 @@ noncomputable def hardlyRamifiedBockleResidualRepresentation
       (Fin 2 → (Deformation.ProartinianCat.residueField (𝓞 := R) : Type u)) :=
   (Deformation.toRepresentation rhoRes).comp MulEquiv.ulift.toMonoidHom
 
+/-- Scalar multiplication on a pro-Artinian coefficient algebra is continuous once the
+coefficient ring carries its adic topology.  Thus this field of Böckle's package is formal,
+not an additional arithmetic hypothesis. -/
+noncomputable def hardlyRamifiedUniversalContinuousSMul
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    [TopologicalSpace R] [IsTopologicalRing R]
+    [IsLocalRing.IsAdicTopology R] (D : Deformation.ProartinianCat R) :
+    ContinuousSMul R D :=
+  continuousSMul_of_algebraMap R D
+    (isContinuous_of_isProartinian_of_isLocalHom (algebraMap R D))
+
+/-- Fix an irreducible element of the coefficient DVR. -/
+noncomputable def hardlyRamifiedCoefficientUniformizer
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R] : R :=
+  Classical.choose (IsDiscreteValuationRing.exists_irreducible R)
+
+/-- The fixed coefficient element is a uniformizer in the only form used downstream. -/
+theorem hardlyRamifiedCoefficientUniformizer_irreducible
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R] :
+    Irreducible (hardlyRamifiedCoefficientUniformizer R) :=
+  Classical.choose_spec (IsDiscreteValuationRing.exists_irreducible R)
+
+/-- The non-formal arithmetic core of the Böckle argument.  The continuous scalar action
+is supplied separately from the pro-Artinian topology, and scalar reduction uses the canonical
+coefficient uniformizer selected above. -/
+structure HardlyRamifiedBockleArithmeticCore
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
+    [TopologicalSpace R] [IsTopologicalRing R] [CompactSpace R]
+    [IsLocalRing.IsAdicTopology R]
+    [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
+    [IsNoetherianRing R] [Finite (IsLocalRing.ResidueField R)]
+    [IsAdicComplete (IsLocalRing.maximalIdeal R) R]
+    (rhoRes : (Deformation.repnFunctor (Fin 2) (Γ ℚ) R).obj .residueField)
+    [Representation.IsAbsolutelyIrreducible.{u}
+      (Deformation.toRepresentation rhoRes)]
+    (hrhoRes : rhoRes ∈
+      (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField)
+    [ContinuousSMul R
+      (Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes)] where
+  /-- Finiteness of the obstruction group, needed to choose finitely many relations. -/
+  [obstructionFinite : Module.Finite
+    (Deformation.ProartinianCat.residueField (𝓞 := R) : Type u)
+    (Deformation.BockleObstructionSpace
+      (hardlyRamifiedBockleResidualRepresentation R rhoRes))]
+  /-- Parameters dual to `H¹`, their Artinian lifting property, and the injection of minimal
+  relations into `H²`, including the Euler-characteristic dimension inequality. -/
+  parameterInput : Deformation.BockleAdjointParameterInput
+    (R := R)
+    (D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes)
+    (RingEquiv.refl
+      (Deformation.ProartinianCat.residueField (𝓞 := R) : Type u))
+    (hardlyRamifiedBockleResidualRepresentation R rhoRes)
+  /-- Potential modularity after reduction by the fixed coefficient uniformizer. -/
+  finiteImageAfterRestriction :
+    let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
+    let tau := Deformation.hardlyRamifiedUniversalGaloisRep R p hpodd rhoRes hrhoRes
+    (tau.quotient (Deformation.scalarIdeal (D := D)
+      (hardlyRamifiedCoefficientUniformizer R))).FiniteImageAfterRestriction
+
 /-- The genuinely arithmetic input which remains in the Böckle argument for the universal
 hardly ramified deformation.  It contains only the tangent--obstruction construction and the
 potential-modularity finite-image statement.  The choice of a uniformizer, Carayol trace
@@ -190,6 +250,26 @@ structure HardlyRamifiedBockleInput
     let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
     let tau := Deformation.hardlyRamifiedUniversalGaloisRep R p hpodd rhoRes hrhoRes
     (tau.quotient (Deformation.scalarIdeal (D := D) uniformizer)).FiniteImageAfterRestriction
+/-- The remaining modern arithmetic theorem in its reduced form: construct adjoint
+parameters/obstructions and prove potential-modularity finite image for the fixed scalar
+reduction. -/
+theorem exists_hardlyRamifiedBockleArithmeticCore (hp : 3 < p)
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
+    [TopologicalSpace R] [IsTopologicalRing R] [CompactSpace R]
+    [IsLocalRing.IsAdicTopology R]
+    [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
+    [IsNoetherianRing R] [Finite (IsLocalRing.ResidueField R)]
+    [IsAdicComplete (IsLocalRing.maximalIdeal R) R]
+    (rhoRes : (Deformation.repnFunctor (Fin 2) (Γ ℚ) R).obj .residueField)
+    [Representation.IsAbsolutelyIrreducible.{u}
+      (Deformation.toRepresentation rhoRes)]
+    (hrhoRes : rhoRes ∈
+      (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField)
+    [ContinuousSMul R
+      (Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes)] :
+    Nonempty (HardlyRamifiedBockleArithmeticCore hpodd R rhoRes hrhoRes) := by
+  sorry
+
 
 /-- The remaining modern arithmetic theorem in its reduced form: construct adjoint
 parameters/obstructions and prove potential-modularity finite image. -/
@@ -206,7 +286,23 @@ theorem exists_hardlyRamifiedBockleInput (hp : 3 < p)
     (hrhoRes : rhoRes ∈
       (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
     Nonempty (HardlyRamifiedBockleInput hpodd R rhoRes hrhoRes) := by
-  sorry
+  let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
+  letI : ContinuousSMul R D :=
+    hardlyRamifiedUniversalContinuousSMul R D
+  obtain ⟨core⟩ :=
+    exists_hardlyRamifiedBockleArithmeticCore hpodd hp R rhoRes hrhoRes
+  letI : Module.Finite
+      (Deformation.ProartinianCat.residueField (𝓞 := R) : Type u)
+      (Deformation.BockleObstructionSpace
+        (hardlyRamifiedBockleResidualRepresentation R rhoRes)) :=
+    core.obstructionFinite
+  exact ⟨{
+    continuousSMul := inferInstance
+    obstructionFinite := inferInstance
+    parameterInput := core.parameterInput
+    uniformizer := hardlyRamifiedCoefficientUniformizer R
+    uniformizer_irreducible := hardlyRamifiedCoefficientUniformizer_irreducible R
+    finiteImageAfterRestriction := core.finiteImageAfterRestriction }⟩
 
 /-- Assemble the complete Böckle arithmetic package from the two genuinely arithmetic
 inputs.  Carayol trace generation, topological Nakayama, and the regular-sequence conclusion
