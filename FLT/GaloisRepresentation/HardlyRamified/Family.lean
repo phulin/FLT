@@ -34,6 +34,59 @@ variable {p : ℕ} (hpodd : Odd p) [hp : Fact p.Prime]
     {V : Type v} [AddCommGroup V] [Module R V] [Module.Finite R V]
     [Module.Free R V] (hv : Module.rank R V = 2) {ρ : GaloisRep ℚ R V}
 
+/-- A member of a characteristic-zero family has a hardly ramified integral model if it is
+obtained by extending scalars from a rank-two representation over a finite free local
+`ℤ_[ℓ]`-algebra satisfying the hardly ramified conditions. -/
+def HasHardlyRamifiedIntegralModel
+    {ℓ : ℕ} [Fact ℓ.Prime] (hℓodd : Odd ℓ)
+    (σℓ : GaloisRep ℚ (AlgebraicClosure ℚ_[ℓ])
+      (Fin 2 → AlgebraicClosure ℚ_[ℓ])) : Prop :=
+  ∃ (A : Type u) (_ : CommRing A) (_ : TopologicalSpace A) (_ : IsTopologicalRing A)
+    (_ : IsLocalRing A) (_ : Algebra ℤ_[ℓ] A) (_ : Module.Finite ℤ_[ℓ] A)
+    (_ : Module.Free ℤ_[ℓ] A) (_ : IsDomain A) (_ : Algebra A (AlgebraicClosure ℚ_[ℓ]))
+    (_ : FaithfulSMul A (AlgebraicClosure ℚ_[ℓ]))
+    (_ : IsScalarTower ℤ_[ℓ] A (AlgebraicClosure ℚ_[ℓ])) (_ : IsModuleTopology ℤ_[ℓ] A)
+    (_ : ContinuousSMul A (AlgebraicClosure ℚ_[ℓ]))
+    (W : Type v) (_ : AddCommGroup W) (_ : Module A W) (_ : Module.Finite A W)
+    (_ : Module.Free A W) (hW : Module.rank A W = 2)
+    (τ : GaloisRep ℚ A W)
+    (r : AlgebraicClosure ℚ_[ℓ] ⊗[A] W ≃ₗ[AlgebraicClosure ℚ_[ℓ]]
+      Fin 2 → AlgebraicClosure ℚ_[ℓ]),
+    IsHardlyRamified hℓodd hW τ ∧
+      (τ.baseChange (AlgebraicClosure ℚ_[ℓ])).conj r = σℓ
+
+/-- The given `p`-adic representation occurs as a member of a compatible family after
+extension to `AlgebraicClosure ℚ_[p]` and a change of basis. -/
+def IsMemberOfCompatibleFamily
+    {E : Type v} [Field E] [NumberField E]
+    (σ : GaloisRepFamily ℚ E 2) (ρ : GaloisRep ℚ R V) : Prop :=
+  ∃ (_ : Algebra R (AlgebraicClosure ℚ_[p]))
+    (_ : FaithfulSMul R (AlgebraicClosure ℚ_[p]))
+    (_ : ContinuousSMul R (AlgebraicClosure ℚ_[p]))
+    (ψ : E →+* AlgebraicClosure ℚ_[p])
+    (r : AlgebraicClosure ℚ_[p] ⊗[R] V ≃ₗ[AlgebraicClosure ℚ_[p]]
+      Fin 2 → AlgebraicClosure ℚ_[p]),
+    (ρ.baseChange (AlgebraicClosure ℚ_[p])).conj r = σ hp ψ
+
+/-- The potential-modularity/Brauer-induction input for spreading out a minimal
+hardly-ramified lift.  In the terminology of Khare--Wintenberger this is the weight-two,
+semistable case of their Theorem 4.2, together with the preservation of its local conditions
+in the integral models of the members. -/
+theorem exists_hardlyRamifiedCompatibleFamily
+    {k : Type u} [Finite k] [Field k] [TopologicalSpace k] [DiscreteTopology k]
+    [Algebra R k] [ContinuousSMul R k]
+    {Vbar : Type w} [AddCommGroup Vbar] [Module k Vbar]
+    (hρ : IsHardlyRamified hpodd hv ρ) (ρbar : GaloisRep ℚ k Vbar)
+    (rbar : k ⊗[R] V ≃ₗ[k] Vbar) (hred : (ρ.baseChange k).conj rbar = ρbar)
+    (hρbar : ρbar.IsIrreducible) :
+    ∃ (E : Type v) (_ : Field E) (_ : NumberField E) (σ : GaloisRepFamily ℚ E 2),
+      σ.isCompatible ∧
+      (∀ {ℓ : ℕ} (hℓ : Fact ℓ.Prime) (hℓodd : Odd ℓ)
+        (φ : E →+* AlgebraicClosure ℚ_[ℓ]),
+        HasHardlyRamifiedIntegralModel hℓodd (σ hℓ φ)) ∧
+      IsMemberOfCompatibleFamily (p := p) σ ρ := by
+  sorry
+
 /-- A hardly ramified characteristic-zero representation whose residual representation is
 irreducible belongs to a compatible family of hardly ramified representations.
 
@@ -86,6 +139,8 @@ theorem mem_isCompatible
       (r' : AlgebraicClosure ℚ_[p] ⊗[R] V ≃ₗ[AlgebraicClosure ℚ_[p]]
         Fin 2 → AlgebraicClosure ℚ_[p]),
       (ρ.baseChange (AlgebraicClosure ℚ_[p])).conj r' = σ hp ψ) :=
-  sorry
+  by
+    simpa only [HasHardlyRamifiedIntegralModel, IsMemberOfCompatibleFamily] using
+      exists_hardlyRamifiedCompatibleFamily hpodd hv hρ ρbar rbar hred hρbar
 
 end GaloisRepresentation.IsHardlyRamified
