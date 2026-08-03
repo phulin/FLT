@@ -27,8 +27,7 @@ variable {K : Type uK} [Field K]
 variable {R D : Type u} [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
   [IsNoetherianRing R] [Finite (IsLocalRing.ResidueField R)]
   [CommRing D] [TopologicalSpace D] [IsTopologicalRing D] [Algebra R D]
-  [IsLocalRing D] [IsLocalHom (algebraMap R D)] [IsNoetherianRing D]
-  [Finite (IsLocalRing.ResidueField D)]
+  [IsLocalRing D] [IsLocalHom (algebraMap R D)]
 variable {n : Type un} [Fintype n] [DecidableEq n]
 
 /-- The decomposed arithmetic and commutative-algebra data needed in Böckle's argument.
@@ -37,6 +36,10 @@ both are required only as consequences of the already-derived finiteness modulo 
 structure BockleArithmeticData (rho : FramedGaloisRep K D n) where
   /-- Böckle's balanced power-series presentation. -/
   presentation : BocklePresentation R D
+  /-- The finite-variable presentation makes the deformation ring Noetherian. -/
+  noetherian : IsNoetherianRing D
+  /-- The universal deformation ring has the same finite residue field as its coefficient ring. -/
+  finiteResidueField : Finite (IsLocalRing.ResidueField D)
   /-- The coefficient-ring uniformizer. -/
   uniformizer : R
   /-- Potential modularity, Carayol trace generation, and trace integrality data. -/
@@ -54,6 +57,8 @@ from the finite-image criterion. -/
 noncomputable def BockleArithmeticData.toBockleFinitenessData
     {rho : FramedGaloisRep K D n} (h : BockleArithmeticData (R := R) rho) :
     BockleFinitenessData R D := by
+  letI : IsNoetherianRing D := h.noetherian
+  letI : Finite (IsLocalRing.ResidueField D) := h.finiteResidueField
   have hmod : Finite (ModScalarRing (D := D) h.uniformizer) := h.finiteImage.finite
   exact
     { presentation := h.presentation
