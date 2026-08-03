@@ -74,6 +74,18 @@ noncomputable def hardlyRamifiedLiftFunctor
     Subfunctor (repnFunctor (Fin 2) (Γ ℚ) 𝓞) :=
   liftFunctor (Fin 2) (Γ ℚ) 𝓞 ρ ⊓ hardlyRamifiedFunctor 𝓞 p hpodd
 
+/-- The unframed minimal hardly ramified deformation functor.  Its points are strict-conjugacy
+classes which admit a representative reducing to `ρ` and satisfying the hardly ramified
+conditions.  Böckle's presentation theorem and Carayol's trace theorem apply to this quotient
+functor, not to the framed lift functor. -/
+noncomputable def hardlyRamifiedDeformationFunctor
+    (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞]
+    (p : ℕ) [Fact p.Prime] (hpodd : Odd p) [Algebra ℤ_[p] 𝓞]
+    (ρ : (repnFunctor (Fin 2) (Γ ℚ) 𝓞).obj .residueField) :
+    Subfunctor (repnQuotFunctor (Fin 2) (Γ ℚ) 𝓞) :=
+  (hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ).imageUnder
+    (toRepnQuot (Fin 2) (Γ ℚ) 𝓞)
+
 /-- The residual point belongs to the minimal lift functor whenever it is hardly ramified.
 The lift condition at the terminal residue-field object is the identity condition. -/
 theorem residual_mem_hardlyRamifiedLiftFunctor
@@ -166,14 +178,14 @@ theorem residualRepresentation_isIrreducible
 /-- Schlessinger--Mazur corepresentability of the minimal hardly ramified deformation
 problem.  This is a pre-1990 input: Mazur's deformation theory and the classical
 finite-flat local deformation condition. -/
-lemma isCorepresentable_hardlyRamifiedLiftFunctor
+lemma isCorepresentable_hardlyRamifiedDeformationFunctor
     (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞] [IsNoetherianRing 𝓞]
     [Finite (ResidueField 𝓞)] [IsAdicComplete (maximalIdeal 𝓞) 𝓞]
     (p : ℕ) [Fact p.Prime] (hpodd : Odd p) [Algebra ℤ_[p] 𝓞]
     (ρ : (repnFunctor (Fin 2) (Γ ℚ) 𝓞).obj .residueField)
     [(toRepresentation ρ).IsAbsolutelyIrreducible]
     (_hρ : ρ ∈ (hardlyRamifiedFunctor 𝓞 p hpodd).obj .residueField) :
-    (hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ).toFunctor.IsCorepresentable := by
+    (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.IsCorepresentable := by
   -- Schlessinger's criterion plus Mazur's 1989 profinite deformation framework; the
   -- finite-flat local condition is represented by the pre-1990 Fontaine--Laffaille theory.
   knownin1980s
@@ -189,26 +201,30 @@ variable (hρ : ρ ∈ (hardlyRamifiedFunctor 𝓞 p hpodd).obj .residueField)
 
 /-- The universal minimal hardly ramified deformation ring. -/
 def hardlyRamifiedUniversalRing : ProartinianCat 𝓞 :=
-  (isCorepresentable_hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ hρ).has_corepresentation.choose
+  (isCorepresentable_hardlyRamifiedDeformationFunctor
+    𝓞 p hpodd ρ hρ).has_corepresentation.choose
 
-/-- The corepresentation of the minimal hardly ramified lift functor. -/
+/-- The corepresentation of the minimal hardly ramified deformation functor. -/
 def hardlyRamifiedUniversalRingCorepresentableBy :
-    (hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ).toFunctor.CorepresentableBy
+    (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.CorepresentableBy
       (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ) :=
-  (isCorepresentable_hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ hρ).has_corepresentation.choose_spec.some
+  (isCorepresentable_hardlyRamifiedDeformationFunctor
+    𝓞 p hpodd ρ hρ).has_corepresentation.choose_spec.some
 
-/-- The universal element of the minimal hardly ramified lift functor. -/
+/-- The universal strict-equivalence class in the minimal hardly ramified deformation functor. -/
 def hardlyRamifiedUniversalElement :
-    (hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ).toFunctor.obj
+    (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor.obj
       (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ) :=
   (hardlyRamifiedUniversalRingCorepresentableBy 𝓞 p hpodd ρ hρ).homEquiv
     (𝟙 (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ))
 
-/-- The matrix-valued universal minimal representation. -/
-def hardlyRamifiedUniversalRepresentation :
+/-- A matrix-valued representative of the universal unframed minimal deformation.  Membership
+in `hardlyRamifiedDeformationFunctor` supplies a representative which already satisfies both
+the residual and hardly ramified conditions. -/
+noncomputable def hardlyRamifiedUniversalRepresentation :
     (repnFunctor (Fin 2) (Γ ℚ) 𝓞).obj
       (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ) :=
-  (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).1
+  Classical.choose (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).2
 
 /-- The universal minimal representation as a framed Galois representation. -/
 noncomputable def hardlyRamifiedUniversalGaloisRep :
@@ -219,7 +235,17 @@ theorem hardlyRamifiedUniversalRepresentation_mem :
     hardlyRamifiedUniversalRepresentation 𝓞 p hpodd ρ hρ ∈
       (hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ).obj
         (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ) :=
-  (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).2
+  (Classical.choose_spec
+    (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).2).1
+
+/-- The chosen representative maps to the universal strict-equivalence class. -/
+theorem hardlyRamifiedUniversalRepresentation_toRepnQuot :
+    (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app
+      (hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ)
+      (hardlyRamifiedUniversalRepresentation 𝓞 p hpodd ρ hρ) =
+        (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).1 :=
+  (Classical.choose_spec
+    (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).2).2
 
 /-- The universal element both reduces to `ρ` and is hardly ramified. -/
 theorem hardlyRamifiedUniversalRepresentation_conditions :
