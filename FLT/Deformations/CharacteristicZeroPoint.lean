@@ -32,6 +32,27 @@ the deformation ring, and some minimal prime avoids it.
 namespace Deformation
 
 /-- A finite free local algebra with the module topology over a compact Hausdorff totally
+disconnected Noetherian ring has its maximal-ideal-adic topology.  This separates the
+topological uniqueness argument from the pro-Artinian and completeness consequences below. -/
+theorem isAdicTopology_of_finiteFree_moduleTopology
+    (A B : Type*) [CommRing A] [Nontrivial A] [IsNoetherianRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [CompactSpace A] [T2Space A]
+    [TotallyDisconnectedSpace A]
+    [CommRing B] [IsLocalRing B] [Algebra A B]
+    [Module.Finite A B] [Module.Free A B]
+    [TopologicalSpace B] [IsTopologicalRing B] [IsModuleTopology A B] :
+    IsLocalRing.IsAdicTopology B := by
+  letI : CompactSpace B := Module.Finite.compactSpace A B
+  letI : T2Space B := IsModuleTopology.t2Space A
+  let e : B ≃ₗ[A] (Fin (Module.finrank A B) → A) := Module.Finite.equivPi A B
+  let eTop : B ≃L[A] (Fin (Module.finrank A B) → A) :=
+    IsModuleTopology.continuousLinearEquiv e
+  letI : TotallyDisconnectedSpace B :=
+    eTop.toHomeomorph.symm.totallyDisconnectedSpace
+  letI : IsNoetherianRing B := IsNoetherianRing.of_finite A B
+  infer_instance
+
+/-- A finite free local algebra with the module topology over a compact Hausdorff totally
 disconnected Noetherian ring is pro-Artinian. -/
 theorem isProartinian_of_finiteFree_moduleTopology
     (A B : Type*) [CommRing A] [Nontrivial A] [IsNoetherianRing A]
@@ -48,7 +69,8 @@ theorem isProartinian_of_finiteFree_moduleTopology
   letI : TotallyDisconnectedSpace B :=
     eTop.toHomeomorph.symm.totallyDisconnectedSpace
   letI : IsNoetherianRing B := IsNoetherianRing.of_finite A B
-  letI : IsLocalRing.IsAdicTopology B := inferInstance
+  letI : IsLocalRing.IsAdicTopology B :=
+    isAdicTopology_of_finiteFree_moduleTopology A B
   infer_instance
 
 /-- A finite free local algebra with its module topology over a compact Hausdorff totally
@@ -77,6 +99,68 @@ theorem isAdicComplete_of_finiteFree_moduleTopology
     obtain ⟨n, hn⟩ := exists_maximalIdeal_pow_le_of_isProartinian I hIopen
     exact ⟨n, SetLike.coe_subset_coe.mpr hn |>.trans hIs⟩
   exact hadic.isAdicComplete_iff.mpr ⟨inferInstance, inferInstance⟩
+
+/-- A finite algebra over a compact coefficient ring cannot carry a distinct pro-Artinian
+topology compatible with the local algebra structure.  The module topology is compact, while
+the given pro-Artinian topology is Hausdorff; the continuous identity from the former to the
+latter is therefore a homeomorphism.
+
+This is useful for universal deformation rings: once arithmetic patching proves module
+finiteness, the topology required for characteristic-zero extraction follows formally. -/
+theorem isModuleTopology_of_isProartinian_of_finite
+    (A B : Type*) [CommRing A] [IsLocalRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [CompactSpace A] [T2Space A]
+    [IsLocalRing.IsAdicTopology A]
+    [CommRing B] [IsLocalRing B] [Algebra A B]
+    [TopologicalSpace B] [IsTopologicalRing B] [IsProartinian B]
+    [IsLocalHom (algebraMap A B)] [Module.Finite A B] :
+    IsModuleTopology A B := by
+  have heq : (inferInstance : TopologicalSpace B) = moduleTopology A B := by
+    let oldTopology : TopologicalSpace B := inferInstance
+    have hAlg : Continuous (algebraMap A B) :=
+      isContinuous_of_isProartinian_of_isLocalHom (algebraMap A B)
+    letI : IsTopologicalModule A B :=
+      (IsModuleTopology.iff_Continuous_algebraMap A B).mpr hAlg
+    have hle : moduleTopology A B ≤ oldTopology := moduleTopology_le A B
+    let moduleTopologyB : TopologicalSpace B := moduleTopology A B
+    have hcompact : @CompactSpace B moduleTopologyB := by
+      letI : TopologicalSpace B := moduleTopologyB
+      letI : IsModuleTopology A B := ModuleTopology.isModuleTopology A B
+      exact IsModuleTopology.compactSpace A B
+    have hT2 : @T2Space B oldTopology := inferInstance
+    have hcontinuous : @Continuous B B moduleTopologyB oldTopology id :=
+      (@continuous_id_iff_le B moduleTopologyB oldTopology).mpr hle
+    have hhome : @IsHomeomorph B B moduleTopologyB oldTopology id := by
+      exact (@isHomeomorph_iff_continuous_bijective B B moduleTopologyB oldTopology id
+        hcompact hT2).mpr ⟨hcontinuous, Function.bijective_id⟩
+    have hcontinuous' : @Continuous B B oldTopology moduleTopologyB id := by
+      rw [continuous_def]
+      intro s hs
+      simpa using
+        (@IsHomeomorph.isOpenMap B B moduleTopologyB oldTopology id hhome s hs)
+    exact le_antisymm
+      ((@continuous_id_iff_le B oldTopology moduleTopologyB).mp hcontinuous') hle
+  exact ⟨heq⟩
+
+/-- Variant of `isModuleTopology_of_isProartinian_of_finite` in which compactness,
+Hausdorffness, and the adic topology on the coefficient ring are all derived from a finite
+free presentation over a fixed compact base. -/
+theorem isModuleTopology_of_isProartinian_of_finiteFree_base
+    (A R B : Type*) [CommRing A] [Nontrivial A] [IsNoetherianRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [CompactSpace A] [T2Space A]
+    [TotallyDisconnectedSpace A]
+    [CommRing R] [IsLocalRing R] [Algebra A R]
+    [Module.Finite A R] [Module.Free A R]
+    [TopologicalSpace R] [IsTopologicalRing R] [IsModuleTopology A R]
+    [CommRing B] [IsLocalRing B] [Algebra R B]
+    [TopologicalSpace B] [IsTopologicalRing B] [IsProartinian B]
+    [IsLocalHom (algebraMap R B)] [Module.Finite R B] :
+    IsModuleTopology R B := by
+  letI : CompactSpace R := Module.Finite.compactSpace A R
+  letI : T2Space R := IsModuleTopology.t2Space A
+  letI : IsLocalRing.IsAdicTopology R :=
+    isAdicTopology_of_finiteFree_moduleTopology A R
+  exact isModuleTopology_of_isProartinian_of_finite R B
 
 /-- Let `B` be a flat local algebra over a local domain `A`.  Every nonzero `a : A` is avoided
 by a minimal prime of `B`.  Applied to a uniformizer of a coefficient DVR, this is the

@@ -136,9 +136,29 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
     ρ.toRepresentation hρirred hc_fixed
 
 /-- The modern arithmetic input: the universal hardly ramified deformation ring is finite
-flat over its coefficient DVR, and its pro-Artinian topology is the finite-module topology.
-This is the weight-two, level-two specialization of the Taylor--Wiles theorem used in
-Khare--Wintenberger, Theorem 3.7 (where the ring is in fact a complete intersection). -/
+flat over its coefficient DVR.  This is the weight-two, level-two specialization of the
+Taylor--Wiles theorem used in Khare--Wintenberger, Theorem 3.7 (where the ring is in fact a
+complete intersection). -/
+theorem hardlyRamifiedUniversalRing_finiteFlat_arithmetic (hp : 3 < p)
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
+    [TopologicalSpace R] [IsTopologicalRing R]
+    [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
+    [Module.Finite ℤ_[p] R] [Module.Free ℤ_[p] R]
+    [IsModuleTopology ℤ_[p] R]
+    [IsNoetherianRing R] [Finite (IsLocalRing.ResidueField R)]
+    [IsAdicComplete (IsLocalRing.maximalIdeal R) R]
+    (rhoRes : (Deformation.repnFunctor (Fin 2) (Γ ℚ) R).obj .residueField)
+    [Representation.IsAbsolutelyIrreducible.{u}
+      (Deformation.toRepresentation rhoRes)]
+    (hrhoRes : rhoRes ∈
+      (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
+    let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
+    Module.Finite R D ∧ Module.Flat R D := by
+  sorry
+
+/-- Finite-flatness supplies all the data formerly bundled into the modern input.  In
+particular, the topology of the universal pro-Artinian ring is forced to be its finite-module
+topology, so that clause is a formal consequence rather than part of Taylor--Wiles. -/
 theorem hardlyRamifiedUniversalRing_finiteFlat (hp : 3 < p)
     (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
     [TopologicalSpace R] [IsTopologicalRing R]
@@ -154,7 +174,13 @@ theorem hardlyRamifiedUniversalRing_finiteFlat (hp : 3 < p)
       (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
     let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
     Module.Finite R D ∧ Module.Flat R D ∧ IsModuleTopology R D := by
-  sorry
+  let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
+  have hD := hardlyRamifiedUniversalRing_finiteFlat_arithmetic
+    hpodd hp R rhoRes hrhoRes
+  change Module.Finite R D ∧ Module.Flat R D at hD
+  letI : Module.Finite R D := hD.1
+  exact ⟨hD.1, hD.2,
+    Deformation.isModuleTopology_of_isProartinian_of_finiteFree_base ℤ_[p] R D⟩
 
 /--
 The formal passage from the universal hardly ramified deformation ring to the finite-flat
