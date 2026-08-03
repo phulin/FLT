@@ -1052,6 +1052,27 @@ lemma firstOrderAdjointCocycleOfLift_apply
     (Representation.continuous_traceZeroAdjointTopRep_action_fin_two rho hrho)
     (firstOrderAdjointTopRepOfLift_map_mul rho tau.toMonoidHom hred hdet) g
 
+/-- Rebuilding the first-order representation from the cocycle extracted from a
+fixed-determinant lift recovers that lift pointwise. -/
+lemma bockleFirstOrderMatrixMonoidHom_firstOrderAdjointCocycleOfLift
+    (rho : Representation k G (Fin 2 -> k))
+    (tau : ContinuousMonoidHom G (Matrix (Fin 2) (Fin 2) (DualNumber k)))
+    (hred : (g : G) -> (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : (g : G) -> (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g)))
+    (hrho : Continuous (fun g => LinearMap.toMatrixAlgEquiv' (rho g))) (g : G) :
+    bockleFirstOrderMatrixMonoidHom rho
+        (firstOrderAdjointCocycleOfLift rho tau hred hdet hrho) g = tau g := by
+  rw [bockleFirstOrderMatrixMonoidHom_eq_dualNumberOfParts,
+    bockleAdjointMatrix, firstOrderAdjointCocycleOfLift_apply,
+    firstOrderAdjointTopRepOfLift_toEnd]
+  rw [show LinearMap.toMatrixAlgEquiv'
+      (Matrix.toLin' (firstOrderAdjointMatrixOfLift rho tau.toMonoidHom g)) =
+        firstOrderAdjointMatrixOfLift rho tau.toMonoidHom g by
+      exact LinearMap.toMatrix'_toLin' _]
+  exact (matrixLift_eq_dualNumberOfParts rho tau.toMonoidHom hred g).symm
+
 end RankTwo
 
 section RepresentationFunctor
