@@ -16,6 +16,7 @@ import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 import Mathlib.NumberTheory.Padics.ProperSpace
 import Mathlib.Topology.MetricSpace.Ultra.TotallySeparated
 import FLT.Deformations.CharacteristicZeroPoint
+import FLT.Mathlib.RingTheory.Flat.TorsionFree
 import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
 
 /-!
@@ -135,21 +136,20 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
   exact Representation.IsAbsolutelyIrreducible.of_finrank_eigenspace_eq_one
     ρ.toRepresentation hρirred hc_fixed
 
-/-- A finite-flat Hecke realization of a deformation ring consists of a finite flat Hecke
-algebra together with the `R = T` isomorphism.  Keeping the Hecke algebra visible makes the
-arithmetic content of the Taylor--Wiles input explicit. -/
-def HasFiniteFlatHeckeRealization
+/-- The output of the finiteness and Böckle-presentation argument needed before the final
+DVR commutative-algebra step.  Finiteness is the conclusion of Khare--Wintenberger,
+Proposition 3.8, obtained by potential modularity and the totally-real `R = T` theorems.
+The regular action of a uniformizer is the consequence of their balanced presentation
+(Proposition 3.4) used in the proof of Theorem 3.7. -/
+def HasBockleFinitenessData
     (R D : Type u) [CommRing R] [CommRing D] [Algebra R D] : Prop :=
-  ∃ (T : Type u) (_ : CommRing T) (_ : Algebra R T)
-    (_ : Module.Finite R T) (_ : Module.Flat R T),
-    Nonempty (D ≃ₐ[R] T)
+  ∃ π : R, Irreducible π ∧ Module.Finite R D ∧ IsSMulRegular D π
 
-/-- The modern arithmetic input: the universal hardly ramified deformation ring has a
-finite-flat Hecke realization.  This is the weight-two, level-two specialization of the
-Taylor--Wiles theorem used in Khare--Wintenberger, Theorem 3.7 (where the rings are in fact
-complete intersections).  The abstract passage from a successful patching system to the
-finite-flat conclusion is formalized in `moduleFinite_flat_of_patching`. -/
-theorem exists_hardlyRamifiedHeckeRealization (hp : 3 < p)
+/-- The remaining modern arithmetic input for hardly ramified lifts, stated at the exact point
+where the potential-modularity finiteness argument and Böckle's balanced-presentation argument
+meet the formal DVR algebra.  Flatness and the topology are derived below rather than included
+in this input. -/
+theorem exists_hardlyRamifiedBockleFinitenessData (hp : 3 < p)
     (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
     [TopologicalSpace R] [IsTopologicalRing R]
     [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
@@ -163,12 +163,12 @@ theorem exists_hardlyRamifiedHeckeRealization (hp : 3 < p)
     (hrhoRes : rhoRes ∈
       (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
     let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
-    HasFiniteFlatHeckeRealization R D := by
+    HasBockleFinitenessData R D := by
   sorry
 
-/-- A finite-flat Hecke realization transfers finiteness and flatness across its `R = T`
-isomorphism.  Thus all remaining arithmetic content is in the construction of the Hecke
-realization, not in the commutative-algebra conclusion. -/
+/-- Finiteness plus the regular action of a uniformizer imply flatness over the coefficient DVR.
+The key formal point is that every nonzero scalar is a unit times a power of the uniformizer,
+so uniformizer-regularity gives torsion-freeness and hence flatness. -/
 theorem hardlyRamifiedUniversalRing_finiteFlat_arithmetic (hp : 3 < p)
     (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
     [TopologicalSpace R] [IsTopologicalRing R]
@@ -185,13 +185,10 @@ theorem hardlyRamifiedUniversalRing_finiteFlat_arithmetic (hp : 3 < p)
     let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
     Module.Finite R D ∧ Module.Flat R D := by
   let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
-  obtain ⟨T, _, _, _, _, ⟨e⟩⟩ :=
-    exists_hardlyRamifiedHeckeRealization hpodd hp R rhoRes hrhoRes
+  obtain ⟨π, hπ, hfinite, hregular⟩ :=
+    exists_hardlyRamifiedBockleFinitenessData hpodd hp R rhoRes hrhoRes
   change Module.Finite R D ∧ Module.Flat R D
-  have hfinite : Module.Finite R D := Module.Finite.equiv e.symm.toLinearEquiv
-  have hflat : Module.Flat R D :=
-    (Module.Flat.equiv_iff e.toLinearEquiv).mpr inferInstance
-  exact ⟨hfinite, hflat⟩
+  exact ⟨hfinite, Module.Flat.of_isSMulRegular_irreducible hπ hregular⟩
 
 /-- Finite-flatness supplies all the data formerly bundled into the modern input.  In
 particular, the topology of the universal pro-Artinian ring is forced to be its finite-module
