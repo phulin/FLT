@@ -6,6 +6,7 @@ Authors: The FLT Project
 module
 
 public import FLT.Deformations.IsProartinian
+public import FLT.Deformations.RepresentationTheory.GaloisRep
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import Mathlib.LinearAlgebra.Matrix.BilinearForm
 public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
@@ -339,6 +340,36 @@ theorem repr_mem_localSubalgebra_of_trace_mem
   intro r
   rw [← congrFun hcoeff r]
   exact (c r).2
+
+/-! ## The classical matrix-order splitting step -/
+
+/-- A complete local matrix order whose reduction is the full matrix algebra is split, and
+an embedding of that order into a split matrix algebra is conjugate to the standard one.
+
+This is the classical Henselian/Azumaya and Skolem--Noether input in Carayol descent.  It
+predates 1990 (Auslander--Goldman, *The Brauer group of a commutative ring*, 1960, together
+with Grothendieck's Henselian Brauer-group theorem).  The hypotheses below expose the concrete
+matrix order: the chosen image matrices are an ambient basis, and every image matrix has
+coefficients in the closed local subalgebra `S`.  The conclusion supplies a conjugate
+representation over `S`; the conjugating matrix is trivial on the common residue field. -/
+theorem exists_strict_conjugate_over_closed_local_subalgebra
+    {q A k G n : Type*} [CommRing q] [CommRing A] [Algebra q A]
+    [Field k] [Group G] [TopologicalSpace G]
+    [TopologicalSpace A] [IsTopologicalRing A] [IsLocalRing A] [IsProartinian A]
+    [Fintype n] [DecidableEq n]
+    (f : A →+* k) [IsLocalHom f]
+    (S : Subalgebra q A) (_hS : IsClosed (S : Set A))
+    [IsLocalRing S] [IsLocalHom S.val]
+    (_hfS : Function.Surjective (f.comp S.val.toRingHom))
+    (rho : G →ₜ* GL n A)
+    (g : n × n → G) (b : Basis (n × n) A (Matrix n n A))
+    (_hb : ∀ ij, b ij = (rho (g ij) : Matrix n n A))
+    (_hcoeff : ∀ h ij, b.repr (rho h : Matrix n n A) ij ∈ S) :
+    ∃ (rhoS : G →ₜ* GL n S) (P : GL n A),
+      Matrix.GeneralLinearGroup.map f P = 1 ∧
+      ∀ h, rho h = P *
+        Matrix.GeneralLinearGroup.map S.val.toRingHom (rhoS h) * P⁻¹ := by
+  knownin1980s
 
 /-! ## Extracting a matrix basis from the image of a representation -/
 
