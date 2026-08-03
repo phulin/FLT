@@ -12,14 +12,14 @@ public import Mathlib.Topology.Algebra.Ring.Ideal
 /-!
 # Finite-image criterion after reduction modulo a scalar
 
-This file packages the three precise inputs in the difficult direction of the Carayol
+This file packages the two precise inputs in the difficult direction of the Carayol
 finite-image criterion for a representation reduced modulo a DVR uniformizer:
 
 * finite image after restriction to a finite-index subgroup;
-* generation of the coefficient algebra by traces;
-* integrality of those traces in every prime quotient.
+* generation of the coefficient algebra by traces.
 
-The conclusion that the reduced coefficient ring is finite is derived from these inputs.
+The roots-of-unity integrality argument and the conclusion that the reduced coefficient ring is
+finite are derived from these inputs.
 -/
 
 @[expose] public section
@@ -34,7 +34,7 @@ variable {R : Type uR} [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
 variable {D : Type uD} [CommRing D] [TopologicalSpace D] [IsTopologicalRing D]
   [Algebra R D] [IsLocalRing D] [IsLocalHom (algebraMap R D)] [IsNoetherianRing D]
   [Finite (IsLocalRing.ResidueField D)]
-variable {n : Type un} [Fintype n] [DecidableEq n]
+variable {n : Type un} [Fintype n] [DecidableEq n] [Nonempty n]
 
 /-- The arithmetic data in the finite-image proof for a representation modulo a DVR
 uniformizer.  The conclusion that `D / pi D` is finite is deliberately not a field. -/
@@ -49,13 +49,6 @@ structure ModScalarFiniteImageData (rho : FramedGaloisRep K D n) (pi : R) where
   traceGenerated :
     (rho.quotient (scalarIdeal (D := D) pi)).IsTraceGenerated
       (k := ModScalarCoefficient (D := D) pi)
-  /-- In a prime quotient, traces of a finite-image representation are sums of roots of unity
-  and hence integral over the finite coefficient ring. -/
-  primeQuotientIntegral :
-    ∀ (P : Ideal (ModScalarRing (D := D) pi)) [P.IsPrime],
-      ∀ x ∈ Ideal.Quotient.mk P ''
-        (rho.quotient (scalarIdeal (D := D) pi)).traceSet,
-        IsIntegral (ModScalarCoefficient (D := D) pi) x
 
 /-- Carayol's criterion, finite-index descent, and local commutative algebra make the
 coefficient ring modulo a uniformizer finite. -/
@@ -80,8 +73,8 @@ theorem ModScalarFiniteImageData.finite
   letI : Finite (ModScalarCoefficient (D := D) pi) :=
     finite_modScalarCoefficient pi h.uniformizer_irreducible
   exact
-    FramedGaloisRep.finite_of_hasFiniteImage_of_isTraceGenerated_of_primeQuotient_integral_trace
+    FramedGaloisRep.finite_of_hasFiniteImage_of_isTraceGenerated
       (rho.quotient (scalarIdeal (D := D) pi)) h.afterRestriction.finite
-        h.traceGenerated h.primeQuotientIntegral
+        h.traceGenerated
 
 end Deformation

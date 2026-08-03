@@ -28,7 +28,7 @@ variable {R D : Type u} [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
   [IsNoetherianRing R] [Finite (IsLocalRing.ResidueField R)]
   [CommRing D] [TopologicalSpace D] [IsTopologicalRing D] [Algebra R D]
   [IsLocalRing D] [IsLocalHom (algebraMap R D)]
-variable {n : Type un} [Fintype n] [DecidableEq n]
+variable {n : Type un} [Fintype n] [DecidableEq n] [Nonempty n]
 
 /-- The decomposed arithmetic and commutative-algebra data needed in Böckle's argument.
 Unlike `BockleFinitenessData`, this structure does not assume module finiteness or regularity:
@@ -42,7 +42,7 @@ structure BockleArithmeticData (rho : FramedGaloisRep K D n) where
   finiteResidueField : Finite (IsLocalRing.ResidueField D)
   /-- The coefficient-ring uniformizer. -/
   uniformizer : R
-  /-- Potential modularity, Carayol trace generation, and trace integrality data. -/
+  /-- Potential modularity and Carayol trace generation data. -/
   finiteImage : ModScalarFiniteImageData rho uniformizer
   /-- The topological Nakayama step from `D / pi D` to module finiteness over `R`. -/
   moduleFinite_of_modScalarFinite :

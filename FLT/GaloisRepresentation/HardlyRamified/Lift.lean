@@ -138,7 +138,7 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
 
 /-- The remaining modern arithmetic input for hardly ramified lifts, decomposed into Böckle's
 balanced presentation, the potential-modularity finite-image argument, Carayol trace generation,
-prime-quotient trace integrality, topological Nakayama, and the regular-sequence conclusion.
+topological Nakayama, and the regular-sequence conclusion.
 Finiteness and flatness themselves are derived below rather than included in this input. -/
 theorem exists_hardlyRamifiedBockleArithmeticData (hp : 3 < p)
     (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]

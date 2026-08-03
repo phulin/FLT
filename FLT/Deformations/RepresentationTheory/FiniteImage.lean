@@ -8,7 +8,11 @@ module
 public import FLT.Deformations.RepresentationTheory.GaloisRep
 public import FLT.Mathlib.GroupTheory.Index
 public import FLT.Mathlib.RingTheory.LocalRing.Quotient
+public import Mathlib.FieldTheory.IsAlgClosed.Spectrum
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
 public import Mathlib.RingTheory.IntegralClosure.IsIntegral.Basic
+public import Mathlib.RingTheory.FractionalIdeal.Basic
+public import Mathlib.Topology.Algebra.Ring.Ideal
 
 /-!
 # Finite images of framed Galois representations
@@ -23,6 +27,8 @@ finite-index subgroup from the formal deduction that its original image is finit
 
 open scoped Pointwise
 
+open Polynomial
+
 /-- A finite set of integral algebra generators over a finite ring generates a finite ring. -/
 theorem Algebra.finite_of_finite_generators_of_isIntegral
     {k C : Type*} [CommRing k] [CommRing C] [Algebra k C] [Finite k]
@@ -35,6 +41,45 @@ theorem Algebra.finite_of_finite_generators_of_isIntegral
     Module.Finite.equiv
       (Subalgebra.topEquiv : (⊤ : Subalgebra k C) ≃ₐ[k] C).toLinearEquiv
   exact Module.finite_of_finite k
+
+/-- The trace of a finite-order matrix over a domain is integral over any coefficient ring.
+After passing injectively to the algebraic closure of the fraction field, spectral mapping shows
+that every characteristic root has finite order.  The trace is therefore a sum of integral roots
+of unity. -/
+theorem Matrix.trace_isIntegral_of_pow_eq_one
+    {k : Type*} [CommRing k]
+    {A : Type*} [CommRing A] [IsDomain A] [Algebra k A]
+    {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n]
+    (M : Matrix n n A) {m : ℕ} (hm : 0 < m) (hM : M ^ m = 1) :
+    IsIntegral k M.trace := by
+  let C := AlgebraicClosure (FractionRing A)
+  let f : A →+* C := algebraMap A C
+  let MC : Matrix n n C := M.map f
+  have hMC : MC ^ m = 1 := by
+    change (M.map f) ^ m = 1
+    rw [← Matrix.map_pow, hM, Matrix.map_one f f.map_zero f.map_one]
+  have hroot : ∀ z ∈ MC.charpoly.roots, IsIntegral k z := by
+    intro z hz
+    have hzspec : z ∈ spectrum C MC :=
+      Matrix.mem_spectrum_of_isRoot_charpoly (Polynomial.mem_roots'.mp hz).2
+    have hzpow : z ^ m ∈ spectrum C (MC ^ m) := spectrum.pow_mem_pow MC m hzspec
+    have hspectrum_one : spectrum C (1 : Matrix n n C) = {1} := by
+      simpa only [Algebra.algebraMap_eq_smul_one, one_smul] using
+        (spectrum.scalar_eq (A := Matrix n n C) (1 : C))
+    rw [hMC, hspectrum_one] at hzpow
+    have hzone : z ^ m = 1 := by simpa using hzpow
+    apply IsIntegral.of_pow hm
+    rw [hzone]
+    exact isIntegral_one
+  have htraceC : IsIntegral k MC.trace := by
+    rw [Matrix.trace_eq_sum_roots_charpoly]
+    exact IsIntegral.multiset_sum hroot
+  have hinj : Function.Injective (algebraMap A C) := by
+    exact (algebraMap (FractionRing A) C).injective.comp
+      (IsFractionRing.injective A (FractionRing A))
+  apply IsIntegral.tower_bot (B := C) hinj
+  rw [AddMonoidHom.map_trace]
+  exact htraceC
 
 namespace FramedGaloisRep
 
@@ -98,6 +143,22 @@ theorem traceSet_finite_of_hasFiniteImage
   rintro x ⟨g, rfl⟩
   exact ⟨⟨rho.GL g, ⟨g, rfl⟩⟩, rfl⟩
 
+/-- Every trace of a finite-image representation over a domain is integral over any coefficient
+ring acting on the representation ring. -/
+theorem isIntegral_trace_of_hasFiniteImage
+    {k : Type uk} [CommRing k] [Algebra k A] [IsDomain A] [Nonempty n]
+    (rho : FramedGaloisRep K A n) (hfinite : rho.HasFiniteImage) :
+    ∀ x ∈ rho.traceSet, IsIntegral k x := by
+  letI : Finite rho.GL.toMonoidHom.range := hfinite
+  rintro _ ⟨g, rfl⟩
+  let y : rho.GL.toMonoidHom.range := ⟨rho.GL g, ⟨g, rfl⟩⟩
+  have hyfinite : IsOfFinOrder y := isOfFinOrder_of_finite y
+  have hGL : (rho.GL g) ^ orderOf y = 1 := by
+    exact congrArg Subtype.val (pow_orderOf_eq_one y)
+  have hmatrix : ((rho.GL g : GL n A) : Matrix n n A) ^ orderOf y = 1 := by
+    exact congrArg Units.val hGL
+  exact Matrix.trace_isIntegral_of_pow_eq_one _ hyfinite.orderOf_pos hmatrix
+
 /-- Entrywise coefficient change sends the old trace set onto the new trace set. -/
 theorem traceSet_baseChange
     {B : Type*} [CommRing B] [TopologicalSpace B] [IsTopologicalRing B]
@@ -116,6 +177,28 @@ theorem traceSet_baseChange
     exact ⟨Matrix.trace (rho.GL g : Matrix n n A), ⟨g, rfl⟩, (htrace g).symm⟩
   · rintro ⟨_, ⟨g, rfl⟩, rfl⟩
     exact ⟨g, htrace g⟩
+
+/-- In every prime quotient, traces of a finite-image representation remain integral over the
+coefficient ring.  This is the roots-of-unity step in the Carayol finite-image argument. -/
+theorem primeQuotient_isIntegral_trace_of_hasFiniteImage
+    {k : Type uk} [CommRing k] [Algebra k A] [Nonempty n]
+    (rho : FramedGaloisRep K A n) (hfinite : rho.HasFiniteImage)
+    (P : Ideal A) [P.IsPrime] :
+    ∀ x ∈ Ideal.Quotient.mk P '' rho.traceSet, IsIntegral k x := by
+  letI : Finite rho.GL.toMonoidHom.range := hfinite
+  rintro _ ⟨_, ⟨g, rfl⟩, rfl⟩
+  let y : rho.GL.toMonoidHom.range := ⟨rho.GL g, ⟨g, rfl⟩⟩
+  have hyfinite : IsOfFinOrder y := isOfFinOrder_of_finite y
+  have hGL : (rho.GL g) ^ orderOf y = 1 := by
+    exact congrArg Subtype.val (pow_orderOf_eq_one y)
+  have hmatrix : ((rho.GL g : GL n A) : Matrix n n A) ^ orderOf y = 1 := by
+    exact congrArg Units.val hGL
+  change IsIntegral k (Ideal.Quotient.mk P
+    (Matrix.trace ((rho.GL g : GL n A) : Matrix n n A)))
+  rw [AddMonoidHom.map_trace]
+  apply Matrix.trace_isIntegral_of_pow_eq_one _ hyfinite.orderOf_pos
+  rw [← Matrix.map_pow, hmatrix]
+  exact Matrix.map_one _ (map_zero _) (map_one _)
 
 /-- The coefficient algebra is generated by the traces of a framed representation.  Carayol's
 theorem gives this property for an absolutely irreducible universal deformation. -/
@@ -167,5 +250,17 @@ theorem finite_of_hasFiniteImage_of_isTraceGenerated_of_primeQuotient_integral_t
     rw [hgen, Algebra.map_top]
     exact (Ideal.Quotient.mkₐ k P).range_eq_top.mpr Ideal.Quotient.mk_surjective
   · exact hint P
+
+/-- Carayol's finite-image criterion with the roots-of-unity integrality argument discharged:
+a finite-image representation whose traces generate a Noetherian local coefficient algebra over
+a finite ring forces that coefficient algebra to be finite. -/
+theorem finite_of_hasFiniteImage_of_isTraceGenerated
+    {k : Type uk} [CommRing k] [Finite k] [Algebra k A] [Nonempty n]
+    [IsLocalRing A] [IsNoetherianRing A] [Finite (IsLocalRing.ResidueField A)]
+    (rho : FramedGaloisRep K A n) (hfinite : rho.HasFiniteImage)
+    (hgen : rho.IsTraceGenerated (k := k)) : Finite A := by
+  exact finite_of_hasFiniteImage_of_isTraceGenerated_of_primeQuotient_integral_trace
+    rho hfinite hgen fun P _ =>
+      rho.primeQuotient_isIntegral_trace_of_hasFiniteImage hfinite P
 
 end FramedGaloisRep
