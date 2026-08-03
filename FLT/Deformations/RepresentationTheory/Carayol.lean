@@ -140,6 +140,8 @@ end Subalgebra
 
 namespace Matrix
 
+variable {n : Type*}
+
 section TracePairing
 
 variable (R : Type*) (n : Type*) [CommSemiring R] [Fintype n]
