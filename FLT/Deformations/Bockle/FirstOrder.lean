@@ -7,6 +7,7 @@ module
 
 public import FLT.Deformations.Bockle.Cohomology
 public import FLT.Deformations.DualNumber
+public import FLT.Deformations.LiftFunctor
 public import FLT.Mathlib.LinearAlgebra.Matrix.DualNumber
 
 /-!
@@ -621,5 +622,124 @@ lemma bockleTangentBasisFirstOrderGL_val
   rfl
 
 end RankTwo
+
+section RepresentationFunctor
+
+variable {R G : Type u} [CommRing R] [IsLocalRing R]
+  [Finite (IsLocalRing.ResidueField R)]
+  [Group G] [TopologicalSpace G] [IsTopologicalGroup G]
+
+/-- Converting a `repnFunctor` value to endomorphisms and back to matrices is the identity. -/
+lemma matrix_toRepresentation_apply
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField) (g : G) :
+    LinearMap.toMatrixAlgEquiv' ((toRepresentation rhoRes) g) =
+      (DFunLike.coe
+        (F := G →ₜ* GL (Fin 2) (ProartinianCat.residueFieldType R)) rhoRes g :
+          Matrix (Fin 2) (Fin 2) (ProartinianCat.residueFieldType R)) := by
+  change LinearMap.toMatrixAlgEquiv'
+      (Matrix.GeneralLinearGroup.toLin
+        (DFunLike.coe
+          (F := G →ₜ* GL (Fin 2) (ProartinianCat.residueFieldType R)) rhoRes g) :
+        (Fin 2 → ProartinianCat.residueFieldType R) →ₗ[
+          ProartinianCat.residueFieldType R]
+        (Fin 2 → ProartinianCat.residueFieldType R)) = _
+  exact LinearMap.toMatrixAlgEquiv'_toLinAlgEquiv' _
+
+/-- A residual point of `repnFunctor` is continuous when its underlying endomorphisms are
+written in the standard matrix basis. -/
+lemma continuous_matrix_toRepresentation
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField) :
+    Continuous (fun g ↦
+      LinearMap.toMatrixAlgEquiv' ((toRepresentation rhoRes) g)) := by
+  have hval : Continuous (fun g ↦
+      (DFunLike.coe
+        (F := G →ₜ* GL (Fin 2) (ProartinianCat.residueFieldType R)) rhoRes g :
+          Matrix (Fin 2) (Fin 2) (ProartinianCat.residueFieldType R))) :=
+    Units.continuous_val.comp rhoRes.continuous
+  convert hval using 1
+  funext g
+  exact matrix_toRepresentation_apply rhoRes g
+
+/-- An adjoint cocycle at a residual `repnFunctor` point, realized as a representation over
+the pro-Artinian dual-number object. -/
+noncomputable def bockleFirstOrderRepnFunctor
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ : BockleAdjointCocycles₁ (toRepresentation rhoRes)) :
+    (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R) :=
+  bockleFirstOrderGLContinuousMonoidHom (toRepresentation rhoRes) σ
+    (continuous_matrix_toRepresentation rhoRes)
+
+@[simp]
+lemma bockleFirstOrderRepnFunctor_val
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ : BockleAdjointCocycles₁ (toRepresentation rhoRes)) (g : G) :
+    (DFunLike.coe
+        (F := G →ₜ* GL (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R)))
+        (bockleFirstOrderRepnFunctor rhoRes σ) g :
+        Matrix (Fin 2) (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R))) =
+      bockleFirstOrderMatrixMonoidHom (toRepresentation rhoRes) σ g :=
+  rfl
+
+/-- The dual-number representation reduces to the residual `repnFunctor` point. -/
+theorem bockleFirstOrderRepnFunctor_reduces
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ : BockleAdjointCocycles₁ (toRepresentation rhoRes)) :
+    (repnFunctor (Fin 2) G R).map
+        (ProartinianCat.dualNumberToResidueField R)
+        (bockleFirstOrderRepnFunctor rhoRes σ) = rhoRes := by
+  apply ContinuousMonoidHom.ext
+  intro g
+  apply Units.ext
+  apply Matrix.ext
+  intro i j
+  change (TrivSqZeroExt.fstHom R
+      (ProartinianCat.residueFieldType R)
+      (ProartinianCat.residueFieldType R))
+      (bockleFirstOrderMatrixMonoidHom (toRepresentation rhoRes) σ g i j) =
+      (DFunLike.coe
+        (F := G →ₜ* GL (Fin 2) (ProartinianCat.residueFieldType R)) rhoRes g :
+          Matrix (Fin 2) (Fin 2) (ProartinianCat.residueFieldType R)) i j
+  have hred := bockleFirstOrderMatrixMonoidHom_map_fst
+    (toRepresentation rhoRes) σ g
+  have hrho := matrix_toRepresentation_apply rhoRes g
+  exact congrFun (congrFun (hred.trans hrho) i) j
+
+/-- The first-order representation is an honest lift of the fixed residual point. -/
+theorem bockleFirstOrderRepnFunctor_mem_liftFunctor
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (σ : BockleAdjointCocycles₁ (toRepresentation rhoRes)) :
+    bockleFirstOrderRepnFunctor rhoRes σ ∈
+      (liftFunctor (Fin 2) G R rhoRes).obj (ProartinianCat.dualNumber R) := by
+  change (repnFunctor (Fin 2) G R).map
+      (ProartinianCat.isTerminalResidueField.from (ProartinianCat.dualNumber R))
+      (bockleFirstOrderRepnFunctor rhoRes σ) = rhoRes
+  rw [Subsingleton.elim
+    (ProartinianCat.isTerminalResidueField.from (ProartinianCat.dualNumber R))
+    (ProartinianCat.dualNumberToResidueField R)]
+  exact bockleFirstOrderRepnFunctor_reduces rhoRes σ
+
+/-- The chosen tangent basis gives a family of points of the residual lifting functor over
+the dual numbers. -/
+noncomputable def bockleTangentBasisRepnFunctor
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    [Module.Finite (ProartinianCat.residueFieldType R)
+      (BockleTangentSpace (toRepresentation rhoRes))]
+    (i : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R) :=
+  bockleFirstOrderRepnFunctor rhoRes
+    (bockleTangentCocycleRepresentative (toRepresentation rhoRes) i)
+
+lemma bockleTangentBasisRepnFunctor_mem_liftFunctor
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    [Module.Finite (ProartinianCat.residueFieldType R)
+      (BockleTangentSpace (toRepresentation rhoRes))]
+    (i : Fin (BockleTangentParameterCount (toRepresentation rhoRes))) :
+    bockleTangentBasisRepnFunctor rhoRes i ∈
+      (liftFunctor (Fin 2) G R rhoRes).obj (ProartinianCat.dualNumber R) :=
+  bockleFirstOrderRepnFunctor_mem_liftFunctor rhoRes _
+
+end RepresentationFunctor
 
 end Deformation
