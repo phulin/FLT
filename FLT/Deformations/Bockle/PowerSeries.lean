@@ -30,6 +30,34 @@ universe u
 variable {R D : Type u} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
   [CommRing D] [TopologicalSpace D] [IsTopologicalRing D] [IsLocalRing D]
 
+/-- Taking constant coefficients identifies the residue field of a finite-variable
+power-series ring with the residue field of its coefficient ring. -/
+noncomputable def bocklePowerSeriesResidueEquiv
+    (R : Type u) [CommRing R] [IsLocalRing R] (n : ℕ) :
+    BocklePowerSeriesResidueField R n ≃+* ResidueField R := by
+  let c : MvPowerSeries (Fin n) R →+* R := MvPowerSeries.constantCoeff
+  have hc : Function.Surjective c := fun r ↦ ⟨MvPowerSeries.C r,
+    MvPowerSeries.constantCoeff_C r⟩
+  letI : IsLocalHom c := IsLocalHom.of_surjective c hc
+  let f := ResidueField.map c
+  apply RingEquiv.ofBijective f
+  refine ⟨f.injective, ?_⟩
+  intro y
+  obtain ⟨r, rfl⟩ := residue_surjective y
+  refine ⟨residue (MvPowerSeries (Fin n) R) (MvPowerSeries.C r), ?_⟩
+  exact ResidueField.map_residue c (MvPowerSeries.C r)
+
+@[simp]
+theorem bocklePowerSeriesResidueEquiv_residue_C
+    (R : Type u) [CommRing R] [IsLocalRing R] (n : ℕ) (r : R) :
+    bocklePowerSeriesResidueEquiv R n
+        (residue (MvPowerSeries (Fin n) R) (MvPowerSeries.C r)) = residue R r := by
+  let c : MvPowerSeries (Fin n) R →+* R := MvPowerSeries.constantCoeff
+  have hc : Function.Surjective c := fun s ↦ ⟨MvPowerSeries.C s,
+    MvPowerSeries.constantCoeff_C s⟩
+  letI : IsLocalHom c := IsLocalHom.of_surjective c hc
+  exact ResidueField.map_residue c (MvPowerSeries.C r)
+
 /-- A finite family in the maximal ideal of a local pro-Artinian ring is a valid point at
 which to evaluate multivariate power series. -/
 theorem hasEval_of_finite_mem_maximalIdeal

@@ -6,8 +6,10 @@ Authors: The FLT Project
 module
 
 public import FLT.Deformations.Bockle
+public import FLT.Deformations.Bockle.PowerSeries
 public import FLT.Deformations.RepresentationTheory.Adjoint
 public import FLT.Deformations.RepresentationTheory.Carayol
+public import Mathlib.LinearAlgebra.FreeModule.Finite.Basic
 public import Mathlib.RepresentationTheory.Invariants
 public import Mathlib.RepresentationTheory.Homological.ContCohomology.LowDegree
 
@@ -150,6 +152,98 @@ variable {R D k G : Type u} [CommRing R] [IsLocalRing R] [IsNoetherianRing R]
   [CommRing D] [Algebra R D]
   [Field k] [TopologicalSpace k] [DiscreteTopology k]
   [Group G] [TopologicalSpace G] [IsTopologicalGroup G]
+
+/-- The field isomorphism used to regard adjoint cohomology as a vector space over the
+residue field of the chosen power-series ring. -/
+noncomputable def BockleObstructionScalarEquiv
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k) :
+    BocklePowerSeriesResidueField R numVariables ≃+* k :=
+  (bocklePowerSeriesResidueEquiv R numVariables).trans residueEquiv
+
+/-- The obstruction group, with a type synonym recording its transported scalar field.
+This avoids carrying an ad hoc abstract obstruction space in applications. -/
+noncomputable def BockleObstructionModel
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k)) : Type u :=
+  BockleObstructionSpace rho
+
+noncomputable instance BockleObstructionModel.addCommGroup
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k)) :
+    AddCommGroup (BockleObstructionModel R numVariables residueEquiv rho) :=
+  inferInstanceAs (AddCommGroup (BockleObstructionSpace rho))
+
+/-- The original residue-field action on the obstruction model. -/
+noncomputable instance BockleObstructionModel.moduleOriginal
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k)) :
+    Module k (BockleObstructionModel R numVariables residueEquiv rho) :=
+  inferInstanceAs (Module k (BockleObstructionSpace rho))
+
+noncomputable instance BockleObstructionModel.moduleFiniteOriginal
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleObstructionSpace rho)] :
+    Module.Finite k (BockleObstructionModel R numVariables residueEquiv rho) :=
+  inferInstanceAs (Module.Finite k (BockleObstructionSpace rho))
+
+noncomputable instance BockleObstructionModel.module
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k)) :
+    Module (BocklePowerSeriesResidueField R numVariables)
+      (BockleObstructionModel R numVariables residueEquiv rho) :=
+  Module.compHom _ (BockleObstructionScalarEquiv R numVariables residueEquiv).toRingHom
+
+/-- Finite-dimensionality is preserved when the obstruction group's scalar field is
+transported across the residue-field equivalence. -/
+noncomputable instance BockleObstructionModel.moduleFinite
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleObstructionSpace rho)] :
+    Module.Finite (BocklePowerSeriesResidueField R numVariables)
+      (BockleObstructionModel R numVariables residueEquiv rho) := by
+  let e := BockleObstructionScalarEquiv R numVariables residueEquiv
+  let W := BockleObstructionModel R numVariables residueEquiv rho
+  let b := Module.Free.chooseBasis k W
+  letI : Finite (Module.Free.ChooseBasisIndex k W) :=
+    Module.Finite.finite_basis b
+  let b' : Module.Basis (Module.Free.ChooseBasisIndex k W)
+      (BocklePowerSeriesResidueField R numVariables) W :=
+    b.mapCoeffs e.symm fun c x ↦ by
+      change e (e.symm c) • x = c • x
+      rw [e.apply_symm_apply]
+  exact Module.Finite.of_basis b'
+
+/-- Transporting the obstruction group across the residue-field equivalence does not change
+its dimension. -/
+theorem BockleObstructionModel.finrank_eq
+    (R : Type u) [CommRing R] [IsLocalRing R]
+    (numVariables : ℕ) (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleObstructionSpace rho)] :
+    Module.finrank (BocklePowerSeriesResidueField R numVariables)
+        (BockleObstructionModel R numVariables residueEquiv rho) =
+      Module.finrank k (BockleObstructionSpace rho) := by
+  let e := BockleObstructionScalarEquiv R numVariables residueEquiv
+  let W := BockleObstructionModel R numVariables residueEquiv rho
+  let b := Module.Free.chooseBasis k W
+  letI : Finite (Module.Free.ChooseBasisIndex k W) :=
+    Module.Finite.finite_basis b
+  let b' : Module.Basis (Module.Free.ChooseBasisIndex k W)
+      (BocklePowerSeriesResidueField R numVariables) W :=
+    b.mapCoeffs e.symm fun c x ↦ by
+      change e (e.symm c) • x = c • x
+      rw [e.apply_symm_apply]
+  change Module.finrank (BocklePowerSeriesResidueField R numVariables) W =
+    Module.finrank k W
+  rw [Module.finrank_eq_card_basis b', Module.finrank_eq_card_basis b]
 
 /-- The precise tangent--obstruction data needed to turn cohomological deformation theory
 into a balanced power-series presentation.  Keeping the power-series map, obstruction map,
