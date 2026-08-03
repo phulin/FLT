@@ -947,6 +947,111 @@ lemma firstOrderAdjointTopRepOfLift_map_mul
   simpa only [map_add, Matrix.toLin'_mul, Module.End.mul_eq_comp,
     hR] using hlin
 
+/-- The adjoint matrix extracted from a continuous dual-number lift varies continuously. -/
+lemma continuous_firstOrderAdjointMatrixOfLift
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →ₜ* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) :
+    Continuous (fun g ↦
+      firstOrderAdjointMatrixOfLift rho tau.toMonoidHom g) := by
+  have hsnd : Continuous (fun g ↦ (Matrix.dualNumberEquiv' (tau g)).snd) := by
+    apply continuous_matrix
+    intro i j
+    change Continuous (fun g ↦ (tau g i j).snd)
+    exact continuous_snd.comp (tau.continuous.matrix_elem i j)
+  have hrhoInv :
+      Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g⁻¹)) :=
+    hrho.comp continuous_inv
+  exact hsnd.matrix_mul hrhoInv
+
+/-- The extracted trace-zero adjoint vector of a continuous lift varies continuously. -/
+lemma continuous_firstOrderAdjointTopRepOfLift
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →ₜ* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g)))
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) :
+    Continuous (fun g ↦
+      firstOrderAdjointTopRepOfLift rho tau.toMonoidHom hred hdet g) := by
+  let X := Representation.traceZeroAdjointTopRep rho
+  letI : DiscreteTopology X := ⟨rfl⟩
+  let C : G → Matrix (Fin 2) (Fin 2) k := fun g ↦
+    firstOrderAdjointMatrixOfLift rho tau.toMonoidHom g
+  let c : G → X := fun g ↦
+    firstOrderAdjointTopRepOfLift rho tau.toMonoidHom hred hdet g
+  change Continuous c
+  have hC : Continuous C := continuous_firstOrderAdjointMatrixOfLift rho tau hrho
+  rw [continuous_discrete_rng]
+  intro y
+  let S : Set (Matrix (Fin 2) (Fin 2) k) :=
+    {A | ∃ h : G, C h = A ∧ c h = y}
+  have hpre : c ⁻¹' {y} = C ⁻¹' S := by
+    ext g
+    simp only [Set.mem_preimage, Set.mem_singleton_iff]
+    change c g = y ↔ ∃ h : G, C h = C g ∧ c h = y
+    constructor
+    · intro hg
+      exact ⟨g, rfl, hg⟩
+    · rintro ⟨h, hmatrix, hhy⟩
+      have hc : c h = c g := by
+        apply Representation.traceZeroAdjointTopRepToEnd_injective rho
+        dsimp only [c]
+        rw [firstOrderAdjointTopRepOfLift_toEnd,
+          firstOrderAdjointTopRepOfLift_toEnd]
+        exact congrArg (fun A : Matrix (Fin 2) (Fin 2) k ↦ A.toLin') hmatrix
+      exact hc.symm.trans hhy
+  rw [hpre]
+  exact (isOpen_discrete S).preimage hC
+
+/-- The continuous inhomogeneous adjoint map extracted from a fixed-determinant lift. -/
+noncomputable def firstOrderAdjointContinuousMapOfLift
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →ₜ* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g)))
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) :
+    C(G, Representation.traceZeroAdjointTopRep rho) :=
+  ⟨fun g ↦ firstOrderAdjointTopRepOfLift rho tau.toMonoidHom hred hdet g,
+    continuous_firstOrderAdjointTopRepOfLift rho tau hred hdet hrho⟩
+
+/-- Every continuous fixed-determinant first-order lift determines a continuous
+trace-zero adjoint cocycle. -/
+noncomputable def firstOrderAdjointCocycleOfLift
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →ₜ* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g)))
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) :
+    BockleAdjointCocycles₁ rho :=
+  ContinuousCohomology.Cocycles₁.ofInhomogeneous
+    (Representation.traceZeroAdjointTopRep rho)
+    (firstOrderAdjointContinuousMapOfLift rho tau hred hdet hrho)
+    (Representation.continuous_traceZeroAdjointTopRep_action_fin_two rho hrho)
+    (firstOrderAdjointTopRepOfLift_map_mul rho tau.toMonoidHom hred hdet)
+
+@[simp]
+lemma firstOrderAdjointCocycleOfLift_apply
+    (rho : Representation k G (Fin 2 → k))
+    (tau : G →ₜ* Matrix (Fin 2) (Fin 2) (DualNumber k))
+    (hred : ∀ g, (Matrix.dualNumberEquiv' (tau g)).fst =
+      LinearMap.toMatrixAlgEquiv' (rho g))
+    (hdet : ∀ g, (tau g).det =
+      algebraMap k (DualNumber k) (LinearMap.det (rho g)))
+    (hrho : Continuous (fun g ↦ LinearMap.toMatrixAlgEquiv' (rho g))) (g : G) :
+    firstOrderAdjointCocycleOfLift rho tau hred hdet hrho g =
+      firstOrderAdjointTopRepOfLift rho tau.toMonoidHom hred hdet g := by
+  exact ContinuousCohomology.Cocycles₁.ofInhomogeneous_apply
+    (Representation.traceZeroAdjointTopRep rho)
+    (firstOrderAdjointContinuousMapOfLift rho tau hred hdet hrho)
+    (Representation.continuous_traceZeroAdjointTopRep_action_fin_two rho hrho)
+    (firstOrderAdjointTopRepOfLift_map_mul rho tau.toMonoidHom hred hdet) g
+
 end RankTwo
 
 section RepresentationFunctor
