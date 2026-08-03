@@ -5,7 +5,7 @@ Authors: Kevin Buzzard
 -/
 module
 
-public import FLT.Deformations.Representable
+public import FLT.Deformations.Carayol
 public import FLT.Deformations.RepresentationTheory.Irreducible
 public import FLT.GaloisRepresentation.HardlyRamified.Defs
 
@@ -85,6 +85,50 @@ noncomputable def hardlyRamifiedDeformationFunctor
     Subfunctor (repnQuotFunctor (Fin 2) (Γ ℚ) 𝓞) :=
   (hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ).imageUnder
     (toRepnQuot (Fin 2) (Γ ℚ) 𝓞)
+
+/-- Forgetting the hardly ramified conditions sends a minimal deformation to an
+unrestricted deformation of the same residual representation. -/
+theorem hardlyRamifiedDeformationFunctor_le_deformationFunctor
+    (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞]
+    (p : ℕ) [Fact p.Prime] (hpodd : Odd p) [Algebra ℤ_[p] 𝓞]
+    (ρ : (repnFunctor (Fin 2) (Γ ℚ) 𝓞).obj .residueField) :
+    hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ ≤
+      deformationFunctor (Fin 2) (Γ ℚ) 𝓞 ρ := by
+  intro A y hy
+  obtain ⟨tau, htau, htauy⟩ :=
+    (Subfunctor.mem_imageUnder_iff
+      (hardlyRamifiedLiftFunctor 𝓞 p hpodd ρ)
+      (toRepnQuot (Fin 2) (Γ ℚ) 𝓞)).mp hy
+  have hlift : tau ∈ (liftFunctor (Fin 2) (Γ ℚ) 𝓞 ρ).obj A := by
+    exact htau.1
+  change (repnFunctor (Fin 2) (Γ ℚ) 𝓞).map
+      (ProartinianCat.isTerminalResidueField.from A) tau = ρ at hlift
+  rw [← htauy]
+  change (repnQuotFunctor (Fin 2) (Γ ℚ) 𝓞).map
+      (ProartinianCat.isTerminalResidueField.from A)
+        ((toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app A tau) =
+    (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app .residueField ρ
+  calc
+    (repnQuotFunctor (Fin 2) (Γ ℚ) 𝓞).map
+        (ProartinianCat.isTerminalResidueField.from A)
+          ((toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app A tau) =
+        (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app .residueField
+          ((repnFunctor (Fin 2) (Γ ℚ) 𝓞).map
+            (ProartinianCat.isTerminalResidueField.from A) tau) :=
+      (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).naturality_apply
+        (ProartinianCat.isTerminalResidueField.from A) tau
+    _ = (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app .residueField ρ := by rw [hlift]
+
+/-- The natural inclusion from hardly ramified deformation classes to unrestricted
+deformation classes. -/
+noncomputable def hardlyRamifiedDeformationToDeformation
+    (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞]
+    (p : ℕ) [Fact p.Prime] (hpodd : Odd p) [Algebra ℤ_[p] 𝓞]
+    (ρ : (repnFunctor (Fin 2) (Γ ℚ) 𝓞).obj .residueField) :
+    (hardlyRamifiedDeformationFunctor 𝓞 p hpodd ρ).toFunctor ⟶
+      (deformationFunctor (Fin 2) (Γ ℚ) 𝓞 ρ).toFunctor :=
+  Subfunctor.homOfLe
+    (hardlyRamifiedDeformationFunctor_le_deformationFunctor 𝓞 p hpodd ρ)
 
 /-- The residual point belongs to the minimal lift functor whenever it is hardly ramified.
 The lift condition at the terminal residue-field object is the identity condition. -/
