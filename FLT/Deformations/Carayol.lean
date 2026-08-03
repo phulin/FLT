@@ -8,6 +8,7 @@ module
 public import FLT.Deformations.Representable
 public import FLT.Deformations.RepresentationTheory.Carayol
 public import FLT.Deformations.RepresentationTheory.FiniteImage
+public import Mathlib.FieldTheory.Galois.Profinite
 
 /-!
 # Carayol trace generation for universal deformations
@@ -156,3 +157,106 @@ theorem closedTraceAlgebra_isLocalProartinianAlgebra (rho : FramedGaloisRep K A 
   exact ⟨⟩
 
 end FramedGaloisRep
+
+namespace Deformation
+
+universe u
+
+noncomputable section UnrestrictedUniversal
+
+local notation3 "Γ" K:max => Field.absoluteGaloisGroup K
+
+variable (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞] [IsNoetherianRing 𝓞]
+  [Finite (IsLocalRing.ResidueField 𝓞)]
+  [IsAdicComplete (IsLocalRing.maximalIdeal 𝓞) 𝓞]
+variable (K : Type u) [Field K] [NumberField K]
+variable (n : Type) [Fintype n] [DecidableEq n]
+variable (rho : (repnFunctor n (Γ K) 𝓞).obj .residueField)
+variable [(toRepresentation rho).IsAbsolutelyIrreducible]
+
+/-- The universal ring for unrestricted deformations of an absolutely irreducible residual
+representation. -/
+def unrestrictedUniversalRing : ProartinianCat 𝓞 :=
+  (isCorepresentable_deformationFunctor n (Γ K) 𝓞 rho).has_corepresentation.choose
+
+/-- The chosen corepresentation of the unrestricted deformation functor. -/
+def unrestrictedUniversalRingCorepresentableBy :
+    (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.CorepresentableBy
+      (unrestrictedUniversalRing 𝓞 K n rho) :=
+  (isCorepresentable_deformationFunctor n (Γ K) 𝓞 rho).has_corepresentation.choose_spec.some
+
+/-- The universal unrestricted strict-equivalence class. -/
+def unrestrictedUniversalElement :
+    (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.obj
+      (unrestrictedUniversalRing 𝓞 K n rho) :=
+  (unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv
+    (CategoryTheory.CategoryStruct.id (unrestrictedUniversalRing 𝓞 K n rho))
+
+/-- The classifying morphism of an unrestricted deformation class. -/
+def unrestrictedClassifyingMap {A : ProartinianCat 𝓞}
+    (x : (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.obj A) :
+    unrestrictedUniversalRing 𝓞 K n rho ⟶ A :=
+  (unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv.symm x
+
+/-- Mapping the universal class along its classifying morphism recovers the prescribed
+deformation class. -/
+theorem unrestrictedUniversalElement_map_classifyingMap {A : ProartinianCat 𝓞}
+    (x : (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.obj A) :
+    (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map
+        (unrestrictedClassifyingMap 𝓞 K n rho x)
+        (unrestrictedUniversalElement 𝓞 K n rho) = x := by
+  unfold unrestrictedClassifyingMap unrestrictedUniversalElement
+  rw [← (unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv_eq]
+  exact (unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv.apply_symm_apply x
+
+/-- Uniqueness of the classifying morphism. -/
+theorem unrestrictedClassifyingMap_unique {A : ProartinianCat 𝓞}
+    (x : (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.obj A)
+    (f : unrestrictedUniversalRing 𝓞 K n rho ⟶ A)
+    (hf : (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map f
+      (unrestrictedUniversalElement 𝓞 K n rho) = x) :
+    f = unrestrictedClassifyingMap 𝓞 K n rho x := by
+  apply (unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv.injective
+  calc
+    (unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv f =
+        (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map f
+          (unrestrictedUniversalElement 𝓞 K n rho) := by
+            rw [(unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv_eq]
+            rfl
+    _ = x := hf
+    _ = (unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv
+          (unrestrictedClassifyingMap 𝓞 K n rho x) :=
+      ((unrestrictedUniversalRingCorepresentableBy 𝓞 K n rho).homEquiv.apply_symm_apply x).symm
+
+/-- An endomorphism of the universal ring fixing the universal class is the identity. -/
+theorem unrestrictedUniversalEndomorphism_eq_id
+    (f : unrestrictedUniversalRing 𝓞 K n rho ⟶
+      unrestrictedUniversalRing 𝓞 K n rho)
+    (hf : (deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map f
+      (unrestrictedUniversalElement 𝓞 K n rho) =
+        unrestrictedUniversalElement 𝓞 K n rho) :
+    f = CategoryTheory.CategoryStruct.id (unrestrictedUniversalRing 𝓞 K n rho) := by
+  apply (unrestrictedClassifyingMap_unique 𝓞 K n rho
+    (unrestrictedUniversalElement 𝓞 K n rho) f hf).trans
+  symm
+  apply unrestrictedClassifyingMap_unique
+  exact CategoryTheory.ConcreteCategory.congr_hom
+    ((deformationFunctor n (Γ K) 𝓞 rho).toFunctor.map_id
+      (unrestrictedUniversalRing 𝓞 K n rho))
+    (unrestrictedUniversalElement 𝓞 K n rho)
+
+/-- A chosen matrix-valued representative of the universal unrestricted deformation class. -/
+def unrestrictedUniversalRepresentation :
+    (repnFunctor n (Γ K) 𝓞).obj (unrestrictedUniversalRing 𝓞 K n rho) :=
+  Quotient.out (unrestrictedUniversalElement 𝓞 K n rho).1
+
+/-- The chosen representative maps to the universal strict-equivalence class. -/
+theorem unrestrictedUniversalRepresentation_toRepnQuot :
+    (toRepnQuot n (Γ K) 𝓞).app (unrestrictedUniversalRing 𝓞 K n rho)
+      (unrestrictedUniversalRepresentation 𝓞 K n rho) =
+        (unrestrictedUniversalElement 𝓞 K n rho).1 :=
+  Quotient.out_eq' _
+
+end UnrestrictedUniversal
+
+end Deformation
