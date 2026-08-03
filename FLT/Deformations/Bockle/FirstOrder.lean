@@ -1112,6 +1112,56 @@ lemma continuous_matrix_toRepresentation
   funext g
   exact matrix_toRepresentation_apply rhoRes g
 
+/-- The underlying continuous matrix representation of a repnFunctor point over the
+dual numbers. -/
+noncomputable def repnFunctorMatrixContinuousMonoidHom
+    (tau : (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R)) :
+    ContinuousMonoidHom G
+      (Matrix (Fin 2) (Fin 2)
+        (DualNumber (ProartinianCat.residueFieldType R))) :=
+  { toMonoidHom := (Units.coeHom _).comp tau.toMonoidHom
+    continuous_toFun := Units.continuous_val.comp tau.continuous }
+
+@[simp]
+lemma repnFunctorMatrixContinuousMonoidHom_apply
+    (tau : (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R)) (g : G) :
+    repnFunctorMatrixContinuousMonoidHom tau g =
+      (DFunLike.coe
+        (F := ContinuousMonoidHom G (GL (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R)))) tau g :
+        Matrix (Fin 2) (Fin 2)
+          (DualNumber (ProartinianCat.residueFieldType R))) :=
+  rfl
+
+/-- Exact reduction of a dual-number repnFunctor point is the residual equation used by
+the adjoint-cocycle extractor. -/
+lemma repnFunctorMatrixContinuousMonoidHom_fst_of_reduces
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (tau : (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R))
+    (hred : (repnFunctor (Fin 2) G R).map
+      (ProartinianCat.dualNumberToResidueField R) tau = rhoRes) (g : G) :
+    (Matrix.dualNumberEquiv'
+      (repnFunctorMatrixContinuousMonoidHom tau g)).fst =
+        LinearMap.toMatrixAlgEquiv' ((toRepresentation rhoRes) g) := by
+  rw [matrix_toRepresentation_apply]
+  have hg := congrArg
+    (fun x : ContinuousMonoidHom G
+      (GL (Fin 2) (ProartinianCat.residueFieldType R)) => x g) hred
+  have hval := congrArg Units.val hg
+  change ((DFunLike.coe
+      (F := ContinuousMonoidHom G (GL (Fin 2)
+        (DualNumber (ProartinianCat.residueFieldType R)))) tau g :
+      Matrix (Fin 2) (Fin 2)
+        (DualNumber (ProartinianCat.residueFieldType R))).map
+          (TrivSqZeroExt.fstHom R
+            (ProartinianCat.residueFieldType R)
+            (ProartinianCat.residueFieldType R)).toRingHom =
+      (DFunLike.coe
+        (F := ContinuousMonoidHom G
+          (GL (Fin 2) (ProartinianCat.residueFieldType R))) rhoRes g :
+        Matrix (Fin 2) (Fin 2) (ProartinianCat.residueFieldType R))) at hval
+  exact hval
+
 /-- An adjoint cocycle at a residual `repnFunctor` point, realized as a representation over
 the pro-Artinian dual-number object. -/
 noncomputable def bockleFirstOrderRepnFunctor
