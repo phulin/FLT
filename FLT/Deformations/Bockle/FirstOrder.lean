@@ -372,6 +372,22 @@ lemma endDualNumberToMatrixMonoidHom_apply (z : DualNumber (Module.End k (Fin 2 
   intro i j
   rfl
 
+omit [TopologicalSpace k] [DiscreteTopology k] in
+/-- Coefficientwise matrix realization of dual-number endomorphisms is faithful. -/
+theorem endDualNumberToMatrixMonoidHom_injective :
+    Function.Injective (endDualNumberToMatrixMonoidHom (k := k)) := by
+  intro x y hxy
+  have hparts := congrArg
+    (Matrix.dualNumberEquiv' (R := k) (n := Fin 2)) hxy
+  rw [endDualNumberToMatrixMonoidHom_apply,
+    endDualNumberToMatrixMonoidHom_apply,
+    Matrix.dualNumberEquiv'_dualNumberOfParts,
+    Matrix.dualNumberEquiv'_dualNumberOfParts] at hparts
+  apply TrivSqZeroExt.ext
+  · apply (LinearMap.toMatrixAlgEquiv' (R := k) (n := Fin 2)).injective
+    exact congrArg TrivSqZeroExt.fst hparts
+  · apply (LinearMap.toMatrixAlgEquiv' (R := k) (n := Fin 2)).injective
+    exact congrArg TrivSqZeroExt.snd hparts
 /-- The matrix-valued strict change of basis induced by `1 - ε a`. -/
 noncomputable def firstOrderConjugatingMatrixUnit (a : Module.End k (Fin 2 → k)) :
     Units (Matrix (Fin 2) (Fin 2) (DualNumber k)) :=
@@ -407,6 +423,60 @@ lemma firstOrderConjugatingMatrixUnit_map_fst (a : Module.End k (Fin 2 → k)) :
   intro i j
   change (if i = j then 1 else 0) = if i = j then 1 else 0
   rfl
+
+omit [TopologicalSpace k] [DiscreteTopology k] in
+/-- Every strict change of basis over the dual numbers is uniquely of first-order form
+up to its infinitesimal matrix. -/
+theorem exists_firstOrderConjugatingMatrixUnit_eq_of_map_fst_eq_one
+    (P : Units (Matrix (Fin 2) (Fin 2) (DualNumber k)))
+    (hP : (P : Matrix (Fin 2) (Fin 2) (DualNumber k)).map
+      (TrivSqZeroExt.fstHom k k k).toRingHom = 1) :
+    ∃ a : Module.End k (Fin 2 → k), P = firstOrderConjugatingMatrixUnit a := by
+  let A : Matrix (Fin 2) (Fin 2) k :=
+    (Matrix.dualNumberEquiv' (R := k) (n := Fin 2)
+      (P : Matrix (Fin 2) (Fin 2) (DualNumber k))).snd
+  have hPval :
+      (P : Matrix (Fin 2) (Fin 2) (DualNumber k)) =
+        Matrix.dualNumberOfParts 1 A := by
+    apply (Matrix.dualNumberEquiv' (R := k) (n := Fin 2)).injective
+    rw [Matrix.dualNumberEquiv'_dualNumberOfParts]
+    apply TrivSqZeroExt.ext
+    · exact hP
+    · rfl
+  let a : Module.End k (Fin 2 → k) :=
+    -(LinearMap.toMatrixAlgEquiv' (R := k) (n := Fin 2)).symm A
+  refine ⟨a, Units.ext ?_⟩
+  rw [firstOrderConjugatingMatrixUnit_val, hPval]
+  congr 1
+  simp [a]
+omit [TopologicalSpace k] [DiscreteTopology k] in
+/-- Remove the scalar trace from a rank-two endomorphism. -/
+noncomputable def rankTwoTraceZeroPart (a : Module.End k (Fin 2 → k)) :
+    Module.End k (Fin 2 → k) :=
+  a - ((2 : k)⁻¹ * LinearMap.trace k (Fin 2 → k) a) • 1
+
+omit [TopologicalSpace k] [DiscreteTopology k] in
+/-- The rank-two trace-zero part has trace zero in characteristic different from two. -/
+theorem trace_rankTwoTraceZeroPart [NeZero (2 : k)]
+    (a : Module.End k (Fin 2 → k)) :
+    LinearMap.trace k (Fin 2 → k) (rankTwoTraceZeroPart a) = 0 := by
+  rw [rankTwoTraceZeroPart, map_sub, map_smul, LinearMap.trace_one,
+    Module.finrank_pi]
+  simp only [Fintype.card_fin, Nat.cast_ofNat]
+  rw [smul_eq_mul]
+  field_simp
+  simp
+omit [TopologicalSpace k] [DiscreteTopology k]
+  [TopologicalSpace G] [IsTopologicalGroup G] in
+/-- Removing a scalar endomorphism does not change its inner adjoint cocycle. -/
+theorem rankTwoTraceZeroPart_inner (rho : Representation k G (Fin 2 → k))
+    (a : Module.End k (Fin 2 → k)) (g : G) :
+    rho g * rankTwoTraceZeroPart a * rho g⁻¹ - rankTwoTraceZeroPart a =
+      rho g * a * rho g⁻¹ - a := by
+  simp only [rankTwoTraceZeroPart, mul_sub, sub_mul, mul_smul_comm,
+    smul_mul_assoc, mul_one]
+  rw [mul_assoc, ← map_mul]
+  simp
 
 /-- Matrix realization of the first-order representation over `k[ε]`. -/
 noncomputable def bockleFirstOrderMatrixMonoidHom
@@ -468,6 +538,88 @@ theorem bockleFirstOrderMatrixMonoidHom_eq_conj_of_tangentπ_eq
     map_one, map_neg, firstOrderConjugatingMatrixUnit_val,
     firstOrderConjugatingMatrixUnit_inv_val] using hmap
 
+/-- Conversely, a strict first-order conjugacy is exactly equality of adjoint tangent
+classes in characteristic different from two. -/
+theorem bockleTangentπ_eq_of_firstOrderMatrixMonoidHom_eq_conj
+    [NeZero (2 : k)] (rho : Representation k G (Fin 2 → k))
+    (σ τ : BockleAdjointCocycles₁ rho) (a : Module.End k (Fin 2 → k))
+    (hconj : ∀ g,
+      bockleFirstOrderMatrixMonoidHom rho σ g =
+        (firstOrderConjugatingMatrixUnit a :
+          Matrix (Fin 2) (Fin 2) (DualNumber k)) *
+          bockleFirstOrderMatrixMonoidHom rho τ g *
+            (↑((firstOrderConjugatingMatrixUnit a)⁻¹) :
+              Matrix (Fin 2) (Fin 2) (DualNumber k))) :
+    bockleTangentπ rho σ = bockleTangentπ rho τ := by
+  have hend (g : G) :
+      bockleFirstOrderEndMonoidHom rho σ g =
+        (firstOrderConjugatingUnit a :
+          DualNumber (Module.End k (Fin 2 → k))) *
+          bockleFirstOrderEndMonoidHom rho τ g *
+            (↑((firstOrderConjugatingUnit a)⁻¹) :
+              DualNumber (Module.End k (Fin 2 → k))) := by
+    apply endDualNumberToMatrixMonoidHom_injective
+    simpa only [bockleFirstOrderMatrixMonoidHom, MonoidHom.comp_apply,
+      firstOrderConjugatingMatrixUnit, Units.coe_map, Units.coe_map_inv,
+      map_mul] using hconj g
+  have hinner (g : G) :
+      Representation.traceZeroAdjointTopRepToEnd rho (σ g) -
+          Representation.traceZeroAdjointTopRepToEnd rho (τ g) =
+        rho g * a * rho g⁻¹ - a := by
+    have hsnd := congrArg TrivSqZeroExt.snd (hend g)
+    simp only [bockleFirstOrderEndMonoidHom_apply,
+      firstOrderConjugatingUnit_val, firstOrderConjugatingUnit_inv_val,
+      TrivSqZeroExt.snd_mul, endDualNumber_fst, endDualNumber_snd,
+      firstOrderEndValue_fst, firstOrderEndValue_snd] at hsnd
+    calc
+      Representation.traceZeroAdjointTopRepToEnd rho (σ g) -
+          Representation.traceZeroAdjointTopRepToEnd rho (τ g) =
+        (Representation.traceZeroAdjointTopRepToEnd rho (σ g) * rho g) * rho g⁻¹ -
+          (Representation.traceZeroAdjointTopRepToEnd rho (τ g) * rho g) * rho g⁻¹ := by
+            simp only [mul_assoc, ← map_mul]
+            simp
+      _ = rho g * a * rho g⁻¹ - a := by
+        rw [hsnd]
+        simp only [add_mul, mul_assoc, ← map_mul]
+        have hrho : rho g * rho g⁻¹ = 1 := by
+          rw [← map_mul]
+          simp
+        simp
+        rw [add_mul, neg_mul]
+        simp only [mul_assoc]
+        rw [hrho]
+        simp
+        abel
+  let a0 : Module.End k (Fin 2 → k) := rankTwoTraceZeroPart a
+  let x0 :
+      (Representation.traceZeroAdjointSubrepresentation rho).toSubmodule :=
+    ⟨a0, trace_rankTwoTraceZeroPart a⟩
+  let x : Representation.traceZeroAdjointTopRep rho :=
+    (Representation.traceZeroAdjointTopRepLinearEquiv rho).symm x0
+  have hx :
+      Representation.traceZeroAdjointTopRepToEnd rho x = a0 := by
+    rw [Representation.traceZeroAdjointTopRepToEnd_apply]
+    dsimp only [x]
+    rw [LinearEquiv.apply_symm_apply]
+  let δ : BockleAdjointCocycles₁ rho := σ - τ
+  have hδ (g : G) :
+      δ g = (Representation.traceZeroAdjointTopRep rho).ρ g x - x := by
+    apply (Representation.traceZeroAdjointTopRepLinearEquiv rho).injective
+    apply Subtype.ext
+    change Representation.traceZeroAdjointTopRepToEnd rho (σ g - τ g) =
+      Representation.traceZeroAdjointTopRepToEnd rho
+        ((Representation.traceZeroAdjointTopRep rho).ρ g x - x)
+    rw [map_sub, map_sub, Representation.traceZeroAdjointTopRepToEnd_action,
+      hx, rankTwoTraceZeroPart_inner]
+    exact hinner g
+  have hδcob : ContinuousCohomology.IsCoboundary₁
+      (Representation.traceZeroAdjointTopRep rho) δ :=
+    ContinuousCohomology.isCoboundary₁_of_eq_action_sub
+      (Representation.traceZeroAdjointTopRep rho) δ x hδ
+  apply sub_eq_zero.mp
+  rw [← map_sub]
+  exact (ContinuousCohomology.H1π_eq_zero_iff
+    (Representation.traceZeroAdjointTopRep rho) δ).2 hδcob
 @[simp]
 lemma bockleFirstOrderMatrixMonoidHom_dualNumberEquiv
     (rho : Representation k G (Fin 2 → k)) (σ : BockleAdjointCocycles₁ rho) (g : G) :

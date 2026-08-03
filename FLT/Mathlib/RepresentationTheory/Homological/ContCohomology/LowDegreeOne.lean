@@ -208,5 +208,32 @@ lemma bdryKer_one_apply_eq_action_sub (X : TopRep k G)
     change a.1 g = (resolutionX X 0).ρ g (a.1 1)
     simpa [ContRepresentation.coind₁_apply_apply] using ha.symm
   rw [ha']
+/-- A continuous crossed homomorphism which is pointwise an inner cocycle is a
+coboundary.  Continuity of the homogeneous degree-zero cochain does not require a
+continuous action map: it is written as the already-continuous cocycle plus a constant. -/
+theorem isCoboundary₁_of_eq_action_sub (X : TopRep k G) (σ : Cocycles₁ X)
+    (x : X) (hσ : ∀ g, σ g = X.ρ g x - x) :
+    IsCoboundary₁ X σ := by
+  let a0 : C(G, X) :=
+    Cocycles₁.toInhomogeneous X σ + ContinuousMap.const G x
+  have ha0 (g : G) : a0 g = X.ρ g x := by
+    change σ g + x = X.ρ g x
+    rw [hσ]
+    exact sub_add_cancel _ _
+  let a : (homogeneousCochains X).X 0 :=
+    ⟨a0, fun g ↦ by
+      apply ContinuousMap.ext
+      intro y
+      change X.ρ g (a0 (g⁻¹ * y)) = a0 y
+      rw [ha0, ha0]
+      change (X.ρ g * X.ρ (g⁻¹ * y)) x = X.ρ y x
+      rw [← map_mul]
+      simp⟩
+  refine ⟨a, ?_⟩
+  apply Cocycles₁.ext X
+  intro g
+  rw [bdryKer_one_apply_eq_action_sub]
+  change X.ρ g (a0 1) - a0 1 = σ g
+  rw [ha0, map_one, one_apply_eq_self, hσ]
 
 end ContinuousCohomology
