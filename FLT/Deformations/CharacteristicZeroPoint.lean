@@ -12,6 +12,9 @@ public import FLT.Deformations.IsProartinian
 
 import FLT.Mathlib.LinearAlgebra.Dimension.Constructions
 import FLT.Mathlib.Topology.Algebra.Module.ModuleTopology
+import FLT.Patching.Utils.Lemmas
+import Mathlib.RingTheory.AdicCompletion.Topology
+import Mathlib.Topology.Algebra.Ring.Compact
 import Mathlib.Topology.Algebra.Module.Compact
 import Mathlib.Topology.Homeomorph.Lemmas
 
@@ -47,6 +50,33 @@ theorem isProartinian_of_finiteFree_moduleTopology
   letI : IsNoetherianRing B := IsNoetherianRing.of_finite A B
   letI : IsLocalRing.IsAdicTopology B := inferInstance
   infer_instance
+
+/-- A finite free local algebra with its module topology over a compact Hausdorff totally
+disconnected Noetherian ring is complete for its maximal-ideal-adic topology.  This is the
+completeness hypothesis needed to apply Schlessinger--Mazur representability to an
+unramified coefficient DVR constructed as a finite extension of `ℤ_[p]`. -/
+theorem isAdicComplete_of_finiteFree_moduleTopology
+    (A B : Type*) [CommRing A] [Nontrivial A] [IsNoetherianRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [CompactSpace A] [T2Space A]
+    [TotallyDisconnectedSpace A]
+    [CommRing B] [IsLocalRing B] [Algebra A B]
+    [Module.Finite A B] [Module.Free A B]
+    [TopologicalSpace B] [IsTopologicalRing B] [IsModuleTopology A B] :
+    IsAdicComplete (IsLocalRing.maximalIdeal B) B := by
+  letI : IsProartinian B := isProartinian_of_finiteFree_moduleTopology A B
+  letI : CompactSpace B := Module.Finite.compactSpace A B
+  letI : T2Space B := IsModuleTopology.t2Space A
+  letI : IsNoetherianRing B := IsNoetherianRing.of_finite A B
+  letI : UniformSpace B := IsTopologicalAddGroup.rightUniformSpace B
+  have hadic : IsAdic (IsLocalRing.maximalIdeal B) := by
+    rw [isAdic_iff]
+    refine ⟨IsLocalRing.isOpen_maximalIdeal_pow B, ?_⟩
+    intro s hs
+    obtain ⟨I, hIopen, hIs⟩ :=
+      IsLinearTopology.hasBasis_open_ideal.mem_iff.mp hs
+    obtain ⟨n, hn⟩ := exists_maximalIdeal_pow_le_of_isProartinian I hIopen
+    exact ⟨n, SetLike.coe_subset_coe.mpr hn |>.trans hIs⟩
+  exact hadic.isAdicComplete_iff.mpr ⟨inferInstance, inferInstance⟩
 
 /-- Let `B` be a flat local algebra over a local domain `A`.  Every nonzero `a : A` is avoided
 by a minimal prime of `B`.  Applied to a uniformizer of a coefficient DVR, this is the
