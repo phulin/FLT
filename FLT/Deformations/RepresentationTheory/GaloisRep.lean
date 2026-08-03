@@ -567,6 +567,20 @@ lemma FramedGaloisRep.baseChange_map [IsTopologicalRing B]
     (ρ : FramedGaloisRep K A n) (f : A →+* B) (hf : Continuous f)
     (g : K →+* L) : (ρ.baseChange f hf).map g = (ρ.map g).baseChange f hf := rfl
 
+omit [NumberField K] in
+/-- Successive entrywise scalar extensions of a framed representation agree with scalar
+extension along the composite ring homomorphism. -/
+lemma FramedGaloisRep.baseChange_baseChange
+    {C : Type*} [CommRing C] [TopologicalSpace C] [IsTopologicalRing C]
+    [IsTopologicalRing B]
+    (ρ : FramedGaloisRep K A n) (f : A →+* B) (hf : Continuous f)
+    (g : B →+* C) (hg : Continuous g) :
+    (ρ.baseChange f hf).baseChange g hg =
+      ρ.baseChange (g.comp f) (hg.comp hf) := by
+  apply FramedGaloisRep.GL.injective
+  ext σ i j
+  simp
+
 lemma Matrix.map_det {F α β n : Type*} [CommRing β] [CommRing α] [Fintype n]
     [DecidableEq n]
     (M : Matrix n n α) (f : F) [FunLike F α β] [RingHomClass F α β] :
