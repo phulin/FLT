@@ -240,7 +240,7 @@ variable (𝓞 : Type u) [CommRing 𝓞] [IsLocalRing 𝓞] [IsNoetherianRing �
   [Finite (ResidueField 𝓞)] [IsAdicComplete (maximalIdeal 𝓞) 𝓞]
 variable (p : ℕ) [Fact p.Prime] (hpodd : Odd p) [Algebra ℤ_[p] 𝓞]
 variable (ρ : (repnFunctor (Fin 2) (Γ ℚ) 𝓞).obj .residueField)
-variable [(toRepresentation ρ).IsAbsolutelyIrreducible]
+variable [Representation.IsAbsolutelyIrreducible.{u} (toRepresentation ρ)]
 variable (hρ : ρ ∈ (hardlyRamifiedFunctor 𝓞 p hpodd).obj .residueField)
 
 /-- The universal minimal hardly ramified deformation ring. -/
@@ -288,6 +288,20 @@ theorem unrestrictedUniversalElement_map_unrestrictedToHardlyRamifiedMap :
       hardlyRamifiedUniversalElementAsDeformation 𝓞 p hpodd ρ hρ :=
   unrestrictedUniversalElement_map_classifyingMap 𝓞 ℚ (Fin 2) ρ
     (hardlyRamifiedUniversalElementAsDeformation 𝓞 p hpodd ρ hρ)
+
+/-- The morphism induced by a represented deformation subfunctor is a quotient map on
+universal complete local rings.
+
+This is the standard quotient statement in Schlessinger--Mazur deformation theory: the
+pointwise injection of the hardly ramified deformation functor into the unrestricted one
+corresponds under the two corepresentations to a surjection of their universal rings.  One
+first applies the statement to every Artinian quotient and then passes to inverse limits;
+compactness makes the resulting dense image closed.  This is part of the pre-1990
+deformation-theoretic package deliberately isolated by `knownin1980s`. -/
+theorem unrestrictedToHardlyRamifiedMap_surjective :
+    Function.Surjective
+      (unrestrictedToHardlyRamifiedMap 𝓞 p hpodd ρ hρ).hom := by
+  knownin1980s
 
 /-- The unique classifying morphism attached to a hardly ramified deformation class over a
 pro-Artinian coefficient algebra. -/
@@ -381,6 +395,72 @@ theorem hardlyRamifiedUniversalRepresentation_toRepnQuot :
         (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).1 :=
   (Classical.choose_spec
     (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).2).2
+
+/-- After base change to the hardly ramified universal ring, the unrestricted universal
+representative and the chosen hardly ramified universal representative determine the same
+strict-equivalence class. -/
+theorem unrestrictedUniversalRepresentation_map_toRepnQuot_eq_hardlyRamified :
+    let D := hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ
+    let f := unrestrictedToHardlyRamifiedMap 𝓞 p hpodd ρ hρ
+    (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app D
+        ((repnFunctor (Fin 2) (Γ ℚ) 𝓞).map f
+          (unrestrictedUniversalRepresentation 𝓞 ℚ (Fin 2) ρ)) =
+      (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app D
+        (hardlyRamifiedUniversalRepresentation 𝓞 p hpodd ρ hρ) := by
+  let D := hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ
+  let U := unrestrictedUniversalRing 𝓞 ℚ (Fin 2) ρ
+  let f := unrestrictedToHardlyRamifiedMap 𝓞 p hpodd ρ hρ
+  let tauU := unrestrictedUniversalRepresentation 𝓞 ℚ (Fin 2) ρ
+  let tauH := hardlyRamifiedUniversalRepresentation 𝓞 p hpodd ρ hρ
+  have hclass := congrArg Subtype.val
+    (unrestrictedUniversalElement_map_unrestrictedToHardlyRamifiedMap
+      𝓞 p hpodd ρ hρ)
+  calc
+    (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app D
+        ((repnFunctor (Fin 2) (Γ ℚ) 𝓞).map f tauU) =
+        (repnQuotFunctor (Fin 2) (Γ ℚ) 𝓞).map f
+          ((toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app U tauU) :=
+      ((toRepnQuot (Fin 2) (Γ ℚ) 𝓞).naturality_apply f tauU).symm
+    _ = (repnQuotFunctor (Fin 2) (Γ ℚ) 𝓞).map f
+        (unrestrictedUniversalElement 𝓞 ℚ (Fin 2) ρ).1 := by
+      rw [unrestrictedUniversalRepresentation_toRepnQuot]
+    _ = (hardlyRamifiedUniversalElementAsDeformation
+        𝓞 p hpodd ρ hρ).1 := hclass
+    _ = (hardlyRamifiedUniversalElement 𝓞 p hpodd ρ hρ).1 := rfl
+    _ = (toRepnQuot (Fin 2) (Γ ℚ) 𝓞).app D tauH :=
+      (hardlyRamifiedUniversalRepresentation_toRepnQuot
+        𝓞 p hpodd ρ hρ).symm
+
+/-- Carayol trace generation descends from the unrestricted universal deformation ring to
+the universal hardly ramified quotient. -/
+theorem hardlyRamifiedUniversalGaloisRep_isTopologicallyTraceGenerated :
+    FramedGaloisRep.IsTopologicallyTraceGenerated (k := 𝓞)
+      (hardlyRamifiedUniversalGaloisRep 𝓞 p hpodd ρ hρ) := by
+  let D := hardlyRamifiedUniversalRing 𝓞 p hpodd ρ hρ
+  let f := unrestrictedToHardlyRamifiedMap 𝓞 p hpodd ρ hρ
+  let tauU := unrestrictedUniversalRepresentation 𝓞 ℚ (Fin 2) ρ
+  let tauH := hardlyRamifiedUniversalRepresentation 𝓞 p hpodd ρ hρ
+  have hgenU :=
+    unrestrictedUniversalGaloisRep_isTopologicallyTraceGenerated
+      𝓞 ℚ (Fin 2) ρ
+  have hgenBase :=
+    FramedGaloisRep.IsTopologicallyTraceGenerated.baseChange
+      (unrestrictedUniversalGaloisRep 𝓞 ℚ (Fin 2) ρ) hgenU
+      f.hom.toAlgHom f.hom.cont
+      (unrestrictedToHardlyRamifiedMap_surjective 𝓞 p hpodd ρ hρ)
+  have hgenRaw :
+      FramedGaloisRep.IsTopologicallyTraceGenerated (k := 𝓞)
+        (toFramedGaloisRep
+          ((repnFunctor (Fin 2) (Γ ℚ) 𝓞).map f tauU)) := by
+    rw [toFramedGaloisRep_map]
+    exact hgenBase
+  have hq :=
+    unrestrictedUniversalRepresentation_map_toRepnQuot_eq_hardlyRamified
+      𝓞 p hpodd ρ hρ
+  have hgenH :=
+    isTopologicallyTraceGenerated_toFramedGaloisRep_of_toRepnQuot_eq
+      D ((repnFunctor (Fin 2) (Γ ℚ) 𝓞).map f tauU) tauH hgenRaw hq
+  exact hgenH
 
 /-- The universal element both reduces to `ρ` and is hardly ramified. -/
 theorem hardlyRamifiedUniversalRepresentation_conditions :
