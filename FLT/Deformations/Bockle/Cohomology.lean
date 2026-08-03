@@ -155,6 +155,42 @@ lemma bockleTangentπ_surjective (rho : Representation k G (Fin 2 → k)) :
     Function.Surjective (bockleTangentπ rho) :=
   ContinuousCohomology.H1π_surjective (Representation.traceZeroAdjointTopRep rho)
 
+/-- The canonical number of first-order parameters: the dimension of the adjoint `H¹`. -/
+noncomputable abbrev BockleTangentParameterCount
+    (rho : Representation k G (Fin 2 → k)) : ℕ :=
+  Module.finrank k (BockleTangentSpace rho)
+
+/-- A finite basis of the adjoint tangent space.  It is indexed by exactly the number of
+parameters used in the Böckle power-series presentation. -/
+noncomputable def bockleTangentBasis
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleTangentSpace rho)] :
+    Module.Basis (Fin (BockleTangentParameterCount rho)) k (BockleTangentSpace rho) :=
+  Module.finBasis k (BockleTangentSpace rho)
+
+/-- Choose a crossed-homomorphism representative of each element of the tangent basis. -/
+noncomputable def bockleTangentCocycleRepresentative
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleTangentSpace rho)]
+    (i : Fin (BockleTangentParameterCount rho)) : BockleAdjointCocycles₁ rho :=
+  Classical.choose (bockleTangentπ_surjective rho (bockleTangentBasis rho i))
+
+/-- The chosen cocycle really represents the corresponding tangent-basis vector. -/
+lemma bockleTangentπ_cocycleRepresentative
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleTangentSpace rho)]
+    (i : Fin (BockleTangentParameterCount rho)) :
+    bockleTangentπ rho (bockleTangentCocycleRepresentative rho i) =
+      bockleTangentBasis rho i :=
+  Classical.choose_spec (bockleTangentπ_surjective rho (bockleTangentBasis rho i))
+
+/-- With the canonical parameter count, the tangent-dimension identity required by the
+Böckle presentation is definitional. -/
+lemma bockleTangent_finrank_eq_parameterCount
+    (rho : Representation k G (Fin 2 → k)) :
+    Module.finrank k (BockleTangentSpace rho) = BockleTangentParameterCount rho :=
+  rfl
+
 /-- The explicit crossed-homomorphism identity satisfied by a representative of a tangent
 class. -/
 lemma BockleAdjointCocycles₁.map_mul (rho : Representation k G (Fin 2 → k))
