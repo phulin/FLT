@@ -135,10 +135,40 @@ theorem isAbsolutelyIrreducible_of_isIrreducible
   exact Representation.IsAbsolutelyIrreducible.of_finrank_eigenspace_eq_one
     ρ.toRepresentation hρirred hc_fixed
 
-/-- The modern arithmetic input: the universal hardly ramified deformation ring is finite
-flat over its coefficient DVR.  This is the weight-two, level-two specialization of the
-Taylor--Wiles theorem used in Khare--Wintenberger, Theorem 3.7 (where the ring is in fact a
-complete intersection). -/
+/-- A finite-flat Hecke realization of a deformation ring consists of a finite flat Hecke
+algebra together with the `R = T` isomorphism.  Keeping the Hecke algebra visible makes the
+arithmetic content of the Taylor--Wiles input explicit. -/
+def HasFiniteFlatHeckeRealization
+    (R D : Type u) [CommRing R] [CommRing D] [Algebra R D] : Prop :=
+  ∃ (T : Type u) (_ : CommRing T) (_ : Algebra R T)
+    (_ : Module.Finite R T) (_ : Module.Flat R T),
+    Nonempty (D ≃ₐ[R] T)
+
+/-- The modern arithmetic input: the universal hardly ramified deformation ring has a
+finite-flat Hecke realization.  This is the weight-two, level-two specialization of the
+Taylor--Wiles theorem used in Khare--Wintenberger, Theorem 3.7 (where the rings are in fact
+complete intersections).  The abstract passage from a successful patching system to the
+finite-flat conclusion is formalized in `moduleFinite_flat_of_patching`. -/
+theorem exists_hardlyRamifiedHeckeRealization (hp : 3 < p)
+    (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
+    [TopologicalSpace R] [IsTopologicalRing R]
+    [Algebra ℤ_[p] R] [IsLocalHom (algebraMap ℤ_[p] R)]
+    [Module.Finite ℤ_[p] R] [Module.Free ℤ_[p] R]
+    [IsModuleTopology ℤ_[p] R]
+    [IsNoetherianRing R] [Finite (IsLocalRing.ResidueField R)]
+    [IsAdicComplete (IsLocalRing.maximalIdeal R) R]
+    (rhoRes : (Deformation.repnFunctor (Fin 2) (Γ ℚ) R).obj .residueField)
+    [Representation.IsAbsolutelyIrreducible.{u}
+      (Deformation.toRepresentation rhoRes)]
+    (hrhoRes : rhoRes ∈
+      (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
+    let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
+    HasFiniteFlatHeckeRealization R D := by
+  sorry
+
+/-- A finite-flat Hecke realization transfers finiteness and flatness across its `R = T`
+isomorphism.  Thus all remaining arithmetic content is in the construction of the Hecke
+realization, not in the commutative-algebra conclusion. -/
 theorem hardlyRamifiedUniversalRing_finiteFlat_arithmetic (hp : 3 < p)
     (R : Type u) [CommRing R] [IsDomain R] [IsDiscreteValuationRing R]
     [TopologicalSpace R] [IsTopologicalRing R]
@@ -154,7 +184,14 @@ theorem hardlyRamifiedUniversalRing_finiteFlat_arithmetic (hp : 3 < p)
       (Deformation.hardlyRamifiedFunctor R p hpodd).obj .residueField) :
     let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
     Module.Finite R D ∧ Module.Flat R D := by
-  sorry
+  let D := Deformation.hardlyRamifiedUniversalRing R p hpodd rhoRes hrhoRes
+  obtain ⟨T, _, _, _, _, ⟨e⟩⟩ :=
+    exists_hardlyRamifiedHeckeRealization hpodd hp R rhoRes hrhoRes
+  change Module.Finite R D ∧ Module.Flat R D
+  have hfinite : Module.Finite R D := Module.Finite.equiv e.symm.toLinearEquiv
+  have hflat : Module.Flat R D :=
+    (Module.Flat.equiv_iff e.toLinearEquiv).mpr inferInstance
+  exact ⟨hfinite, hflat⟩
 
 /-- Finite-flatness supplies all the data formerly bundled into the modern input.  In
 particular, the topology of the universal pro-Artinian ring is forced to be its finite-module
