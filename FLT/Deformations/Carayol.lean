@@ -198,6 +198,28 @@ theorem toRepnQuot_app_injective_of_toResidueField_injective
   rw [hgGL] at hx
   simpa only [one_mul, inv_one, mul_one] using hx.symm
 
+set_option backward.isDefEq.respectTransparency false in
+/-- Strictly conjugate representations define the same point of `repnQuotFunctor`. -/
+theorem toRepnQuot_eq_of_strict_conjugate
+    {𝓞 : Type u} [CommRing 𝓞] [IsLocalRing 𝓞]
+    {G : Type*} [Group G] [TopologicalSpace G]
+    {n : Type} [Fintype n] [DecidableEq n]
+    (R : ProartinianCat 𝓞) (tau tau' : (repnFunctor n G 𝓞).obj R)
+    (P : GL n R)
+    (hP : Matrix.GeneralLinearGroup.map
+      (ProartinianCat.toResidueField R).hom.toRingHom P = 1)
+    (hconj : ∀ g, DFunLike.coe (F := G →ₜ* GL n R) tau g = P *
+      DFunLike.coe (F := G →ₜ* GL n R) tau' g * P⁻¹) :
+    (toRepnQuot n G 𝓞).app R tau = (toRepnQuot n G 𝓞).app R tau' := by
+  apply Quotient.sound
+  refine ⟨⟨ConjAct.toConjAct P, ?_⟩, ?_⟩
+  · exact hP
+  · apply ContinuousMonoidHom.ext
+    intro g
+    change P * DFunLike.coe (F := G →ₜ* GL n R) tau' g * P⁻¹ =
+      DFunLike.coe (F := G →ₜ* GL n R) tau g
+    exact (hconj g).symm
+
 /-- Writing a representation supplied by `repnFunctor` as endomorphisms and then converting
 back to matrices returns its original matrices. -/
 theorem matrixMonoidHom_toRepresentation_apply
