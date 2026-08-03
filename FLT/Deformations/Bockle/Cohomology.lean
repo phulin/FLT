@@ -9,9 +9,9 @@ public import FLT.Deformations.Bockle
 public import FLT.Deformations.Bockle.PowerSeries
 public import FLT.Deformations.RepresentationTheory.Adjoint
 public import FLT.Deformations.RepresentationTheory.Carayol
+public import FLT.Mathlib.RepresentationTheory.Homological.ContCohomology.LowDegreeOne
 public import Mathlib.LinearAlgebra.FreeModule.Finite.Basic
 public import Mathlib.RepresentationTheory.Invariants
-public import Mathlib.RepresentationTheory.Homological.ContCohomology.LowDegree
 
 /-!
 # Cohomological inputs for Böckle presentations
@@ -138,6 +138,30 @@ noncomputable abbrev BockleAdjointCohomology
 noncomputable abbrev BockleTangentSpace
     (rho : Representation k G (Fin 2 → k)) : TopModuleCat k :=
   BockleAdjointCohomology 1 rho
+
+/-- Continuous crossed homomorphisms with values in the trace-zero adjoint representation.
+Their quotient by continuous coboundaries is the Böckle tangent space. -/
+noncomputable abbrev BockleAdjointCocycles₁
+    (rho : Representation k G (Fin 2 → k)) : TopModuleCat k :=
+  ContinuousCohomology.Cocycles₁ (Representation.traceZeroAdjointTopRep rho)
+
+/-- The canonical quotient map from trace-zero adjoint cocycles to the deformation tangent
+space. -/
+noncomputable abbrev bockleTangentπ (rho : Representation k G (Fin 2 → k)) :
+    BockleAdjointCocycles₁ rho →L[k] BockleTangentSpace rho :=
+  ContinuousCohomology.H1π (Representation.traceZeroAdjointTopRep rho)
+
+lemma bockleTangentπ_surjective (rho : Representation k G (Fin 2 → k)) :
+    Function.Surjective (bockleTangentπ rho) :=
+  ContinuousCohomology.H1π_surjective (Representation.traceZeroAdjointTopRep rho)
+
+/-- The explicit crossed-homomorphism identity satisfied by a representative of a tangent
+class. -/
+lemma BockleAdjointCocycles₁.map_mul (rho : Representation k G (Fin 2 → k))
+    (σ : BockleAdjointCocycles₁ rho) (g h : G) :
+    σ (g * h) = Representation.traceZeroAdjoint rho g (σ h) + σ g :=
+  ContinuousCohomology.Cocycles₁.map_mul
+    (Representation.traceZeroAdjointTopRep rho) σ g h
 
 /-- The obstruction space controlling a fixed-determinant rank-two deformation problem. -/
 noncomputable abbrev BockleObstructionSpace
