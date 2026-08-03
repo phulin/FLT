@@ -6,6 +6,8 @@ Authors: The FLT Project
 module
 
 public import FLT.Mathlib.RepresentationTheory.Continuous.TopRep
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import Mathlib.LinearAlgebra.FreeModule.Finite.Matrix
 public import Mathlib.LinearAlgebra.Trace
 public import Mathlib.RepresentationTheory.Subrepresentation
 
@@ -50,6 +52,24 @@ lemma traceZeroAdjoint_apply_val (ρ : Representation k G V) (g : G)
     (f : (traceZeroAdjointSubrepresentation ρ).toSubmodule) :
     (traceZeroAdjoint ρ g f : Module.End k V) = ρ g ∘ₗ (f : Module.End k V) ∘ₗ ρ g⁻¹ :=
   rfl
+
+/-- For a rank-two representation over a field, the trace-zero adjoint representation has
+dimension three. -/
+theorem finrank_traceZeroAdjoint_fin_two
+    {k : Type u} {G : Type v} [Field k] [Group G]
+    (ρ : Representation k G (Fin 2 → k)) :
+    Module.finrank k (traceZeroAdjointSubrepresentation ρ).toSubmodule = 3 := by
+  have htrace : Function.Surjective (LinearMap.trace k (Fin 2 → k)) := by
+    intro x
+    obtain ⟨A, hA⟩ := Matrix.trace_surjective (n := Fin 2) x
+    exact ⟨A.toLin', by simpa using hA⟩
+  have hrank :=
+    (LinearMap.trace k (Fin 2 → k)).finrank_range_add_finrank_ker
+  rw [LinearMap.range_eq_top.mpr htrace, finrank_top, Module.finrank_self,
+    Module.finrank_linearMap, Module.finrank_pi] at hrank
+  change Module.finrank k (LinearMap.ker (LinearMap.trace k (Fin 2 → k))) = 3
+  norm_num at hrank ⊢
+  omega
 
 /-- Over a discrete coefficient ring, `ad⁰(ρ)` is naturally a topological representation
 with the discrete topology.  This is the object used by continuous group cohomology for residual
