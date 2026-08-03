@@ -44,6 +44,37 @@ structure BocklePresentation
   quotientEquiv : Nonempty
     ((MvPowerSeries (Fin numVariables) R ⧸ Ideal.ofList relations) ≃ₐ[R] D)
 
+/-- Concrete data from which a Böckle presentation is assembled.  This separates the
+deformation-theoretic work into three independently checkable assertions: constructing a
+surjection from a finite-variable power-series ring, listing generators of its kernel, and
+proving that the list has no more entries than variables. -/
+structure BocklePresentationInput
+    (R D : Type u) [CommRing R] [CommRing D] [Algebra R D] where
+  /-- The number of tangent parameters. -/
+  numVariables : ℕ
+  /-- The power-series map furnished by the universal deformation. -/
+  map : MvPowerSeries (Fin numVariables) R →ₐ[R] D
+  /-- The chosen parameters topologically generate the deformation ring. -/
+  map_surjective : Function.Surjective map
+  /-- A finite obstruction list cutting out the deformation ring. -/
+  relations : List (MvPowerSeries (Fin numVariables) R)
+  /-- Böckle's numerical inequality between obstructions and tangent parameters. -/
+  relations_le_variables : relations.length ≤ numVariables
+  /-- The obstruction list generates exactly the kernel of the power-series map. -/
+  relationIdeal_eq_ker : Ideal.ofList relations = RingHom.ker map.toRingHom
+
+/-- The first isomorphism theorem turns explicit balanced power-series quotient data into a
+`BocklePresentation`. -/
+noncomputable def BocklePresentationInput.toBocklePresentation
+    {R D : Type u} [CommRing R] [CommRing D] [Algebra R D]
+    (P : BocklePresentationInput R D) : BocklePresentation R D where
+  numVariables := P.numVariables
+  relations := P.relations
+  relations_le_variables := P.relations_le_variables
+  quotientEquiv := ⟨
+    (Ideal.quotientEquivAlgOfEq R P.relationIdeal_eq_ker).trans
+      (Ideal.quotientKerAlgEquivOfSurjective P.map_surjective)⟩
+
 /-- A finite-variable Böckle presentation over a Noetherian coefficient ring makes the
 presented deformation ring Noetherian. -/
 noncomputable def BocklePresentation.isNoetherianRing
