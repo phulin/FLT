@@ -307,4 +307,67 @@ theorem BockleCohomologicalPresentationInput.exists_bocklePresentation
       P.obstructionMap P.obstructionMap_injective
       P.obstruction_finrank_le_numVariables
 
+section Parameters
+
+variable [TopologicalSpace R] [IsTopologicalRing R] [CompactSpace R]
+  [TopologicalSpace D] [IsTopologicalRing D] [IsLocalRing D] [IsProartinian D]
+  [ContinuousSMul R D]
+
+/-- The concrete endpoint of the tangent--obstruction construction.  The parameter map and
+its convergence are canonical; an application only supplies approximation over Artinian
+quotients, the obstruction-class injection, the tangent dimension calculation, and the Euler
+inequality. -/
+structure BockleAdjointParameterInput
+    (residueEquiv : IsLocalRing.ResidueField R ≃+* k)
+    (rho : Representation k G (Fin 2 → k))
+    [Module.Finite k (BockleObstructionSpace rho)] where
+  /-- The number of tangent parameters. -/
+  numVariables : ℕ
+  /-- Chosen lifts in the maximal ideal of the universal ring. -/
+  parameters : Fin numVariables → D
+  /-- Each parameter is topologically nilpotent. -/
+  parameters_mem : ∀ i, parameters i ∈ IsLocalRing.maximalIdeal D
+  /-- The tangent lifting argument solves the parameter problem over every Artinian
+  quotient. -/
+  surjective_mod_openIdeals : IsSurjectiveModuloOpenIdeals
+    (powerSeriesMapOfParameters (R := R) parameters parameters_mem)
+  /-- A minimal relation has a nonzero class in `H²(G, ad⁰(ρ))`. -/
+  obstructionMap :
+    Ideal.RelationSpace (RingHom.ker
+      (powerSeriesMapOfParameters (R := R) parameters parameters_mem).toRingHom) →ₗ[
+        BocklePowerSeriesResidueField R numVariables]
+      BockleObstructionModel R numVariables residueEquiv rho
+  obstructionMap_injective : Function.Injective obstructionMap
+  /-- The selected parameters form a basis of `H¹(G, ad⁰(ρ))`. -/
+  tangent_finrank_eq : Module.finrank k (BockleTangentSpace rho) = numVariables
+  /-- The global/local Euler characteristic makes the presentation balanced. -/
+  obstruction_finrank_le_tangent_finrank :
+    Module.finrank k (BockleObstructionSpace rho) ≤
+      Module.finrank k (BockleTangentSpace rho)
+
+/-- The Artinian lifting, obstruction injection, and Euler inequality assemble into a
+balanced Böckle presentation. -/
+theorem BockleAdjointParameterInput.exists_bocklePresentation
+    {residueEquiv : IsLocalRing.ResidueField R ≃+* k}
+    {rho : Representation k G (Fin 2 → k)}
+    [Module.Finite k (BockleObstructionSpace rho)]
+    (P : BockleAdjointParameterInput (R := R) (D := D) residueEquiv rho) :
+    Nonempty (BocklePresentation R D) := by
+  apply exists_bocklePresentation_of_surjective_of_obstructionMap
+    P.numVariables
+    (powerSeriesMapOfParameters (R := R) P.parameters P.parameters_mem)
+    (powerSeriesMapOfParameters_surjective_of_mod_openIdeals
+      P.parameters P.parameters_mem P.surjective_mod_openIdeals)
+    P.obstructionMap P.obstructionMap_injective
+  calc
+    Module.finrank (BocklePowerSeriesResidueField R P.numVariables)
+        (BockleObstructionModel R P.numVariables residueEquiv rho) =
+        Module.finrank k (BockleObstructionSpace rho) :=
+      BockleObstructionModel.finrank_eq R P.numVariables residueEquiv rho
+    _ ≤ Module.finrank k (BockleTangentSpace rho) :=
+      P.obstruction_finrank_le_tangent_finrank
+    _ = P.numVariables := P.tangent_finrank_eq
+
+end Parameters
+
 end Deformation
