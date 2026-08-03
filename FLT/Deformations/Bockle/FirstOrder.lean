@@ -1162,6 +1162,22 @@ lemma repnFunctorMatrixContinuousMonoidHom_fst_of_reduces
         Matrix (Fin 2) (Fin 2) (ProartinianCat.residueFieldType R))) at hval
   exact hval
 
+/-- Extract the continuous trace-zero adjoint cocycle from a fixed-determinant
+dual-number point of repnFunctor. -/
+noncomputable def firstOrderAdjointCocycleOfRepnFunctor
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (tau : (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R))
+    (hred : (repnFunctor (Fin 2) G R).map
+      (ProartinianCat.dualNumberToResidueField R) tau = rhoRes)
+    (hdet : (g : G) -> (repnFunctorMatrixContinuousMonoidHom tau g).det =
+      algebraMap (ProartinianCat.residueFieldType R)
+        (DualNumber (ProartinianCat.residueFieldType R))
+        (LinearMap.det ((toRepresentation rhoRes) g))) :=
+  firstOrderAdjointCocycleOfLift (toRepresentation rhoRes)
+    (repnFunctorMatrixContinuousMonoidHom tau)
+    (repnFunctorMatrixContinuousMonoidHom_fst_of_reduces rhoRes tau hred)
+    hdet (continuous_matrix_toRepresentation rhoRes)
+
 /-- An adjoint cocycle at a residual `repnFunctor` point, realized as a representation over
 the pro-Artinian dual-number object. -/
 noncomputable def bockleFirstOrderRepnFunctor
@@ -1183,6 +1199,31 @@ lemma bockleFirstOrderRepnFunctor_val
           (DualNumber (ProartinianCat.residueFieldType R))) =
       bockleFirstOrderMatrixMonoidHom (toRepresentation rhoRes) σ g :=
   rfl
+
+/-- Rebuilding from the cocycle extracted from a fixed-determinant repnFunctor lift
+recovers the original continuous representation exactly. -/
+theorem bockleFirstOrderRepnFunctor_firstOrderAdjointCocycleOfRepnFunctor
+    (rhoRes : (repnFunctor (Fin 2) G R).obj .residueField)
+    (tau : (repnFunctor (Fin 2) G R).obj (ProartinianCat.dualNumber R))
+    (hred : (repnFunctor (Fin 2) G R).map
+      (ProartinianCat.dualNumberToResidueField R) tau = rhoRes)
+    (hdet : (g : G) -> (repnFunctorMatrixContinuousMonoidHom tau g).det =
+      algebraMap (ProartinianCat.residueFieldType R)
+        (DualNumber (ProartinianCat.residueFieldType R))
+        (LinearMap.det ((toRepresentation rhoRes) g))) :
+    bockleFirstOrderRepnFunctor rhoRes
+      (firstOrderAdjointCocycleOfRepnFunctor rhoRes tau hred hdet) = tau := by
+  apply ContinuousMonoidHom.ext
+  intro g
+  apply Units.ext
+  change bockleFirstOrderMatrixMonoidHom (toRepresentation rhoRes)
+      (firstOrderAdjointCocycleOfRepnFunctor rhoRes tau hred hdet) g =
+    repnFunctorMatrixContinuousMonoidHom tau g
+  simpa only [firstOrderAdjointCocycleOfRepnFunctor] using
+    bockleFirstOrderMatrixMonoidHom_firstOrderAdjointCocycleOfLift
+      (toRepresentation rhoRes) (repnFunctorMatrixContinuousMonoidHom tau)
+      (repnFunctorMatrixContinuousMonoidHom_fst_of_reduces rhoRes tau hred)
+      hdet (continuous_matrix_toRepresentation rhoRes) g
 
 /-- The dual-number representation reduces to the residual `repnFunctor` point. -/
 theorem bockleFirstOrderRepnFunctor_reduces
