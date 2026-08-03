@@ -6,6 +6,7 @@ Authors: The FLT Project
 module
 
 public import Mathlib.RingTheory.MvPowerSeries.Equiv
+public import Mathlib.RingTheory.MvPowerSeries.Inverse
 public import Mathlib.Algebra.Module.SpanRankOperations
 public import Mathlib.RingTheory.Ideal.Quotient.Noetherian
 public import Mathlib.RingTheory.Regular.RegularSequence
@@ -49,6 +50,39 @@ theorem Ideal.IsGeneratedByAtMost.of_spanFinrank_le
   refine ⟨relations.toList, ?_, ?_⟩
   · simpa [hcard] using h
   · simpa [Ideal.ofList, Ideal.submodule_span_eq] using hspan
+
+/-- The vector space of minimal generators of an ideal in a local ring.  Its dimension is the
+minimum number of generators of the ideal; in deformation theory the dual of this space maps
+to the obstruction group. -/
+abbrev Ideal.RelationSpace {A : Type*} [CommRing A] [IsLocalRing A] (I : Ideal A) :=
+  I ⧸ (IsLocalRing.maximalIdeal A) • (⊤ : Submodule A I)
+
+/-- The relation-space dimension is the minimum number of generators of a finitely generated
+ideal.  This is Nakayama's lemma in the exact form used by Böckle's obstruction argument. -/
+theorem Ideal.spanFinrank_eq_finrank_relationSpace
+    {A : Type*} [CommRing A] [IsLocalRing A] (I : Ideal A) (hI : Submodule.FG I) :
+    I.spanFinrank = Module.finrank (A ⧸ IsLocalRing.maximalIdeal A) (Ideal.RelationSpace I) :=
+  IsLocalRing.spanFinrank_eq_finrank_quotient I hI
+
+/-- An injection of the relation space into a finite-dimensional obstruction space bounds the
+number of generators of the ideal by the obstruction-space dimension. -/
+theorem Ideal.spanFinrank_le_finrank_of_relationSpace_injective
+    {A W : Type*} [CommRing A] [IsLocalRing A]
+    [AddCommGroup W] [Module (A ⧸ IsLocalRing.maximalIdeal A) W]
+    [Module.Finite (A ⧸ IsLocalRing.maximalIdeal A) W]
+    (I : Ideal A) (hI : Submodule.FG I)
+    (obstructionMap : Ideal.RelationSpace I →ₗ[A ⧸ IsLocalRing.maximalIdeal A] W)
+    (hobstructionMap : Function.Injective obstructionMap) :
+    I.spanFinrank ≤ Module.finrank (A ⧸ IsLocalRing.maximalIdeal A) W := by
+  rw [Ideal.spanFinrank_eq_finrank_relationSpace I hI]
+  exact obstructionMap.finrank_le_finrank_of_injective hobstructionMap
+
+/-- The residue field of the finite-variable power-series ring used in a Böckle
+presentation. -/
+abbrev BocklePowerSeriesResidueField
+    (R : Type*) [CommRing R] [IsLocalRing R] (numVariables : ℕ) :=
+  MvPowerSeries (Fin numVariables) R ⧸
+    IsLocalRing.maximalIdeal (MvPowerSeries (Fin numVariables) R)
 
 /-- A balanced power-series presentation of an `R`-algebra.  The inequality between the
 number of relations and variables is the output of Böckle's obstruction-theory argument. -/
@@ -141,6 +175,31 @@ theorem exists_bocklePresentation_of_surjective_of_kernel_spanFinrank_le
   exists_bocklePresentation_of_surjective_of_kernel_generatedByAtMost numVariables f hf <|
     Ideal.IsGeneratedByAtMost.of_spanFinrank_le _
       (IsNoetherian.noetherian (RingHom.ker f.toRingHom)) hker
+
+/-- The obstruction-theoretic endpoint of Böckle's argument.  An injective obstruction map out
+of the relation space, together with the global numerical bound on the obstruction dimension,
+produces a balanced power-series presentation. -/
+theorem exists_bocklePresentation_of_surjective_of_obstructionMap
+    {R D W : Type u} [CommRing R] [IsLocalRing R] [IsNoetherianRing R]
+    [CommRing D] [Algebra R D]
+    (numVariables : ℕ)
+    (f : MvPowerSeries (Fin numVariables) R →ₐ[R] D)
+    (hf : Function.Surjective f)
+    [AddCommGroup W]
+    [Module (BocklePowerSeriesResidueField R numVariables) W]
+    [Module.Finite (BocklePowerSeriesResidueField R numVariables) W]
+    (obstructionMap :
+      Ideal.RelationSpace (RingHom.ker f.toRingHom) →ₗ[BocklePowerSeriesResidueField R
+        numVariables] W)
+    (hobstructionMap : Function.Injective obstructionMap)
+    (hobstructionDim :
+      Module.finrank (BocklePowerSeriesResidueField R numVariables) W ≤ numVariables) :
+    Nonempty (BocklePresentation R D) := by
+  apply exists_bocklePresentation_of_surjective_of_kernel_spanFinrank_le
+    numVariables f hf
+  exact (Ideal.spanFinrank_le_finrank_of_relationSpace_injective
+    (RingHom.ker f.toRingHom) (IsNoetherian.noetherian _) obstructionMap
+      hobstructionMap).trans hobstructionDim
 
 /-- A finite-variable Böckle presentation over a Noetherian coefficient ring makes the
 presented deformation ring Noetherian. -/
