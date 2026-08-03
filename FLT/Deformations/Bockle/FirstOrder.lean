@@ -141,6 +141,29 @@ lemma firstOrderEndValue_eq_conj_of_inner (rho : Representation k G V)
       simp [sub_eq_add_neg]
   simpa only [firstOrderConjugatingUnit_val, firstOrderConjugatingUnit_inv_val] using hexplicit
 
+/-- Adding an inner cocycle to any first-order deformation is strict conjugation by
+`1 - ε a`. -/
+lemma firstOrderEndValue_add_inner_eq_conj (rho : Representation k G V)
+    (c : G → Module.End k V) (a : Module.End k V) (g : G) :
+    firstOrderEndValue rho
+        (fun h ↦ c h + (rho h * a * rho h⁻¹ - a)) g =
+      (firstOrderConjugatingUnit a : DualNumber (Module.End k V)) *
+        firstOrderEndValue rho c g *
+          (↑((firstOrderConjugatingUnit a)⁻¹) : DualNumber (Module.End k V)) := by
+  have hexplicit :
+      firstOrderEndValue rho
+          (fun h ↦ c h + (rho h * a * rho h⁻¹ - a)) g =
+        endDualNumber 1 (-a) * firstOrderEndValue rho c g * endDualNumber 1 a := by
+    apply TrivSqZeroExt.ext
+    · change rho g = (1 * rho g) * 1
+      simp
+    · change (c g + (rho g * a * rho g⁻¹ - a)) * rho g =
+        (1 * rho g) * a + (1 * (c g * rho g) + (-a) * rho g) * 1
+      rw [add_mul, sub_mul, mul_assoc (rho g * a), ← map_mul]
+      simp [sub_eq_add_neg]
+      abel
+  simpa only [firstOrderConjugatingUnit_val, firstOrderConjugatingUnit_inv_val] using hexplicit
+
 end General
 
 section RankTwo
@@ -227,6 +250,70 @@ theorem bockleFirstOrderEndMonoidHom_eq_conj_of_isCoboundary
           congrArg (fun z : Module.End k (Fin 2 → k) ↦ z * rho g)
           (bockleBoundary_toEnd rho a g)
     _ = _ := firstOrderEndValue_eq_conj_of_inner rho A g
+
+/-- The first-order deformation depends, up to strict conjugacy, only on the represented
+continuous `H¹` class. -/
+theorem bockleFirstOrderEndMonoidHom_eq_conj_of_tangentπ_eq
+    (rho : Representation k G (Fin 2 → k)) (σ τ : BockleAdjointCocycles₁ rho)
+    (hστ : bockleTangentπ rho σ = bockleTangentπ rho τ) :
+    ∃ a : Module.End k (Fin 2 → k), ∀ g,
+      bockleFirstOrderEndMonoidHom rho σ g =
+        (firstOrderConjugatingUnit a : DualNumber (Module.End k (Fin 2 → k))) *
+          bockleFirstOrderEndMonoidHom rho τ g *
+            (↑((firstOrderConjugatingUnit a)⁻¹) :
+              DualNumber (Module.End k (Fin 2 → k))) := by
+  let X := Representation.traceZeroAdjointTopRep rho
+  let δ : ContinuousCohomology.Cocycles₁ X := σ - τ
+  have hzero : ContinuousCohomology.H1π X δ = 0 := by
+    dsimp only [δ, X]
+    rw [map_sub, hστ, sub_self]
+  obtain ⟨b, hb⟩ :=
+    ContinuousCohomology.isCoboundary₁_of_H1π_eq_zero X δ hzero
+  dsimp only [δ, X] at hb
+  let a := Representation.traceZeroAdjointTopRepToEnd rho (b.1 1)
+  refine ⟨a, fun g ↦ ?_⟩
+  have hdiff :
+      Representation.traceZeroAdjointTopRepToEnd rho (σ g) -
+          Representation.traceZeroAdjointTopRepToEnd rho (τ g) =
+        rho g * a * rho g⁻¹ - a := by
+    calc
+      Representation.traceZeroAdjointTopRepToEnd rho (σ g) -
+          Representation.traceZeroAdjointTopRepToEnd rho (τ g) =
+          Representation.traceZeroAdjointTopRepToEnd rho ((σ - τ) g) := by
+            change Representation.traceZeroAdjointTopRepToEnd rho (σ g) -
+              Representation.traceZeroAdjointTopRepToEnd rho (τ g) =
+                Representation.traceZeroAdjointTopRepToEnd rho (σ g - τ g)
+            rw [map_sub]
+      _ = Representation.traceZeroAdjointTopRepToEnd rho
+          ((ContinuousCohomology.bdryKer
+            (Representation.traceZeroAdjointTopRep rho) 1 b : BockleAdjointCocycles₁ rho) g) := by
+            rw [hb]
+      _ = rho g * a * rho g⁻¹ - a := by
+            simpa only [a] using bockleBoundary_toEnd rho b g
+  have hsum :
+      Representation.traceZeroAdjointTopRepToEnd rho (σ g) =
+        Representation.traceZeroAdjointTopRepToEnd rho (τ g) +
+          (rho g * a * rho g⁻¹ - a) := by
+    rw [← hdiff]
+    abel
+  rw [bockleFirstOrderEndMonoidHom_apply]
+  calc
+    firstOrderEndValue rho
+        (fun h ↦ Representation.traceZeroAdjointTopRepToEnd rho (σ h)) g =
+        firstOrderEndValue rho
+          (fun h ↦ Representation.traceZeroAdjointTopRepToEnd rho (τ h) +
+            (rho h * a * rho h⁻¹ - a)) g := by
+      apply TrivSqZeroExt.ext
+      · rfl
+      · simpa only [firstOrderEndValue_snd] using
+          congrArg (fun z : Module.End k (Fin 2 → k) ↦ z * rho g) hsum
+    _ = (firstOrderConjugatingUnit a : DualNumber (Module.End k (Fin 2 → k))) *
+          firstOrderEndValue rho
+            (fun h ↦ Representation.traceZeroAdjointTopRepToEnd rho (τ h)) g *
+          (↑((firstOrderConjugatingUnit a)⁻¹) :
+            DualNumber (Module.End k (Fin 2 → k))) :=
+      firstOrderEndValue_add_inner_eq_conj rho _ a g
+    _ = _ := by rw [← bockleFirstOrderEndMonoidHom_apply]
 
 /-- The trace-zero adjoint cocycle written in the standard rank-two basis. -/
 noncomputable def bockleAdjointMatrix
@@ -344,6 +431,25 @@ theorem bockleFirstOrderMatrixMonoidHom_eq_conj_of_isCoboundary
     firstOrderConjugatingUnit_val, firstOrderConjugatingUnit_inv_val,
     endDualNumber_fst, endDualNumber_snd, map_one, map_neg,
     firstOrderConjugatingMatrixUnit_val, firstOrderConjugatingMatrixUnit_inv_val] using hmap
+
+/-- Matrix-valued first-order deformations attached to equal tangent classes are strictly
+conjugate. -/
+theorem bockleFirstOrderMatrixMonoidHom_eq_conj_of_tangentπ_eq
+    (rho : Representation k G (Fin 2 → k)) (σ τ : BockleAdjointCocycles₁ rho)
+    (hστ : bockleTangentπ rho σ = bockleTangentπ rho τ) :
+    ∃ P : Units (Matrix (Fin 2) (Fin 2) (DualNumber k)), ∀ g,
+      bockleFirstOrderMatrixMonoidHom rho σ g =
+        (P : Matrix (Fin 2) (Fin 2) (DualNumber k)) *
+          bockleFirstOrderMatrixMonoidHom rho τ g *
+            (↑(P⁻¹) : Matrix (Fin 2) (Fin 2) (DualNumber k)) := by
+  obtain ⟨a, ha⟩ := bockleFirstOrderEndMonoidHom_eq_conj_of_tangentπ_eq rho σ τ hστ
+  refine ⟨firstOrderConjugatingMatrixUnit a, fun g ↦ ?_⟩
+  have hmap := congrArg endDualNumberToMatrixMonoidHom (ha g)
+  simpa only [bockleFirstOrderMatrixMonoidHom, MonoidHom.comp_apply, map_mul,
+    endDualNumberToMatrixMonoidHom_apply, firstOrderConjugatingUnit_val,
+    firstOrderConjugatingUnit_inv_val, endDualNumber_fst, endDualNumber_snd,
+    map_one, map_neg, firstOrderConjugatingMatrixUnit_val,
+    firstOrderConjugatingMatrixUnit_inv_val] using hmap
 
 @[simp]
 lemma bockleFirstOrderMatrixMonoidHom_dualNumberEquiv

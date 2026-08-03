@@ -178,6 +178,12 @@ lemma H1π_eq_zero_iff (X : TopRep k G) (σ : Cocycles₁ X) :
       (TopModuleCat.cokerπ (bdryKer X 1) (bdryKer X 1 a)) = 0
     rw [hq, map_zero]
 
+/-- The forward implication of `H1π_eq_zero_iff`, exposed separately so downstream proofs do
+not need to unfold the concrete cokernel comparison merely to eliminate a zero cohomology class. -/
+lemma isCoboundary₁_of_H1π_eq_zero (X : TopRep k G) (σ : Cocycles₁ X)
+    (hσ : H1π X σ = 0) : IsCoboundary₁ X σ :=
+  (H1π_eq_zero_iff X σ).1 hσ
+
 /-- Every first continuous cohomology class has a continuous crossed-homomorphism
 representative. -/
 theorem H1_induction_on (X : TopRep k G) {P : continuousCohomology 1 X → Prop}
