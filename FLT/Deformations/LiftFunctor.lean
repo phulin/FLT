@@ -145,6 +145,50 @@ def deformationFunctor (ρ : (repnFunctor n G 𝓞).obj .residueField) :
     Subfunctor (repnQuotFunctor n G 𝓞) :=
   .ofIsTerminal _ ProartinianCat.isTerminalResidueField {(toRepnQuot n G 𝓞).app _ ρ}
 
+/-- Passing a genuine lift to its strict-equivalence class gives an unrestricted
+deformation. -/
+theorem toRepnQuot_mem_deformationFunctor_of_mem_liftFunctor
+    {ρ : (repnFunctor n G 𝓞).obj .residueField}
+    {A : ProartinianCat 𝓞} {τ : (repnFunctor n G 𝓞).obj A}
+    (hτ : τ ∈ (liftFunctor n G 𝓞 ρ).obj A) :
+    (toRepnQuot n G 𝓞).app A τ ∈ (deformationFunctor n G 𝓞 ρ).obj A := by
+  change (repnFunctor n G 𝓞).map
+      (ProartinianCat.isTerminalResidueField.from A) τ = ρ at hτ
+  change (repnQuotFunctor n G 𝓞).map
+      (ProartinianCat.isTerminalResidueField.from A)
+        ((toRepnQuot n G 𝓞).app A τ) =
+      (toRepnQuot n G 𝓞).app .residueField ρ
+  calc
+    (repnQuotFunctor n G 𝓞).map
+        (ProartinianCat.isTerminalResidueField.from A)
+          ((toRepnQuot n G 𝓞).app A τ) =
+        (toRepnQuot n G 𝓞).app .residueField
+          ((repnFunctor n G 𝓞).map
+            (ProartinianCat.isTerminalResidueField.from A) τ) :=
+      (toRepnQuot n G 𝓞).naturality_apply
+        (ProartinianCat.isTerminalResidueField.from A) τ
+    _ = (toRepnQuot n G 𝓞).app .residueField ρ := by rw [hτ]
+
+/-- Bundle the strict-equivalence class of a lift as a point of the unrestricted
+deformation functor. -/
+noncomputable def deformationClassOfLift
+    (ρ : (repnFunctor n G 𝓞).obj .residueField)
+    {A : ProartinianCat 𝓞} (τ : (repnFunctor n G 𝓞).obj A)
+    (hτ : τ ∈ (liftFunctor n G 𝓞 ρ).obj A) :
+    (deformationFunctor n G 𝓞 ρ).toFunctor.obj A :=
+  ⟨(toRepnQuot n G 𝓞).app A τ,
+    toRepnQuot_mem_deformationFunctor_of_mem_liftFunctor
+      (n := n) (G := G) (𝓞 := 𝓞) hτ⟩
+
+@[simp]
+lemma deformationClassOfLift_val
+    (ρ : (repnFunctor n G 𝓞).obj .residueField)
+    {A : ProartinianCat 𝓞} (τ : (repnFunctor n G 𝓞).obj A)
+    (hτ : τ ∈ (liftFunctor n G 𝓞 ρ).obj A) :
+    (deformationClassOfLift (n := n) (G := G) (𝓞 := 𝓞) ρ τ hτ).1 =
+      (toRepnQuot n G 𝓞).app A τ :=
+  rfl
+
 /-- The subfunctor of flat lifts. This probably only makes sense when `𝓞` is `v`-adic. -/
 def flatFunctor (v : Ω K) : Subfunctor (repnFunctor n (Γ K) 𝓞) where
   obj R := { ρ | (toFramedGaloisRep ρ).IsFlatAt v }
